@@ -55,7 +55,7 @@ export class TotemService {
   async #event(campaignId, type, data) {
     const occurredAt = this.clock()
     return this.repository.appendEvent({
-      sequence: await this.repository.nextEventSequence(),
+      sequence: typeof this.repository.nextEventSequence === 'function' ? await this.repository.nextEventSequence() : 0,
       campaignId,
       type,
       data,
