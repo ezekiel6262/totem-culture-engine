@@ -14,6 +14,7 @@ export class MemoryAuthRepository {
   async consumeOnce(nonce) { if (this.#consumed.has(nonce)) return false; this.#consumed.add(nonce); return true }
   async saveSession(session) { this.#sessions.set(session.tokenHash, structuredClone(session)); return session }
   async getSession(token) { return structuredClone(this.#sessions.get(tokenHash(token)) ?? null) }
+  async getSessionHash(hash) { return structuredClone(this.#sessions.get(hash) ?? null) }
 }
 
 export class TotemAuthService {
@@ -41,7 +42,9 @@ export class TotemAuthService {
   }
   async authenticate(token) {
     invariant(token, 'AUTH_REQUIRED', 'Authentication is required')
-    const session = await this.repository.getSession(token)
+    const session = typeof this.repository.getSessionHash === 'function'
+      ? await this.repository.getSessionHash(tokenHash(token))
+      : await this.repository.getSession(token)
     invariant(session && session.expiresAt >= this.clock(), 'AUTH_SESSION_INVALID', 'Session is invalid or expired')
     return { accountId: session.accountId, publicKey: session.publicKey }
   }

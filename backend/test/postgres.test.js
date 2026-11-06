@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PostgresTotemRepository } from '../src/index.js'
+import { PostgresAuthRepository, PostgresTotemRepository } from '../src/index.js'
 
 const campaign = {
   id: 'bbc', creatorAccountId: 'creator.near', subjectContractId: 'bbc.near', mode: 'token_first',
@@ -24,4 +24,12 @@ test('Postgres checkpoint upsert refuses to replace a newer finalized observatio
   const result = await repository.upsertCheckpoint(checkpoint)
   assert.equal(result.updated, false)
   assert.match(queries[0].text, /block_height < excluded\.block_height/)
+})
+
+test('Postgres auth challenge consumption is atomic', async () => {
+  const calls = []
+  const sql = { query: async (text, values) => { calls.push({ text, values }); return { rowCount: 1, rows: [{ nonce: values[0] }] } } }
+  const repository = new PostgresAuthRepository(sql)
+  assert.equal(await repository.consumeOnce('nonce'), true)
+  assert.match(calls[0].text, /consumed_at is null/)
 })
