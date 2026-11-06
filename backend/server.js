@@ -3,13 +3,13 @@ import {readFile,stat} from 'node:fs/promises'
 import {extname,join,normalize} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {BBC_CAMPAIGN} from './src/demo-campaign.js'
-import {createTotemApi,MemoryAuthRepository,MemoryTotemRepository,NearRpcClient,TotemAuthService,TotemService} from './src/index.js'
+import {CoordinationService,createTotemApi,MemoryAuthRepository,MemoryCoordinationRepository,MemoryTotemRepository,NearRpcClient,TotemAuthService,TotemService} from './src/index.js'
 const root=fileURLToPath(new URL('../dist/',import.meta.url))
 const repository=new MemoryTotemRepository(),service=new TotemService(repository)
 await service.createCampaign(BBC_CAMPAIGN)
 const auth=new TotemAuthService({repository:new MemoryAuthRepository(),recipient:process.env.TOTEM_AUTH_RECIPIENT??'localhost',rpc:new NearRpcClient({endpoint:process.env.NEAR_RPC_URL??'https://rpc.mainnet.near.org'})})
-const api=createTotemApi({repository,service,auth})
-const routes=new Map([['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents]])
+const api=createTotemApi({repository,service,auth,coordination:new CoordinationService(new MemoryCoordinationRepository())})
+const routes=new Map([['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'}
 const webRequest=req=>{const init={method:req.method,headers:req.headers};if(!['GET','HEAD'].includes(req.method))init.body=req;return new Request('http://'+(req.headers.host??'localhost')+req.url,init)}
 const send=async(res,response)=>{res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))}

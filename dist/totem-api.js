@@ -24,6 +24,7 @@
     evaluate(campaignId,accountId,checkpoints){return this.request('/api/v1/eligibility/evaluate',{method:'POST',body:{campaignId,accountId,checkpoints}})}
     prepareMint(input){return this.request('/api/v1/mints/prepare',{method:'POST',body:input,authenticated:true})}
     events(campaignId,{afterSequence=0,limit=50}={}){return this.request('/api/v1/events?campaignId='+encodeURIComponent(campaignId)+'&afterSequence='+afterSequence+'&limit='+limit)}
+    vote(input){return this.request('/api/v1/votes',{method:'POST',body:input,authenticated:true})}
     health(){return this.request('/api/health')}
   }
   global.TotemApiClient=TotemApiClient

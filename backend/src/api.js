@@ -1,7 +1,7 @@
 import { jsonHandler } from './http.js'
 import { invariant } from './errors.js'
 const requirePost = request => invariant(request.method === 'POST', 'METHOD_NOT_ALLOWED', 'This endpoint requires POST')
-export function createTotemApi({ service, repository, auth = null }) {
+export function createTotemApi({ service, repository, auth = null, coordination = null }) {
   invariant(service && repository, 'API_CONFIGURATION_INVALID', 'Totem API requires a service and repository')
   const principal = async request => {
     if (!auth) return null
@@ -42,5 +42,11 @@ export function createTotemApi({ service, repository, auth = null }) {
       return auth.authenticate(header.startsWith('Bearer ') ? header.slice(7) : '')
     })
   }
+  if (coordination) api.vote = jsonHandler(async ({ request, body }) => {
+    requirePost(request)
+    const identity = await principal(request)
+    invariant(identity && identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Vote account must match the authenticated account')
+    return coordination.vote(body)
+  })
   return api
 }
