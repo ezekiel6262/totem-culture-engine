@@ -10,6 +10,9 @@ This package is deliberately frontend-independent. It provides the deterministic
 - Deterministic branching evolution selection.
 - Exact basis-point fee routing with smallest-unit remainder handling.
 - Versioned Web `Request`/`Response` API handler suitable for a Node.js Function.
+- Immutable campaign version hash chains and strict NEAR account/campaign validation.
+- Idempotent mint-command preparation with a public append-only audit feed.
+- Portable Postgres schema for campaigns, checkpoints, receipts, commands, and audit events.
 
 ## Deliberate boundary
 
@@ -17,7 +20,7 @@ This package is deliberately frontend-independent. It provides the deterministic
 
 ## Next adapters
 
-1. Postgres repository with unique constraints for receipts, transitions, and mint commands.
+1. Postgres repository implementation against `db/001_initial.sql`.
 2. NEAR RPC/indexer checkpoint ingestion with finality confirmation.
 3. NEP-413 wallet authentication and oracle issuer registry.
 4. Rust contracts for campaign registry, identity NFT, and bounded treasury routing.
