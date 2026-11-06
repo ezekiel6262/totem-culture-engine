@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="{{ wrap }}">
+  <sc-if value="{{ hasCrown }}" hint-placeholder-val="{{ true }}"><div style="{{ crownS }}"></div></sc-if>
+  <div style="{{ headS }}">
+    <sc-if value="{{ hasEyes }}" hint-placeholder-val="{{ true }}">
+      <div style="{{ eyesRow }}"><div style="{{ eyeS }}"><div style="{{ pupilS }}"></div></div><div style="{{ eyeS }}"><div style="{{ pupilS }}"></div></div></div>
+    </sc-if>
+    <sc-if value="{{ hasLabel }}" hint-placeholder-val="{{ false }}"><div style="{{ labelS }}">{{ label }}</div></sc-if>
+  </div>
+  <sc-if value="{{ hasBody }}" hint-placeholder-val="{{ true }}">
+    <div style="{{ bodyRow }}"><div style="{{ wingL }}"></div><div style="{{ bodyS }}"><sc-if value="{{ hasBodyLabel }}" hint-placeholder-val="{{ false }}"><div style="{{ bodyLabelS }}">{{ bodyLabel }}</div></sc-if></div><div style="{{ wingR }}"></div></div>
+  </sc-if>
+  <sc-if value="{{ hasBase }}" hint-placeholder-val="{{ false }}"><div style="{{ baseS }}">{{ baseLabel }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:200,&quot;height&quot;:260},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:120,&quot;tsType&quot;:&quot;number&quot;},&quot;crown&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;#00E89A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;head&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;#EDE6D8&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;eye&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#00E89A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;eyeBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#0D0D0B&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;body&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;#EDE6D8&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;bodyFill&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#0D0D0B&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;bodyH&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:0.42,&quot;tsType&quot;:&quot;number&quot;},&quot;wings&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;base&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;baseLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;labelColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#0D0D0B&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;bodyLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;bodyLabelColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#0D0D0B&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, w = Number(p.size ?? 120), r = Math.round(w * 0.08);
+    const dash = '2px dashed #4A4A42', mono = "'JetBrains Mono',monospace";
+    const crown = p.crown ?? 'none', head = p.head ?? '#EDE6D8', body = p.body ?? '#EDE6D8';
+    const bodyH = w * Number(p.bodyH ?? 0.42), bw = Math.max(2, Math.round(w * 0.025));
+    const wing = (s) => ({ width: w * 0.12, height: bodyH * 0.55, flexShrink: 0, background: p.wings || 'transparent', clipPath: s === 'l' ? 'polygon(100% 0,0 50%,100% 100%)' : 'polygon(0 0,100% 50%,0 100%)' });
+    return {
+      label: p.label, bodyLabel: p.bodyLabel, baseLabel: p.baseLabel,
+      hasCrown: crown !== 'none', hasEyes: head !== 'ghost', hasLabel: !!p.label, hasBody: body !== 'none', hasBodyLabel: !!p.bodyLabel, hasBase: !!p.base,
+      wrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: Math.max(3, w * 0.035) },
+      crownS: crown === 'ghost' ? { width: w * 0.6, height: w * 0.2, border: dash, borderRadius: 4, boxSizing: 'border-box' } : { width: w * 0.6, height: w * 0.2, background: crown, clipPath: 'polygon(0 100%,6% 25%,30% 70%,50% 0,70% 70%,94% 25%,100% 100%)', marginBottom: -w * 0.035 },
+      headS: head === 'ghost' ? { width: w * 0.72, height: w * 0.4, border: dash, borderRadius: r, boxSizing: 'border-box' } : { width: w * 0.72, height: w * 0.4, background: head, borderRadius: r, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: w * 0.04 },
+      eyesRow: { display: 'flex', gap: w * 0.14 },
+      eyeS: { width: w * 0.14, height: w * 0.14, borderRadius: '50%', background: p.eyeBg ?? '#0D0D0B', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      pupilS: { width: w * 0.055, height: w * 0.055, borderRadius: '50%', background: p.eye ?? '#00E89A' },
+      labelS: { fontFamily: mono, fontSize: Math.max(9, w * 0.065), letterSpacing: '0.06em', color: p.labelColor ?? '#0D0D0B', fontWeight: 500 },
+      bodyRow: { display: 'flex', alignItems: 'center' },
+      wingL: wing('l'), wingR: wing('r'),
+      bodyS: body === 'ghost' ? { width: w * 0.72, height: bodyH, border: dash, borderRadius: r, boxSizing: 'border-box' } : { width: w * 0.72, height: bodyH, border: `${bw}px solid ${body}`, background: p.bodyFill ?? '#0D0D0B', borderRadius: r, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' },
+      bodyLabelS: { fontFamily: mono, fontSize: Math.max(9, w * 0.06), letterSpacing: '0.06em', color: p.bodyLabelColor ?? '#0D0D0B', fontWeight: 500 },
+      baseS: { width: w * 0.72, height: w * 0.22, background: p.base, borderRadius: r, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: mono, fontSize: Math.max(10, w * 0.08), color: '#0D0D0B', fontWeight: 500 }
+    };
+  }
+}
+</script>
+</body>
+</html>

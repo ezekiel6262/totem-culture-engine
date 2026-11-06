@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0D0D0B;color:#EDE6D8;font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#00E89A;text-decoration:none}a:hover{color:#EDE6D8}button{font:inherit}</style>
+</helmet>
+<div data-screen-label="14 Council" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 48px;border-bottom:1px solid #24241F;max-width:1400px;margin:0 auto">
+    <a href="Community.dc.html" style="color:#EDE6D8;font-size:20px">‹&nbsp; $BBC</a>
+    <span style="padding:6px 10px;background:#FF6B3D;color:#0D0D0B;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px">DEMO DATA</span>
+  </div>
+  <div style="max-width:1300px;margin:0 auto;padding:44px 48px 80px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:28px">
+      <div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.06em;color:#00E89A">THE COUNCIL · TOTEMS VOTE, NOT WHALES</div><h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(40px,5vw,66px);letter-spacing:-0.045em;margin:10px 0 0;line-height:1">Decide the next season</h1></div>
+      <div style="display:flex;gap:28px;background:#141410;border:1px solid #26261F;border-radius:14px;padding:16px 26px">
+        <div><div style="font-size:14px;color:#C9C3B6">Your voice</div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:30px">3 votes</div></div>
+        <div><div style="font-size:14px;color:#C9C3B6">Rule</div><div style="font-size:16px;line-height:1.4;margin-top:4px">Tier I = 1 · Tier II = 2 · Tier III = 3.<br>Frozen = 0.</div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px;align-items:start">
+      <div style="grid-column:span 3;min-width:0;display:flex;flex-direction:column;gap:18px">
+        <sc-for list="{{ props }}" as="p" hint-placeholder-count="4">
+          <div style="background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px 30px">
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px;margin-bottom:14px"><span style="color:#A8A397">{{ p.id }}</span><span style="{{ p.endS }}">{{ p.ends }}</span></div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.01em;margin-bottom:12px">{{ p.title }}</div>
+            <div style="font-size:18px;color:#C9C3B6;margin-bottom:18px">{{ p.desc }}</div>
+            <div style="display:flex;height:12px;border-radius:9px;overflow:hidden;margin-bottom:18px"><div style="{{ p.yesS }}"></div><div style="flex:1;background:#FF6B3D"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:16px">YES {{ p.yes }} · NO {{ p.no }}{{ p.mine }}</span>
+              <div style="display:flex;gap:10px"><button onClick="{{ p.vy }}" style="{{ p.yBtn }}">Yes</button><button onClick="{{ p.vn }}" style="{{ p.nBtn }}">No</button></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="background:#EDE6D8;color:#0D0D0B;border-radius:20px;padding:30px">
+          <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;margin:0 0 14px">Council budget</h2>
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:50px;letter-spacing:-0.02em">2,900 NEAR</div>
+          <div style="font-size:17px;line-height:1.4;margin-top:12px">Spent only by passed proposals. Every payout appears in the fee ledger.</div>
+        </div>
+        <button style="padding:20px;border:1.5px dashed #00E89A;border-radius:14px;background:transparent;color:#EDE6D8;font-weight:600;font-size:19px;cursor:pointer" style-hover="background:#141410">Draft a proposal</button>
+        <div style="font-size:16px;line-height:1.6;color:#A8A397">Drafting needs a Tier II totem. Keeps spam proposals out without letting balance alone decide.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { votes: {} };
+  renderVals() {
+    const P = [['P-07 · ALLIANCE', 'ENDS IN 2D', 'Arena alliance with $FUFU for Season 02', 'Shared raid targets and a joint trophy segment. Both treasuries add 300 NEAR to the prize pool.', 214, 61, true], ['P-06 · FEE ROUTE', 'ENDS IN 4D', 'Shift 5% from creator to quest prizes', 'Creator agreed in principle. Raises prizes to 35% for Season 02.', 188, 102], ['P-05 · TRAIT', 'ENDS IN 6D', 'Activate Kente Wings', 'Artist weaver.near. Becomes equippable for Tier II and above.', 301, 70], ['P-04 · DECAY', 'ENDS IN 9D', 'Thaw window: 7 days to rebuy without losing streak', 'Frozen holders who rebuy within a week keep their streak count.', 96, 140]];
+    const v = this.state.votes;
+    return {
+      props: P.map(([id, ends, title, desc, y0, n0, urgent], i) => {
+        const m = v[i], yes = y0 + (m === 'y' ? 3 : 0), no = n0 + (m === 'n' ? 3 : 0);
+        const cast = c => this.setState({ votes: { ...v, [i]: m === c ? undefined : c } });
+        const btn = (on, c) => ({ padding: '12px 24px', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 19, border: `1.5px solid ${c}`, background: on ? c : 'transparent', color: on ? '#0D0D0B' : '#EDE6D8' });
+        return { id, ends, title, desc, yes, no, mine: m ? ` · you: ${m === 'y' ? 'YES' : 'NO'} ×3` : '', endS: { color: urgent ? '#FF6B3D' : '#A8A397' }, yesS: { width: `${yes / (yes + no) * 100}%`, background: '#00E89A', transition: 'width .3s' }, vy: () => cast('y'), vn: () => cast('n'), yBtn: btn(m === 'y', '#00E89A'), nBtn: btn(m === 'n', '#FF6B3D') };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

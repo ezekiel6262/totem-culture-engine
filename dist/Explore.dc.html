@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0D0D0B;color:#EDE6D8;font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#00E89A;text-decoration:none}a:hover{color:#EDE6D8}input,button{font:inherit}</style>
+</helmet>
+<div data-screen-label="06 Explore" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:1px solid #24241F;gap:24px;flex-wrap:wrap">
+    <a href="Landing.dc.html" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:#EDE6D8">TOTEM</a>
+    <div style="display:flex;gap:28px;font-size:16px;flex-wrap:wrap">
+      <a href="Explore.dc.html" style="color:#00E89A">Explore</a><a href="Arena.dc.html" style="color:#EDE6D8">Arena</a><a href="Traits.dc.html" style="color:#EDE6D8">Trait market</a><a href="Forge-Origin.dc.html" style="color:#EDE6D8">Launch</a><a href="Docs.dc.html" style="color:#EDE6D8">Docs</a>
+    </div>
+    <a href="Profile.dc.html" style="display:flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid #2E2E28;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:14px;color:#EDE6D8"><span style="width:9px;height:9px;border-radius:2px;background:#00E89A"></span>ada.totem.near</a>
+  </div>
+  <div style="max-width:1400px;margin:0 auto;padding:48px 48px 80px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:22px">
+      <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(44px,5vw,68px);letter-spacing:-0.045em;margin:0;line-height:1">Living cultures</h1>
+      <span style="padding:6px 10px;background:#FF6B3D;color:#0D0D0B;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em">DEMO DATA</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+      <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Search by ticker, .near name or vibe" style="flex:1 1 360px;min-width:0;background:#141410;border:1px solid #2A2A24;border-radius:10px;padding:14px 18px;color:#EDE6D8;font-size:16px;outline:none">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5"><button onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+    </div>
+    <a href="Community.dc.html" style="display:flex;justify-content:space-between;align-items:center;gap:30px;flex-wrap:wrap;background:#EDE6D8;color:#0D0D0B;border-radius:20px;padding:36px 42px;margin-bottom:28px" style-hover="color:#0D0D0B;background:#F4EEE2">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.06em">CULTURE OF THE WEEK · TOKEN-FIRST</div>
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:64px;letter-spacing:-0.03em;margin:6px 0">$BBC</div>
+        <div style="font-size:18px;line-height:1.5;max-width:520px;margin-bottom:18px">412 totems carved, Season 01 live, leading the Arena against $DOGGO.</div>
+        <div style="display:flex;gap:4px;height:20px;width:440px;max-width:100%"><div style="flex:10;background:#00E89A"></div><div style="flex:6;background:#0D0D0B"></div><div style="flex:4;background:#FF6B3D"></div><div style="flex:8;background:#5A5A50"></div><div style="flex:4;background:#0D0D0B"></div></div>
+      </div>
+      <div style="display:flex;gap:40px;padding-right:40px">
+        <dc-import name="Totem" size="100" crown="#00E89A" head="#0D0D0B" eye-bg="#00E89A" eye="#00E89A" body="#0D0D0B" body-fill="#0D0D0B" body-h="0.6" hint-size="100px,150px"></dc-import>
+        <dc-import name="Totem" size="100" crown="#FF6B3D" head="#0D0D0B" eye-bg="#FF6B3D" eye="#FF6B3D" body="#0D0D0B" body-fill="#0D0D0B" body-h="0.6" hint-size="100px,150px"></dc-import>
+      </div>
+    </a>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px;align-items:start">
+      <div style="grid-column:span 3;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <a href="Community.dc.html" style="display:flex;flex-direction:column;background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px;color:#EDE6D8;min-height:240px" style-hover="border-color:#4A4A42;color:#EDE6D8">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;letter-spacing:-0.02em;line-height:1.05">{{ c.name }}</div>
+              <span style="{{ c.tagS }}">{{ c.tag }}</span>
+            </div>
+            <div style="display:flex;gap:4px;height:14px;margin-bottom:22px"><sc-for list="{{ c.bars }}" as="b" hint-placeholder-count="4"><div style="{{ b }}"></div></sc-for></div>
+            <div style="font-size:17px;line-height:1.5;color:#C9C3B6;flex:1">{{ c.desc }}</div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px;color:#A8A397;margin-top:20px"><span>{{ c.totems }} totems</span><span>{{ c.rule }}</span></div>
+          </a>
+        </sc-for>
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:40px;color:#A8A397;border:1px dashed #33332C;border-radius:18px">No cultures match. Try another filter.</div></sc-if>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="border:1.5px dashed #FF6B3D;border-radius:18px;padding:26px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.06em;color:#FF6B3D;margin-bottom:16px">ORACLE FEED</div>
+          <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">Lagos Derby: final whistle confirmed. 1,904 totems updated.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">2 min ago</div></div>
+          <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">$BBC crossed its Season 01 holder milestone.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">41 min ago</div></div>
+          <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">Afrobeats Drop: stream target reached, Gold Ear trait live.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">3 h ago</div></div>
+          <div style="padding:12px 0"><div style="font-size:17px;line-height:1.35">$MOON survived a 40% drawdown. Crater crowns granted.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">Yesterday</div></div>
+        </div>
+        <a href="Forge-Origin.dc.html" style="display:block;background:#00E89A;color:#0D0D0B;border-radius:18px;padding:28px" style-hover="background:#4DF2BA;color:#0D0D0B">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.02em;margin-bottom:8px">Start a culture</div>
+          <div style="font-size:17px;line-height:1.4">Token-first, NFT-first or born from an event.</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { filter: 'Trending', q: '' };
+  renderVals() {
+    const s = this.state, G = '#00E89A', C = '#EDE6D8', O = '#FF6B3D', D = '#3A3A33';
+    const data = [
+      { name: '$DOGGO', type: 'TOKEN-FIRST', bars: [[5, G], [7, C], [3, O], [5, D]], desc: 'Pack ranks evolve by raid wins. Losers keep a scar trait.', totems: 287, rule: 'Hold 50,000', tags: ['Trending', 'I qualify'] },
+      { name: 'Lagos Derby', type: 'EVENT-BORN', bars: [[3, G], [3, C], [9, O], [4, D]], desc: 'Supporter totems rewrite themselves at the final whistle.', totems: '1,904', rule: 'Check-in or hold', tags: ['Trending', 'Event-born', 'I qualify'] },
+      { name: 'Glyphs', type: 'NFT-FIRST', bars: [[6, G], [7, C], [1.5, O], [4.5, D]], desc: 'An old collection minted $GLY. Holders feed new segments.', totems: 640, rule: 'Own a Glyph', tags: ['Trending', 'NFT-first', 'I qualify'] },
+      { name: '$FUFU', type: 'TOKEN-FIRST', bars: [[9, G], [3, C], [3, O], [4.5, D]], desc: 'Recipe quests. Each season unlocks a new dish trait.', totems: 158, rule: 'Hold 10,000', tags: ['New launches'] },
+      { name: 'Afrobeats Drop', type: 'EVENT-BORN', bars: [[3, G], [4.5, C], [7.5, O], [4.5, D]], desc: 'Album release fan quests. Streams verified by oracle.', totems: '3,212', rule: 'Quest to mint', tags: ['Trending', 'Event-born', 'New launches'] },
+      { name: '$MOON', type: 'TOKEN-FIRST', bars: [[7, G], [4, C], [4, O], [4.5, D]], desc: 'Survive every red day to grow a crater crown.', totems: 77, rule: 'Hold 1,000,000', tags: ['New launches'] }
+    ];
+    const q = s.q.toLowerCase();
+    const list = data.filter(d => d.tags.includes(s.filter) && (!q || (d.name + d.desc).toLowerCase().includes(q)));
+    const tagC = { 'TOKEN-FIRST': G, 'EVENT-BORN': O, 'NFT-FIRST': C };
+    return {
+      q: s.q, setQ: e => this.setState({ q: e.target.value }), empty: list.length === 0,
+      filters: ['Trending', 'New launches', 'Event-born', 'NFT-first', 'I qualify'].map(f => { const on = f === s.filter; return { label: f, pick: () => this.setState({ filter: f }), style: { padding: '12px 22px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? C : 'transparent', color: on ? '#0D0D0B' : C, border: on ? `1px solid ${C}` : '1px solid #3A3A33' } }; }),
+      cards: list.map(d => ({ ...d, tag: d.type, tagS: { fontFamily: "'JetBrains Mono',monospace", fontSize: 12, letterSpacing: '0.05em', padding: '6px 10px', border: `1px solid ${tagC[d.type]}`, color: tagC[d.type], borderRadius: 6, whiteSpace: 'nowrap' }, bars: d.bars.map(([f, c]) => ({ flex: f, background: c, borderRadius: 1 })) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
