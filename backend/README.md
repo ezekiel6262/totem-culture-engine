@@ -16,6 +16,7 @@ This package is deliberately frontend-independent. It provides the deterministic
 - NEAR RPC client that pins NEP-141 balance observations to one finalized block hash.
 - NEP-413 authentication verifier with Borsh domain separation, state/nonce replay protection, and live full-access-key confirmation.
 - Concrete Postgres repository using atomic upserts and conflict-safe command creation.
+- Versioned HTTP handlers for campaign creation, eligibility evaluation, idempotent mint preparation, and public audit events.
 
 ## Deliberate boundary
 
@@ -24,6 +25,6 @@ This package is deliberately frontend-independent. It provides the deterministic
 ## Next adapters
 
 1. Bind the Postgres repository to the selected serverless pool/driver.
-2. Add HTTP routes for auth challenge/verification and campaign commands.
+2. Add HTTP routes for NEP-413 auth challenge/verification.
 3. Add oracle issuer registry and receipt persistence.
 4. Rust contracts for campaign registry, identity NFT, and bounded treasury routing.
