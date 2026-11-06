@@ -1,12 +1,27 @@
 import { jsonHandler } from './http.js'
 import { invariant } from './errors.js'
 const requirePost = request => invariant(request.method === 'POST', 'METHOD_NOT_ALLOWED', 'This endpoint requires POST')
-export function createTotemApi({ service, repository }) {
+export function createTotemApi({ service, repository, auth = null }) {
   invariant(service && repository, 'API_CONFIGURATION_INVALID', 'Totem API requires a service and repository')
-  return {
-    createCampaign: jsonHandler(async ({ request, body }) => { requirePost(request); return service.createCampaign(body) }),
+  const principal = async request => {
+    if (!auth) return null
+    const header = request.headers.get('authorization') ?? ''
+    return auth.authenticate(header.startsWith('Bearer ') ? header.slice(7) : '')
+  }
+  const api = {
+    createCampaign: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      if (identity) invariant(identity.accountId === body?.creatorAccountId, 'AUTH_ACCOUNT_MISMATCH', 'Creator account must match the authenticated account')
+      return service.createCampaign(body)
+    }),
     evaluateEligibility: jsonHandler(async ({ request, body }) => { requirePost(request); return service.evaluate(body) }),
-    prepareMint: jsonHandler(async ({ request, body }) => { requirePost(request); return service.prepareMint(body) }),
+    prepareMint: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      if (identity) invariant(identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Mint account must match the authenticated account')
+      return service.prepareMint(body)
+    }),
     listEvents: jsonHandler(async ({ request }) => {
       invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
       const url = new URL(request.url), campaignId = url.searchParams.get('campaignId')
@@ -18,4 +33,14 @@ export function createTotemApi({ service, repository }) {
       return repository.listEvents({ campaignId, afterSequence, limit })
     })
   }
+  if (auth) {
+    api.createAuthChallenge = jsonHandler(async ({ request, body }) => { requirePost(request); return auth.challenge(body?.accountId) })
+    api.verifyAuth = jsonHandler(async ({ request, body }) => { requirePost(request); return auth.verify(body) })
+    api.getSession = jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      const header = request.headers.get('authorization') ?? ''
+      return auth.authenticate(header.startsWith('Bearer ') ? header.slice(7) : '')
+    })
+  }
+  return api
 }
