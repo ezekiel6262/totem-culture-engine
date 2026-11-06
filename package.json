@@ -8,7 +8,8 @@
     "backend:demo": "node backend/scripts/demo.js",
     "start": "node backend/server.js",
     "db:migrate": "node backend/scripts/migrate.js",
-    "build:wallet": "node scripts/build-wallet.js"
+    "build:wallet": "node scripts/build-wallet.js",
+    "build:lambda": "esbuild backend/lambda.js --bundle --platform=node --format=esm --target=node24 --outfile=build/lambda.js"
   },
   "engines": {
     "node": ">=22"

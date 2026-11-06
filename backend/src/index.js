@@ -16,6 +16,7 @@ export { CoordinationService, MemoryCoordinationRepository } from './coordinatio
 export { loadConfig } from './config.js'
 export { PostgresClient } from './database.js'
 export { PostgresCoordinationRepository } from './postgres-coordination-repository.js'
+export { createApplicationRuntime } from './application-runtime.js'
 export { decodeBase58, encodeBase58 } from './base58.js'
 export { serializeNep413Payload, nep413Digest, createAuthChallenge, verifyNep413Authentication, MemoryChallengeStore } from './nep413.js'
 export { NearRpcClient } from './near-rpc.js'

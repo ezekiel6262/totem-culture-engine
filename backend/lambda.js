@@ -1,0 +1,5 @@
+import {loadConfig} from './src/config.js'
+import {createApplicationRuntime} from './src/application-runtime.js'
+const runtimePromise=createApplicationRuntime(loadConfig())
+function toRequest(event){const query=event.rawQueryString?'?'+event.rawQueryString:'';const init={method:event.requestContext?.http?.method??'GET',headers:event.headers??{}};if(event.body)init.body=event.isBase64Encoded?Buffer.from(event.body,'base64'):event.body;return new Request('https://totem.internal'+(event.rawPath??'/')+query,init)}
+export async function handler(event){const request=toRequest(event),path=new URL(request.url).pathname;if(path==='/api/health')return{statusCode:200,headers:{'content-type':'application/json'},body:JSON.stringify({status:'ok',service:'totem',version:'v1'})};const runtime=await runtimePromise,route=runtime.routes.get(request.method+' '+path);const response=route?await route(request):Response.json({error:{code:'NOT_FOUND',message:'Route not found'}},{status:404});return{statusCode:response.status,headers:Object.fromEntries(response.headers),body:await response.text(),isBase64Encoded:false}}

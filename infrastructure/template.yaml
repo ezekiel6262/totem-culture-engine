@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Totem culture engine API
+Parameters:
+  DatabaseUrl: {Type: String, NoEcho: true}
+  AuthRecipient: {Type: String}
+  NearRpcUrl: {Type: String, Default: 'https://rpc.mainnet.near.org'}
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 20
+    Tracing: Active
+    Environment:
+      Variables:
+        NODE_ENV: production
+        DATABASE_URL: !Ref DatabaseUrl
+        TOTEM_AUTH_RECIPIENT: !Ref AuthRecipient
+        NEAR_RPC_URL: !Ref NearRpcUrl
+        TOTEM_SEED_DEMO: 'false'
+Resources:
+  TotemApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: backend/lambda.handler
+      CodeUri: ../
+      ReservedConcurrentExecutions: 5
+      Events:
+        Root: {Type: HttpApi, Properties: {Path: /api, Method: ANY}}
+        Proxy: {Type: HttpApi, Properties: {Path: '/api/{proxy+}', Method: ANY}}
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [backend/lambda.js]
+        Format: esm
+        Target: es2022
+        Minify: true
+        Sourcemap: false
+Outputs:
+  ApiUrl:
+    Value: !Sub 'https://\${ServerlessHttpApi}.execute-api.\${AWS::Region}.amazonaws.com'
