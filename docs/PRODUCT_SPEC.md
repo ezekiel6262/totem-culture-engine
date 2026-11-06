@@ -1,10 +1,10 @@
-# Kinforge Product Specification
+# Totem Product Specification
 
 ## Product
 
-Kinforge is a reusable policy and progression layer for communities on NEAR. Its core primitive is a **Rite**: a versioned, auditable campaign that converts durable commitment plus verified action into a portable onchain identity state.
+Totem is a reusable policy and progression layer for communities on NEAR. Its core primitive is a **Rite**: a versioned, auditable campaign that converts durable commitment plus verified action into a portable onchain identity state.
 
-Pitch: **Kinforge turns token holders into participants, and participants into living communities.**
+Pitch: **Totem turns token holders into participants, and participants into living communities.**
 
 Primary tracks: Memecoins With Mechanics; NFTs That Do Something. Optional only when implemented: Games With Real Economies; Social Money.
 

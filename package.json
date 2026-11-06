@@ -1,0 +1,11 @@
+{
+  "name": "totem-culture-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test backend/test/*.test.js",
+    "backend:demo": "node backend/scripts/demo.js"
+  },
+  "engines": { "node": ">=22" }
+}
