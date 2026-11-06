@@ -1,101 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Totem turns token commitment and real participation into living NFT identity, access, and gameplay on NEAR." />
-  <title>Totem — Culture, programmed.</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div class="noise"></div>
-  <nav>
-    <a class="brand" href="#top"><span class="sigil">K</span>TOTEM <i>α</i></a>
-    <div class="nav-links"><a href="#engine">Engine</a><a href="#economy">Economy</a><a href="#integrity">Integrity</a></div>
-    <button class="wallet" id="walletBtn"><span></span> demo.near</button>
-  </nav>
-
-  <main id="top">
-    <section class="hero">
-      <div class="eyebrow"><b>LIVE PROTOTYPE</b> · NEAR HACKATHON 2026</div>
-      <h1>Culture,<br><em>programmed.</em></h1>
-      <p class="lede">Turn token commitment and real participation into living identity, access, and play.</p>
-      <div class="hero-actions"><button class="primary" data-scroll="#engine">Run the ritual <span>↘</span></button><a href="#thesis">Read the thesis</a></div>
-      <div class="manifesto">Launch a token. Grow a culture.<br>Turn participation into living ownership.</div>
-      <div class="orbit" aria-hidden="true"><div class="ring r1"></div><div class="ring r2"></div><div class="core">KIN<br><small>ENGINE</small></div><span class="n n1">TOKEN</span><span class="n n2">RITE</span><span class="n n3">IDENTITY</span><span class="n n4">UTILITY</span></div>
-    </section>
-
-    <section class="thesis" id="thesis">
-      <div><span class="section-no">01 / THESIS</span><h2>Not another<br>launchpad.</h2></div>
-      <div class="thesis-copy"><p>Launchpads end when the token starts trading. Totem starts there.</p><p>It is a reusable policy layer that reads durable commitment and verifiable actions, then writes those signals into NFTs that evolve, grant access, carry credentials, and enter games.</p><div class="formula"><span>COMMITMENT</span><b>+</b><span>PARTICIPATION</span><b>→</b><strong>LIVING OWNERSHIP</strong></div></div>
-    </section>
-
-    <section class="engine" id="engine">
-      <header><div><span class="section-no">02 / VERTICAL SLICE</span><h2>Forge a culture.</h2></div><div class="demo-badge">SIMULATED TIME · VERIFIABLE RULES</div></header>
-      <div class="demo-grid">
-        <aside>
-          <div class="campaign-mark"><span>BBC</span><div><b>BYTE BEASTS CLUB</b><small>bbc.demo.near</small></div></div>
-          <ol id="steps">
-            <li class="active" data-step="0"><i>01</i><span>Register token<small>Existing NEP-141</small></span></li>
-            <li data-step="1"><i>02</i><span>Prove commitment<small>Balance × duration</small></span></li>
-            <li data-step="2"><i>03</i><span>Complete rite<small>Verifiable challenge</small></span></li>
-            <li data-step="3"><i>04</i><span>Mint identity<small>Dynamic NEP-171</small></span></li>
-            <li data-step="4"><i>05</i><span>Enter the arena<small>Gated utility</small></span></li>
-          </ol>
-          <div class="boundary"><b>DEMO BOUNDARY</b><p>Token acquisition and elapsed time are simulated. Rule evaluation, state transitions, replay guards, and fee math run locally and deterministically.</p></div>
-        </aside>
-        <div class="console">
-          <div class="console-top"><span>CAMPAIGN / BBC GENESIS</span><span class="status"><i></i> ENGINE ONLINE</span></div>
-          <div class="panels">
-            <div class="panel active" data-panel="0">
-              <span class="kicker">TOKEN-FIRST TEMPLATE</span><h3>Register the signal.</h3><p>Connect an existing NEP-141 token. Totem does not custody funds or mint supply.</p>
-              <div class="token-card"><div class="coin">B</div><div><b>Byte Beasts Coin</b><small>bbc.demo.near · 18 decimals</small></div><span>VERIFIED</span></div>
-              <button class="primary next">Use BBC token <span>→</span></button>
-            </div>
-            <div class="panel" data-panel="1">
-              <span class="kicker">ANTI-SNAPSHOT ELIGIBILITY</span><h3>Commitment takes time.</h3><p>Hold at least 10,000 BBC for 7 days. A rolling time-weighted score defeats flash borrowing and last-block snapshots.</p>
-              <div class="meter-block"><div><span>Time-weighted balance</span><b id="balanceLabel">0 / 10,000 BBC·7d</b></div><div class="meter"><i id="holdMeter"></i></div><div class="proof-row"><span>WINDOW <b id="dayLabel">DAY 0 / 7</b></span><span>CHECKPOINTS <b id="checkLabel">0 / 7</b></span></div></div>
-              <button class="primary" id="simulateHold">Simulate next day <span>+24h</span></button>
-            </div>
-            <div class="panel" data-panel="2">
-              <span class="kicker">SIGNED CHALLENGE RECEIPT</span><h3>Make the meme travel.</h3><p>Submit a community creation. The demo verifier issues a single-use receipt bound to campaign, wallet, action, and nonce.</p>
-              <div class="challenge"><div class="meme"><b>BBC</b><span>BYTE<br>THE<br>WORLD</span></div><div><b>Publish an original meme</b><small>Oracle: demo.community.v1</small><small>Receipt expires in 15 min</small></div></div>
-              <button class="primary" id="completeRite">Verify challenge <span>↗</span></button>
-            </div>
-            <div class="panel" data-panel="3">
-              <span class="kicker">BRANCHING EVOLUTION</span><h3>Your behavior chose a role.</h3><p>This identity is owned by you. Utility can pause when conditions lapse; ownership never disappears.</p>
-              <div class="role-grid"><button class="role selected" data-role="guardian"><span class="avatar guardian">◇</span><b>Liquidity Guardian</b><small>Long hold + pool action</small></button><button class="role" data-role="maker"><span class="avatar maker">✦</span><b>Meme Maker</b><small>Challenge + referrals</small></button></div>
-              <button class="primary" id="mintBtn">Mint evolving identity <span>◎</span></button>
-            </div>
-            <div class="panel" data-panel="4">
-              <span class="kicker">NFT-GATED UTILITY</span><h3>The signal arena.</h3><p>Choose the strongest community signal. Your role modifies your vote; the NFT is the access key and game inventory.</p>
-              <div class="game"><button data-choice="lore">LORE<br><small>41%</small></button><button data-choice="chaos">CHAOS<br><small>34%</small></button><button data-choice="craft">CRAFT<br><small>25%</small></button></div>
-              <div class="minted"><span id="mintedAvatar">◇</span><div><b id="mintedRole">LIQUIDITY GUARDIAN #0042</b><small>Access active · Season 01</small></div></div>
-            </div>
-          </div>
-          <div class="event-log"><div><span>ENGINE LOG</span><button id="resetBtn">RESET DEMO</button></div><pre id="log">[ready] campaign bbc-genesis loaded\n[guard] replay + idempotency checks active</pre></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="economy" id="economy">
-      <span class="section-no">03 / ECONOMIC FLOW</span><div class="economy-head"><h2>Every unit<br>has a destination.</h2><p>Routing is configured before launch, bounded by policy, and visible to everyone. No promises of passive yield—budgets fund culture.</p></div>
-      <div class="flow">
-        <div class="flow-source"><span>MINT FEE</span><b>1.00 Ⓝ</b></div><i></i>
-        <div class="split"><div><span>45%</span><b>COMMUNITY<br>TREASURY</b><small>0.45 Ⓝ</small></div><div><span>35%</span><b>CREATOR +<br>ARTIST</b><small>0.35 Ⓝ</small></div><div><span>20%</span><b>SEASON<br>PRIZE POOL</b><small>0.20 Ⓝ</small></div></div>
-      </div>
-    </section>
-
-    <section class="integrity" id="integrity">
-      <div><span class="section-no">04 / TRUST MODEL</span><h2>Rules before vibes.</h2></div>
-      <div class="integrity-grid"><article><b>01</b><h3>Durable proof</h3><p>Windowed balance checkpoints and time-weighted commitment—not one manipulable snapshot.</p></article><article><b>02</b><h3>Bound receipts</h3><p>Every challenge proof names its issuer, subject, campaign, action, nonce, expiry, and provenance hash.</p></article><article><b>03</b><h3>Scoped power</h3><p>Creator roles, treasury caps, timelocked rule changes, pause controls, and an exit-safe ownership model.</p></article><article><b>04</b><h3>Honest boundaries</h3><p>Simulation is labeled. Tokens and NFTs only appear where portable ownership or public coordination adds value.</p></article></div>
-    </section>
-  </main>
-  <footer><div class="brand"><span class="sigil">K</span>TOTEM</div><p>Launch a token. Grow a culture.<br>Turn participation into living ownership.</p><div><span>BUILT ON NEAR</span><small>Prototype · November 2026</small></div></footer>
-  <div class="toast" id="toast"></div>
-  <script src="app.js"></script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Totem — Culture Engine on NEAR</title><link rel="stylesheet" href="styles.css"></head><body>
+<header><b>♜ TOTEM</b><nav><a href="#explore">Explore</a><a href="#arena">Arena</a><a href="#market">Trait market</a><a href="#docs">Docs</a></nav><button class="go">Launch a culture ↗</button></header>
+<main><section class="hero"><div><small>CULTURE ENGINE · TOKEN TO NFT · NEAR</small><h1>Launch a token.<br>Grow a culture.<br><em>Carve your totem.</em></h1><p>Turn memecoin communities into living NFT worlds. Creators write the rules. Holders earn their place. Every action adds a segment.</p><button class="lime go">Write your Community DNA ↗</button> <a href="#community">See live $BBC</a></div><figure><i>⬟<b>◆</b>⬢<b>◇</b>⬟</i></figure></section>
+<div class="dna"><b>COMMUNITY DNA</b> HOLD → STREAK → QUEST → BRANCH → DECAY → FEES</div>
+<section class="intro" id="explore"><small>01 · THE LOOP</small><h2>A chart is a moment.<br>A totem is a record.</h2><p>Totem turns sustained participation into identity people own.</p></section>
+<section class="grid"><article><small>01</small><h3>Launch</h3><p>Token, NFT, or event.</p></article><article><small>02</small><h3>Hold</h3><p>Prove commitment over time.</p></article><article><small>03</small><h3>Quest</h3><p>Complete signed actions.</p></article><article><small>04</small><h3>Mint</h3><p>Carve a portable identity.</p></article><article><small>05</small><h3>Evolve</h3><p>Add segments and roles.</p></article><article><small>06</small><h3>Fund</h3><p>Route value transparently.</p></article></section>
+<section class="origins"><small>02 · THREE ORIGINS</small><h2>Begin where your culture already lives.</h2><div class="three"><article class="orange"><h3>Token-first</h3><p>Connect NEP-141. Define balances, streaks, quests, and evolution.</p></article><article class="lime"><h3>NFT-first</h3><p>Give a collection new branches, roles, traits, and utility.</p></article><article><h3>Event-first</h3><p>Turn real attendance into an on-chain cultural artifact.</p></article></div></section>
+<section class="community" id="community"><mark>LIVE DEMO · SIMULATED DATA</mark><h2><small>CULTURE /</small> $BBC</h2><div class="stats"><b>2,418<small>TOTEMS</small></b><b>684<small>ELIGIBLE</small></b><b>19d<small>AVG STREAK</small></b><b>164 Ⓝ<small>PRIZE POOL</small></b></div><div class="hall"><h3>TOTEM HALL</h3><p>⬟◆⬢　⬢◇◆　◆⬟⬢</p><article><small>SEASON QUEST · 04</small><h3>Make the meme travel.</h3><button class="lime go">Open quest →</button></article></div></section>
+<section class="forge" id="forge"><small>03 · PLAYABLE PROTOTYPE</small><h2>Carve your first segment.</h2><div class="app"><aside>BYTE BEASTS CLUB<br><br>01 Connect token<br>02 Build streak<br>03 Complete quest<br>04 Choose branch<br>05 Enter arena</aside><div><div class="bar">BBC / GENESIS　<span>● ENGINE ONLINE</span></div><section id="panel"><small>TOKEN-FIRST ORIGIN</small><h3>Connect the signal.</h3><p>Use an existing NEP-141 token. Totem does not custody funds.</p><button class="lime" id="next">Use $BBC token →</button></section><pre id="log">[ready] bbc-genesis loaded</pre></div></div></section>
+<section class="features" id="market"><article><h3>Rules you can read.</h3><p>Holds, quests, branches, decay, fees, and governance declared before launch.</p></article><article class="lime"><h3>Culture can compose.</h3><p>Trade approved traits without selling the core identity.</p></article><article class="orange"><h3>Bring IRL on-chain.</h3><p>Signed event receipts let real actions shape the totem.</p></article><article><h3>History you can own.</h3><p>Every segment records contribution.</p></article></section>
+<section class="arena" id="arena"><div><small>04 · ARENA + COUNCIL</small><h2>Culture is a team sport.</h2></div><article><small>BBC VS GRAFFITI</small><b>04 : 03</b></article></section>
+<section class="router"><h2>Every fee has a visible job.</h2><div><b>30%<small>QUESTS</small></b><b>30%<small>TREASURY</small></b><b>25%<small>CREATOR</small></b><b>15%<small>LIQUIDITY</small></b></div></section>
+<section class="docs" id="docs"><h2>One engine.<br>Many cultures.</h2><p>Composable policies, signed receipts, portable identity, and transparent routing on NEAR.</p><button class="go">Launch your culture ↗</button></section></main><footer>TOTEM <span>THE CHART IS A MOMENT. THE TOTEM IS A RECORD.</span></footer><script src="app.js"></script></body></html>
