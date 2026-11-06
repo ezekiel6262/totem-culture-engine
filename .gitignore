@@ -1,5 +1,6 @@
 node_modules/
 build/
+.aws-sam/
 work/
 outputs/
 *.tar.gz

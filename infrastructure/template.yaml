@@ -2,7 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Totem culture engine API
 Parameters:
-  DatabaseUrl: {Type: String, NoEcho: true}
   AuthRecipient: {Type: String}
   NearRpcUrl: {Type: String, Default: 'https://rpc.mainnet.near.org'}
 Globals:
@@ -15,17 +14,33 @@ Globals:
     Environment:
       Variables:
         NODE_ENV: production
-        DATABASE_URL: !Ref DatabaseUrl
+        TOTEM_DYNAMODB_TABLE: !Ref TotemTable
         TOTEM_AUTH_RECIPIENT: !Ref AuthRecipient
         NEAR_RPC_URL: !Ref NearRpcUrl
         TOTEM_SEED_DEMO: 'false'
 Resources:
+  TotemTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
   TotemApi:
     Type: AWS::Serverless::Function
     Properties:
       Handler: backend/lambda.handler
       CodeUri: ../
-      ReservedConcurrentExecutions: 5
+      Policies:
+        - DynamoDBCrudPolicy: {TableName: !Ref TotemTable}
       Events:
         Root: {Type: HttpApi, Properties: {Path: /api, Method: ANY}}
         Proxy: {Type: HttpApi, Properties: {Path: '/api/{proxy+}', Method: ANY}}
@@ -33,10 +48,12 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints: [backend/lambda.js]
-        Format: esm
+        Format: cjs
         Target: es2022
         Minify: true
         Sourcemap: false
 Outputs:
   ApiUrl:
-    Value: !Sub 'https://\${ServerlessHttpApi}.execute-api.\${AWS::Region}.amazonaws.com'
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  TableName:
+    Value: !Ref TotemTable
