@@ -1,0 +1,14 @@
+const state={step:0,days:0,role:'guardian',minted:false};
+const panels=[...document.querySelectorAll('[data-panel]')],steps=[...document.querySelectorAll('[data-step]')],log=document.querySelector('#log'),toast=document.querySelector('#toast');
+function write(msg){log.textContent+=`\n${new Date().toISOString().slice(11,19)} ${msg}`;log.scrollTop=log.scrollHeight}
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800)}
+function go(n){state.step=n;panels.forEach((p,i)=>p.classList.toggle('active',i===n));steps.forEach((s,i)=>s.classList.toggle('active',i===n));write(`[state] advanced to stage ${n+1}`)}
+document.querySelectorAll('.next').forEach(b=>b.onclick=()=>{write('[token] bbc.demo.near registered');go(1)});
+document.querySelector('#simulateHold').onclick=()=>{if(state.days>=7)return;state.days++;const pct=state.days/7*100;document.querySelector('#holdMeter').style.width=pct+'%';document.querySelector('#dayLabel').textContent=`DAY ${state.days} / 7`;document.querySelector('#checkLabel').textContent=`${state.days} / 7`;document.querySelector('#balanceLabel').textContent=`${Math.round(10000*state.days/7).toLocaleString()} / 10,000 BBC·7d`;write(`[checkpoint] day ${state.days}: balance 12,400 BBC · cumulative score valid`);if(state.days===7){showToast('Commitment threshold reached');setTimeout(()=>go(2),500)}};
+document.querySelector('#completeRite').onclick=()=>{write('[oracle] receipt rcpt_bbc_01 verified · nonce consumed');showToast('Challenge receipt accepted');setTimeout(()=>go(3),450)};
+document.querySelectorAll('.role').forEach(b=>b.onclick=()=>{document.querySelectorAll('.role').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');state.role=b.dataset.role;write(`[evolution] branch selected: ${state.role}`)});
+document.querySelector('#mintBtn').onclick=()=>{if(state.minted)return;state.minted=true;const maker=state.role==='maker';document.querySelector('#mintedAvatar').textContent=maker?'✦':'◇';document.querySelector('#mintedRole').textContent=(maker?'MEME MAKER':'LIQUIDITY GUARDIAN')+' #0042';write('[mint] nft #0042 created · idempotency key sealed');write('[route] 1.00 NEAR → treasury .45 · creator/art .35 · prizes .20');showToast('Living identity minted');setTimeout(()=>go(4),650)};
+document.querySelectorAll('.game button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.game button').forEach(x=>x.classList.remove('voted'));b.classList.add('voted');write(`[arena] vote ${b.dataset.choice} accepted · role weight applied`);showToast('Arena action recorded')});
+document.querySelector('#resetBtn').onclick=()=>location.reload();
+document.querySelector('#walletBtn').onclick=()=>showToast('Demo wallet connected');
+document.querySelectorAll('[data-scroll]').forEach(b=>b.onclick=()=>document.querySelector(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));
