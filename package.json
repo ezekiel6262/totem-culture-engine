@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test backend/test/*.test.js",
-    "backend:demo": "node backend/scripts/demo.js"
+    "backend:demo": "node backend/scripts/demo.js",
+    "start": "node backend/server.js"
   },
   "engines": { "node": ">=22" }
 }
