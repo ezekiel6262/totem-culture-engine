@@ -7,7 +7,7 @@ const NOW = Date.UTC(2026, 10, 6)
 
 function campaign(overrides = {}) {
   return {
-    id: 'bbc-genesis', creatorAccountId: 'creator.near', subjectContractId: 'bbc.demo.near', mode: 'token_first',
+    id: 'totem-genesis', creatorAccountId: 'creator.near', subjectContractId: 'totem.demo.near', mode: 'token_first',
     startsAt: NOW - DAY, endsAt: NOW + 30 * DAY, status: 'active',
     rule: { kind: 'time_weighted_balance', minimumBalance: 10_000, windowDays: 7, minimumCoveredDays: 7 },
     evolutionBranches: [
@@ -38,13 +38,13 @@ test('prepares a mint command exactly once and emits a public audit feed', async
   const repository = new MemoryTotemRepository()
   const service = new TotemService(repository, () => NOW)
   await service.createCampaign(campaign())
-  const input = { campaignId: 'bbc-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints, signals: { holdingDays: 7, liquidityActions: 1, challengeReceipts: 1 } }
+  const input = { campaignId: 'totem-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints, signals: { holdingDays: 7, liquidityActions: 1, challengeReceipts: 1 } }
   const first = await service.prepareMint(input)
   const replay = await service.prepareMint(input)
   assert.equal(first.replay, false)
   assert.equal(replay.replay, true)
   assert.equal(replay.command.idempotencyKey, first.command.idempotencyKey)
-  const events = await repository.listEvents({ campaignId: 'bbc-genesis' })
+  const events = await repository.listEvents({ campaignId: 'totem-genesis' })
   assert.deepEqual(events.map(event => event.type), ['campaign.version_created', 'identity.mint_prepared'])
 })
 
@@ -52,5 +52,5 @@ test('refuses mint preparation when durable holding is incomplete', async () => 
   const repository = new MemoryTotemRepository()
   const service = new TotemService(repository, () => NOW)
   await service.createCampaign(campaign())
-  await assert.rejects(() => service.prepareMint({ campaignId: 'bbc-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints: checkpoints.slice(0, 1), signals: { challengeReceipts: 1 } }), /not satisfied/)
+  await assert.rejects(() => service.prepareMint({ campaignId: 'totem-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints: checkpoints.slice(0, 1), signals: { challengeReceipts: 1 } }), /not satisfied/)
 })

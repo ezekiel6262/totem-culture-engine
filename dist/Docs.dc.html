@@ -37,13 +37,13 @@
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid #26261F"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9C3B6">evolve.ts</span><button onClick="{{ copy }}" style="padding:6px 12px;border:1px solid #3A3A33;border-radius:6px;background:transparent;color:#C9C3B6;font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer" style-hover="border-color:#EDE6D8">{{ copyLabel }}</button></div>
         <pre style="margin:0;padding:24px;font-family:'JetBrains Mono',monospace;font-size:16px;line-height:1.75;overflow-x:auto"><span style="color:#FF6B3D">import</span> { Totem } <span style="color:#FF6B3D">from</span> <span style="color:#00E89A">"@totem/sdk"</span>;
 
-<span style="color:#FF6B3D">const</span> bbc = Totem.community(<span style="color:#00E89A">"bbc.totem.near"</span>);
+<span style="color:#FF6B3D">const</span> totem = Totem.community(<span style="color:#00E89A">"totem.totem.near"</span>);
 
 <span style="color:#7A766C">// time-weighted, not a one-block snapshot</span>
-<span style="color:#FF6B3D">const</span> proof = <span style="color:#FF6B3D">await</span> bbc.eligibility(<span style="color:#00E89A">"ada.near"</span>);
+<span style="color:#FF6B3D">const</span> proof = <span style="color:#FF6B3D">await</span> totem.eligibility(<span style="color:#00E89A">"ada.near"</span>);
 <span style="color:#7A766C">// { hold: true, streakDays: 34, quests: 1, tier: 3 }</span>
 <span style="color:#FF6B3D">if</span> (proof.ready) {
-  <span style="color:#FF6B3D">await</span> bbc.evolve(<span style="color:#00E89A">"ada.near"</span>, { branch: <span style="color:#00E89A">"meme-commander"</span> });
+  <span style="color:#FF6B3D">await</span> totem.evolve(<span style="color:#00E89A">"ada.near"</span>, { branch: <span style="color:#00E89A">"meme-commander"</span> });
 }</pre>
       </div>
       <h2 id="dna" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px;letter-spacing:-0.03em;margin:0 0 18px">Community DNA fields</h2>

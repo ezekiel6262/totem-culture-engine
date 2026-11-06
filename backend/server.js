@@ -2,12 +2,12 @@ import {createServer} from 'node:http'
 import {readFile,stat} from 'node:fs/promises'
 import {extname,join,normalize} from 'node:path'
 import {fileURLToPath} from 'node:url'
-import {BBC_CAMPAIGN} from './src/demo-campaign.js'
+import {TOTEM_CAMPAIGN} from './src/demo-campaign.js'
 import {CoordinationService,createTotemApi,loadConfig,MemoryAuthRepository,MemoryCoordinationRepository,MemoryTotemRepository,NearRpcClient,PostgresAuthRepository,PostgresClient,PostgresCoordinationRepository,PostgresTotemRepository,TotemAuthService,TotemService} from './src/index.js'
 const root=fileURLToPath(new URL('../dist/',import.meta.url))
 const config=loadConfig(),db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
 const repository=db?new PostgresTotemRepository(db):new MemoryTotemRepository(),service=new TotemService(repository)
-if(config.seedDemo&&!await repository.getLatestCampaign(BBC_CAMPAIGN.id))await service.createCampaign(BBC_CAMPAIGN)
+if(config.seedDemo&&!await repository.getLatestCampaign(TOTEM_CAMPAIGN.id))await service.createCampaign(TOTEM_CAMPAIGN)
 const authRepository=db?new PostgresAuthRepository(db):new MemoryAuthRepository()
 const auth=new TotemAuthService({repository:authRepository,recipient:config.authRecipient,rpc:new NearRpcClient({endpoint:config.nearRpcUrl})})
 const coordinationRepository=db?new PostgresCoordinationRepository(db):new MemoryCoordinationRepository()

@@ -86,12 +86,12 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { step: 1, role: 'holder', wallet: 'near', name: 'ada', comms: ['$BBC'] };
+  state = { step: 1, role: 'holder', wallet: 'near', name: 'ada', comms: ['$TOTEM'] };
   renderVals() {
     const s = this.state, set = (o) => this.setState(o);
     const roles = [['holder', 'I hold a token', 'Check where you already qualify and carve your first totem.'], ['creator', 'I am a creator', 'Launch a token or attach a culture engine to one you run.'], ['explorer', 'Just exploring', 'Browse living communities before you commit.']];
     const wallets = [['near', 'NEAR wallet', 'direct'], ['meteor', 'Meteor', 'direct'], ['evm', 'MetaMask / EVM', 'via Intents'], ['sol', 'Phantom / Solana', 'via Intents']];
-    const all = ['$BBC', '$DOGGO', 'Glyphs', 'Lagos Derby', '$FUFU', 'Afrobeats Drop', '$MOON'];
+    const all = ['$TOTEM', '$DOGGO', 'Glyphs', 'Lagos Derby', '$FUFU', 'Afrobeats Drop', '$MOON'];
     return {
       step: s.step, name: s.name || 'you', stepName: ['Arrival', 'Wallet', 'Name', 'Communities'][s.step - 1],
       is1: s.step === 1, is2: s.step === 2, is3: s.step === 3, is4: s.step === 4, canBack: s.step > 1, notLast: s.step < 4,

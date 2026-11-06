@@ -15,12 +15,12 @@
 </helmet>
 <div data-screen-label="07 Buy via Intents" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 48px;border-bottom:1px solid #24241F">
-    <a href="Community.dc.html" style="color:#EDE6D8;font-size:18px">‹&nbsp; Back to $BBC</a>
+    <a href="Community.dc.html" style="color:#EDE6D8;font-size:18px">‹&nbsp; Back to $TOTEM</a>
     <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.08em;color:#A8A397">SETTLED BY NEAR INTENTS</span>
   </div>
   <div style="max-width:1240px;margin:0 auto;padding:48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:40px;align-items:start">
     <div style="background:#141410;border:1px solid #26261F;border-radius:22px;padding:28px">
-      <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;letter-spacing:-0.03em;margin:0 0 18px">Join $BBC from any chain</h1>
+      <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;letter-spacing:-0.03em;margin:0 0 18px">Join $TOTEM from any chain</h1>
       <div style="background:#1E1E1A;border-radius:14px;padding:18px">
         <div style="font-size:14px;color:#C9C3B6">You pay</div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px">
@@ -33,7 +33,7 @@
         <div style="font-size:14px;color:#C9C3B6">You receive on NEAR</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
           <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px">{{ recv }}</span>
-          <span style="padding:8px 12px;background:#EDE6D8;color:#0D0D0B;border-radius:9px;font-weight:600;font-size:17px">$BBC</span>
+          <span style="padding:8px 12px;background:#EDE6D8;color:#0D0D0B;border-radius:9px;font-weight:600;font-size:17px">$TOTEM</span>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:20px 0;font-size:15px">
@@ -47,7 +47,7 @@
         <div style="text-align:center;font-size:13px;color:#A8A397;margin-top:12px">One signature on your source chain. No bridging steps.</div>
       </sc-if>
       <sc-if value="{{ signed }}" hint-placeholder-val="{{ false }}">
-        <div style="border:1px solid #00E89A;border-radius:12px;padding:16px;font-size:15px;line-height:1.5"><span style="color:#00E89A;font-family:'JetBrains Mono',monospace;font-size:12px">SETTLED</span><br>{{ recv }} BBC landed in ada.totem.near. Streak clock started.</div>
+        <div style="border:1px solid #00E89A;border-radius:12px;padding:16px;font-size:15px;line-height:1.5"><span style="color:#00E89A;font-family:'JetBrains Mono',monospace;font-size:12px">SETTLED</span><br>{{ recv }} TOTEM landed in ada.totem.near. Streak clock started.</div>
         <a href="Mint.dc.html" style="display:block;text-align:center;margin-top:12px;padding:16px;background:#00E89A;color:#0D0D0B;border-radius:12px;font-weight:600;font-size:17px" style-hover="background:#4DF2BA;color:#0D0D0B">Check my totem</a>
       </sc-if>
     </div>

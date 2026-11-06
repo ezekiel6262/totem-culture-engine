@@ -8,13 +8,13 @@ import {PostgresTotemRepository} from './postgres-repository.js'
 import {NearRpcClient} from './near-rpc.js'
 import {TotemService} from './service.js'
 import {createTotemApi} from './api.js'
-import {BBC_CAMPAIGN} from './demo-campaign.js'
+import {TOTEM_CAMPAIGN} from './demo-campaign.js'
 import {createDynamoDocumentClient,DynamoAuthRepository,DynamoCoordinationRepository,DynamoTotemRepository} from './dynamodb-repositories.js'
 export async function createApplicationRuntime(config){
   const db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
   const dynamo=config.dynamoTable?createDynamoDocumentClient():null
   const repository=db?new PostgresTotemRepository(db):dynamo?new DynamoTotemRepository(dynamo,config.dynamoTable):new MemoryTotemRepository(),service=new TotemService(repository)
-  if(config.seedDemo&&!await repository.getLatestCampaign(BBC_CAMPAIGN.id))await service.createCampaign(BBC_CAMPAIGN)
+  if(config.seedDemo&&!await repository.getLatestCampaign(TOTEM_CAMPAIGN.id))await service.createCampaign(TOTEM_CAMPAIGN)
   const authRepository=db?new PostgresAuthRepository(db):dynamo?new DynamoAuthRepository(dynamo,config.dynamoTable):new MemoryAuthRepository()
   const coordinationRepository=db?new PostgresCoordinationRepository(db):dynamo?new DynamoCoordinationRepository(dynamo,config.dynamoTable):new MemoryCoordinationRepository()
   const auth=new TotemAuthService({repository:authRepository,recipient:config.authRecipient,rpc:new NearRpcClient({endpoint:config.nearRpcUrl})})

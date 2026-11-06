@@ -7,10 +7,10 @@ const evolution = chooseEvolution([
   { id: 'guardian', role: 'Liquidity Guardian', priority: 20, requirements: [{ signal: 'holdingDays', minimum: 7 }, { signal: 'liquidityActions', minimum: 1 }] },
   { id: 'maker', role: 'Meme Maker', priority: 10, requirements: [{ signal: 'challengeReceipts', minimum: 1 }] }
 ], { holdingDays: 7, liquidityActions: 1, challengeReceipts: 1 })
-const fees = routeFee(100, { id: 'bbc-genesis-v1', routes: [
+const fees = routeFee(100, { id: 'totem-genesis-v1', routes: [
   { destination: 'community.treasury.near', basisPoints: 4500 },
   { destination: 'creator.artist.near', basisPoints: 3500 },
   { destination: 'season.prizes.near', basisPoints: 2000 }
 ] })
 
-console.log(JSON.stringify({ eligibility, evolution, fees, mintKey: mintIdempotencyKey({ campaignId: 'bbc-genesis', accountId: 'demo.near', eligibilityEpoch: 1 }) }, null, 2))
+console.log(JSON.stringify({ eligibility, evolution, fees, mintKey: mintIdempotencyKey({ campaignId: 'totem-genesis', accountId: 'demo.near', eligibilityEpoch: 1 }) }, null, 2))

@@ -17,7 +17,7 @@
   <div style="width:390px;max-width:100%;min-height:844px;background:#0D0D0B;border:1px solid #26261F;border-radius:36px;padding:20px;display:flex;flex-direction:column">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <a href="Community.dc.html" style="width:46px;height:46px;border:1px solid #33332C;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#EDE6D8;font-size:20px">‹</a>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9C3B6">bbc.totem.near</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9C3B6">totem.totem.near</span>
       <button onClick="{{ reset }}" style="height:46px;padding:0 14px;border:1px solid #33332C;border-radius:12px;background:transparent;color:#C9C3B6;font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer" style-hover="border-color:#EDE6D8">Reset</button>
     </div>
     <div style="{{ kickerS }}">{{ kicker }}</div>
@@ -63,11 +63,11 @@ class Component extends DCLogic {
     const bc = branch === 'diamond' ? G : O, bname = branch === 'diamond' ? 'Diamond Holder' : 'Meme Commander';
     const done = (t, s) => ({ t, s, mark: '✓', dotS: { width: 32, height: 32, borderRadius: '50%', background: G, color: '#0D0D0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 700 } });
     const open = (t, s) => ({ t, s, mark: '·', dotS: { width: 32, height: 32, borderRadius: '50%', background: '#5A5A50', color: '#0D0D0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } });
-    const base = [done('Hold 100,000 BBC', '184,220 BBC · bought via Intents'), done('Hold streak 30 days', '30 / 30 days · no dips')];
+    const base = [done('Hold 100,000 TOTEM', '184,220 TOTEM · bought via Intents'), done('Hold streak 30 days', '30 / 30 days · no dips')];
     const M = {
       quest: { k: 'ALMOST ELIGIBLE', title: 'One quest from your first segment', rows: [...base, open('Complete 1 quest', 'Meme raid on $DOGGO · open')], cta: 'Complete quest: Meme raid', next: 'ready', head: 'ghost', crown: 'none' },
-      ready: { k: 'ELIGIBLE', title: 'Your Recruit is ready to carve', rows: [...base, done('Complete 1 quest', 'Meme raid on $DOGGO · won')], cta: 'Mint BBC Recruit', next: 'minted', head: 'ghost', crown: 'none' },
-      minted: { k: 'MINTED · TIER I', title: 'BBC Recruit carved', rows: [done('Base segment', 'bbc.totem.near #0413'), done('Head segment', 'quest complete'), open('Crown tier', 'unlocks at day 30 · branch by behavior')], cta: 'Simulate to day 30', next: 'choose', head: '#EDE6D8', crown: 'ghost' },
+      ready: { k: 'ELIGIBLE', title: 'Your Recruit is ready to carve', rows: [...base, done('Complete 1 quest', 'Meme raid on $DOGGO · won')], cta: 'Mint TOTEM Recruit', next: 'minted', head: 'ghost', crown: 'none' },
+      minted: { k: 'MINTED · TIER I', title: 'TOTEM Recruit carved', rows: [done('Base segment', 'totem.totem.near #0413'), done('Head segment', 'quest complete'), open('Crown tier', 'unlocks at day 30 · branch by behavior')], cta: 'Simulate to day 30', next: 'choose', head: '#EDE6D8', crown: 'ghost' },
       choose: { k: 'DAY 30 · CROWN TIER', title: 'Your behavior picks the branch', rows: [], cta: '', head: '#EDE6D8', crown: 'ghost' },
       evolved: { k: `TIER III · ${bname.toUpperCase()}`, title: `Evolved into ${bname}`, rows: [done('Arena entry', 'Meme tournament round 2'), done('Council voice', 'Tier III = 3 votes'), done('Fee route visible', 'prizes 30 · treasury 30 · creator 25 · LP 15')], cta: '', head: '#EDE6D8', crown: bc }
     }[stage];

@@ -26,7 +26,7 @@ Primary tracks: Memecoins With Mechanics; NFTs That Do Something. Optional only 
 
 ## MVP campaign
 
-Byte Beasts Club requires a 10,000 BBC seven-day time-weighted holding score plus one signed creation challenge. Eligible users mint an NFT and branch into Liquidity Guardian or Meme Maker. The NFT opens a simple Signal Arena. A 1 NEAR mint fee routes 45% to community treasury, 35% to creator/artist, and 20% to the season prize pool.
+Byte Beasts Club requires a 10,000 TOTEM seven-day time-weighted holding score plus one signed creation challenge. Eligible users mint an NFT and branch into Liquidity Guardian or Meme Maker. The NFT opens a simple Signal Arena. A 1 NEAR mint fee routes 45% to community treasury, 35% to creator/artist, and 20% to the season prize pool.
 
 ## Rule configuration
 

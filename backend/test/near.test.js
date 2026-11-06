@@ -35,7 +35,7 @@ test('RPC balance observation pins ft_balance_of to one finalized block hash', a
   }
   const rpc = new NearRpcClient({ endpoint: 'https://rpc.testnet.near.org', fetchImpl })
   const saved = []
-  await observeFinalizedBalance({ campaign: { id: 'bbc', subjectContractId: 'bbc.testnet', rule: { kind: 'time_weighted_balance' } }, accountId: 'member.testnet', period: '2026-11-06', rpc, checkpointRepository: { upsertCheckpoint: async value => { saved.push(value); return value } } })
+  await observeFinalizedBalance({ campaign: { id: 'totem', subjectContractId: 'totem.testnet', rule: { kind: 'time_weighted_balance' } }, accountId: 'member.testnet', period: '2026-11-06', rpc, checkpointRepository: { upsertCheckpoint: async value => { saved.push(value); return value } } })
   assert.equal(calls[0].params.finality, 'final')
   assert.equal(calls[1].params.block_id, 'block-77')
   assert.equal(saved[0].balance, '12400')

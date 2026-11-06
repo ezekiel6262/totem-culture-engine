@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { PostgresAuthRepository, PostgresTotemRepository } from '../src/index.js'
 
 const campaign = {
-  id: 'bbc', creatorAccountId: 'creator.near', subjectContractId: 'bbc.near', mode: 'token_first',
+  id: 'totem', creatorAccountId: 'creator.near', subjectContractId: 'totem.near', mode: 'token_first',
   version: 2, status: 'active', startsAt: 1_000, endsAt: 2_000,
   versionHash: 'a'.repeat(64), previousVersionHash: 'b'.repeat(64)
 }
@@ -20,7 +20,7 @@ test('Postgres checkpoint upsert refuses to replace a newer finalized observatio
   const queries = []
   const sql = { query: async (text, values) => { queries.push({ text, values }); return { rowCount: 0, rows: [] } } }
   const repository = new PostgresTotemRepository(sql)
-  const checkpoint = { campaignId: 'bbc', accountId: 'member.near', period: 'd1', balance: '10', blockHeight: 42, blockHash: 'hash', observedAt: 1000, provenance: { finality: 'final' } }
+  const checkpoint = { campaignId: 'totem', accountId: 'member.near', period: 'd1', balance: '10', blockHeight: 42, blockHash: 'hash', observedAt: 1000, provenance: { finality: 'final' } }
   const result = await repository.upsertCheckpoint(checkpoint)
   assert.equal(result.updated, false)
   assert.match(queries[0].text, /block_height < excluded\.block_height/)

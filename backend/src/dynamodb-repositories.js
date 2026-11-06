@@ -72,7 +72,7 @@ export class DynamoCoordinationRepository extends DynamoRepository{
     try{await this.send(new PutCommand({TableName:this.tableName,Item:{...key,entity:'vote',vote:v},ConditionExpression:'attribute_not_exists(pk)'}));return{active:true,vote:clone(v)}}catch(error){if(conditional(error))return{active:false,vote:clone(v)};throw error}
   }
   async tally(space,subjectId){
-    const result=await this.send(new QueryCommand({TableName:this.tableName,KeyConditionExpression:'pk = :pk AND begins_with(sk,:prefix)',ExpressionAttributeValues:{':pk':`VOTES#${space}#${subjectId}`,':prefix':'VOTE#'},ConsistentRead:true})),totals={yes:0,no:0,bbc:0,doggo:0}
+    const result=await this.send(new QueryCommand({TableName:this.tableName,KeyConditionExpression:'pk = :pk AND begins_with(sk,:prefix)',ExpressionAttributeValues:{':pk':`VOTES#${space}#${subjectId}`,':prefix':'VOTE#'},ConsistentRead:true})),totals={yes:0,no:0,totem:0,doggo:0}
     for(const item of result.Items)totals[item.vote.choice]=(totals[item.vote.choice]??0)+item.vote.weight
     return totals
   }

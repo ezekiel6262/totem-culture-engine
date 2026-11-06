@@ -61,7 +61,7 @@ class Component extends DCLogic {
   state = { tab: 'In vote', voted: [] };
   renderVals() {
     const s = this.state, G = '#00E89A', O = '#FF6B3D', C = '#EDE6D8', L = '#B8FF3D';
-    const T = [['Kente Wings', 'Wings · $BBC', 'weaver.near', 81, 'PASSING', O, 'vote'], ['Crater Crown', 'Crown · $MOON', 'luna.near', 100, 'LIVE', C, '4 NEAR'], ['Gold Ear', 'Head · Afrobeats Drop', 'tuned.near', 92, 'LIVE', L, '2 NEAR'], ['Scar Mark', 'Base · $BBC', 'ink.near', 46, 'CLOSE', C, 'vote'], ['Pack Howl', 'Crown · $DOGGO', 'bark.near', 67, 'PASSING', G, 'vote'], ['Jollof Glow', 'Eyes · $FUFU', 'chef.near', 58, 'PASSING', O, 'vote']];
+    const T = [['Kente Wings', 'Wings · $TOTEM', 'weaver.near', 81, 'PASSING', O, 'vote'], ['Crater Crown', 'Crown · $MOON', 'luna.near', 100, 'LIVE', C, '4 NEAR'], ['Gold Ear', 'Head · Afrobeats Drop', 'tuned.near', 92, 'LIVE', L, '2 NEAR'], ['Scar Mark', 'Base · $TOTEM', 'ink.near', 46, 'CLOSE', C, 'vote'], ['Pack Howl', 'Crown · $DOGGO', 'bark.near', 67, 'PASSING', G, 'vote'], ['Jollof Glow', 'Eyes · $FUFU', 'chef.near', 58, 'PASSING', O, 'vote']];
     const tagBg = { PASSING: G, LIVE: C, CLOSE: O };
     const list = T.map((t, i) => [t, i]).filter(([t]) => s.tab === 'In vote' ? t[6] === 'vote' : s.tab === 'Live' ? t[6] !== 'vote' : false);
     return {

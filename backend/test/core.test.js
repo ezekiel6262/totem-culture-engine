@@ -26,11 +26,11 @@ test('deduplicates checkpoints by period', () => {
 test('verifies and consumes a bound receipt exactly once', () => {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519')
   const issuer = { id: 'demo.community.v1', publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' }) }
-  const receipt = { version: 1, issuer: issuer.id, subject: 'demo.near', campaignId: 'bbc-genesis', actionId: 'publish-meme', nonce: 'n-001', issuedAt: NOW - 1, expiresAt: NOW + 10_000, evidenceHash: 'a'.repeat(64), provenance: { uri: 'demo://moderation/42', hash: 'b'.repeat(64) } }
+  const receipt = { version: 1, issuer: issuer.id, subject: 'demo.near', campaignId: 'totem-genesis', actionId: 'publish-meme', nonce: 'n-001', issuedAt: NOW - 1, expiresAt: NOW + 10_000, evidenceHash: 'a'.repeat(64), provenance: { uri: 'demo://moderation/42', hash: 'b'.repeat(64) } }
   receipt.signature = sign(null, Buffer.from(canonicalize(receiptPayload(receipt))), privateKey).toString('base64')
   const store = new MemoryNonceStore()
-  assert.equal(verifyChallengeReceipt({ receipt, issuer, expected: { subject: 'demo.near', campaignId: 'bbc-genesis', actionId: 'publish-meme' }, nonceStore: store, now: NOW }).valid, true)
-  assert.throws(() => verifyChallengeReceipt({ receipt, issuer, expected: { subject: 'demo.near', campaignId: 'bbc-genesis', actionId: 'publish-meme' }, nonceStore: store, now: NOW }), /already consumed/)
+  assert.equal(verifyChallengeReceipt({ receipt, issuer, expected: { subject: 'demo.near', campaignId: 'totem-genesis', actionId: 'publish-meme' }, nonceStore: store, now: NOW }).valid, true)
+  assert.throws(() => verifyChallengeReceipt({ receipt, issuer, expected: { subject: 'demo.near', campaignId: 'totem-genesis', actionId: 'publish-meme' }, nonceStore: store, now: NOW }), /already consumed/)
 })
 
 test('routes all smallest units and rejects an invalid split', () => {
