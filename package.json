@@ -7,12 +7,21 @@
     "test": "node --test backend/test/*.test.js",
     "backend:demo": "node backend/scripts/demo.js",
     "start": "node backend/server.js",
-    "db:migrate": "node backend/scripts/migrate.js"
+    "db:migrate": "node backend/scripts/migrate.js",
+    "build:wallet": "node scripts/build-wallet.js"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "pg": "^8.23.1"
+    "@near-wallet-selector/core": "^10.1.4",
+    "@near-wallet-selector/modal-ui-js": "^10.1.4",
+    "@near-wallet-selector/my-near-wallet": "^10.1.4",
+    "buffer": "^6.0.3",
+    "pg": "^8.23.1",
+    "util": "^0.12.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
