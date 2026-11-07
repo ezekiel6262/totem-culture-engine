@@ -16,7 +16,7 @@
 <div data-screen-label="02 Forge Community DNA" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid #24241F;gap:20px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:14px"><a href="Landing.dc.html" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:#EDE6D8">TOTEM</a><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#00E89A">/ FORGE</span></div>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A8A397">Draft · $TOTEM · autosaved</span>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A8A397">Draft · {{ draftLabel }} · autosaved</span>
     <div style="display:flex;gap:10px">
       <a href="Mint.dc.html" style="padding:14px 22px;border:1px solid #3A3A33;border-radius:10px;color:#EDE6D8;font-size:17px" style-hover="border-color:#EDE6D8;color:#EDE6D8">Simulate 30 days</a>
       <button onClick="{{ publish }}" style="padding:14px 22px;background:#00E89A;border:0;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px;cursor:pointer" style-hover="background:#4DF2BA;color:#0D0D0B">{{ publishLabel }}</button>
@@ -24,7 +24,7 @@
   </div>
   <div style="max-width:1440px;margin:0 auto;padding:36px 40px 80px;display:grid;grid-template-columns:220px minmax(0,1fr) 300px;gap:28px;align-items:start">
     <div style="display:flex;flex-direction:column;gap:4px;position:sticky;top:20px">
-      <a href="Forge-Origin.dc.html" style="display:flex;gap:14px;padding:12px 14px;border-radius:10px;color:#EDE6D8;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">01</span>Token</a>
+      <a href="{{ setupHref }}" style="display:flex;gap:14px;padding:12px 14px;border-radius:10px;color:#EDE6D8;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">01</span>{{ setupLabel }}</a>
       <div style="display:flex;gap:14px;padding:12px 14px;border-radius:10px;background:#1C1C18;font-size:17px;font-weight:600"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#00E89A">02</span>Eligibility</div>
       <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">03</span>Evolution tree</div>
       <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">04</span>Fee routes</div>
@@ -38,7 +38,7 @@
       <div style="background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px;margin-bottom:24px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px"><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;margin:0">Who earns a Base segment</h2><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">4 RULES</span></div>
         <div style="display:flex;flex-direction:column;gap:12px;font-family:'JetBrains Mono',monospace;font-size:16px">
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#1E1E1A;border-radius:10px;padding:14px 18px"><span style="color:#00E89A;font-weight:500">WHEN</span>wallet holds ≥<input value="{{ hold }}" onChange="{{ setHold }}" style="width:150px;background:#0D0D0B;border:1px solid #3A3A33;border-radius:8px;padding:10px 12px;color:#EDE6D8;font-family:'JetBrains Mono',monospace;font-size:16px;outline:none">TOTEM</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#1E1E1A;border-radius:10px;padding:14px 18px"><span style="color:#00E89A;font-weight:500">WHEN</span>wallet holds ≥<input value="{{ hold }}" onChange="{{ setHold }}" style="width:150px;background:#0D0D0B;border:1px solid #3A3A33;border-radius:8px;padding:10px 12px;color:#EDE6D8;font-family:'JetBrains Mono',monospace;font-size:16px;outline:none">{{ assetUnit }}</div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#1E1E1A;border-radius:10px;padding:14px 18px"><span style="color:#00E89A;font-weight:500">AND</span>holds without dipping for<input value="{{ days }}" onChange="{{ setDays }}" style="width:100px;background:#0D0D0B;border:1px solid #3A3A33;border-radius:8px;padding:10px 12px;color:#EDE6D8;font-family:'JetBrains Mono',monospace;font-size:16px;outline:none">days<span style="margin-left:auto;font-size:13px;color:#A8A397">time-weighted · flash-loan proof</span></div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1E1E1A;border-radius:10px;padding:14px 18px"><span style="color:#00E89A;font-weight:500">AND</span>completes 1 quest from<sc-for list="{{ quests }}" as="q" hint-placeholder-count="3"><button onClick="{{ q.toggle }}" style="{{ q.style }}">{{ q.label }}</button></sc-for></div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1.5px dashed #FF6B3D;border-radius:10px;padding:14px 18px"><span style="color:#FF6B3D;font-weight:500">IF SOLD BELOW</span>minimum →<span style="padding:6px 12px;background:#FF6B3D;color:#0D0D0B;border-radius:5px;font-weight:500">Freeze utilities, keep NFT</span></div>
@@ -48,7 +48,7 @@
       <div style="background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px;margin-bottom:24px">
         <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;margin:0 0 20px">Evolution tree</h2>
         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-          <div style="background:#EDE6D8;color:#0D0D0B;border-radius:12px;padding:20px 22px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px">BASE</div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;margin-top:4px">TOTEM Recruit</div></div>
+          <div style="background:#EDE6D8;color:#0D0D0B;border-radius:12px;padding:20px 22px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px">BASE</div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:24px;margin-top:4px">{{ draftName }} Recruit</div></div>
           <span style="color:#A8A397">→</span>
           <div style="flex:1;min-width:280px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
             <div style="border:1.5px solid #00E89A;border-radius:12px;padding:16px 18px"><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px">Diamond Holder</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">streak ≥ 90d</div></div>
@@ -91,7 +91,12 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15], publishing: false, publishStatus: 'Connect a NEAR wallet to publish this Culture Pair.' };
+  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', origin: 'token', draftName: 'Totem', ticker: 'TOTEM', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15], publishing: false, publishStatus: 'Connect a NEAR wallet to publish this Culture Pair.' };
+  componentDidMount() {
+    const draft = JSON.parse(sessionStorage.getItem('totem.forge.v1') || '{}');
+    const nftFirst = draft.origin === 'nft';
+    this.setState({ origin: draft.origin || 'token', draftName: draft.name || 'Totem', ticker: draft.ticker || 'TOTEM', hold: nftFirst ? '1' : this.state.hold, tpl: nftFirst ? 'NFT-to-token' : draft.origin === 'event' ? 'Event collectible' : this.state.tpl });
+  }
   async publish() {
     if (this.state.publishing) return;
     const identity = window.totemApi?.session?.identity;
@@ -107,7 +112,7 @@ class Component extends DCLogic {
     const [quests, treasury, creator, liquidity] = this.state.routes.map(v => v * 100);
     const input = {
       id: `${ticker}-culture`, displayName: draft.name || `$${ticker.toUpperCase()}`, narrative: draft.narrative || '', creatorAccountId: identity.accountId,
-      subjectContractId, mode, culturePair: { tokenContractId, collectionContractId }, startsAt: Date.now(), endsAt: Date.now() + 365 * 86400000, status: 'active',
+      subjectContractId, mode, culturePair: { tokenContractId, collectionContractId }, launchConfig: { token: draft.token || null, nft: draft.nft || null, event: draft.event || null, genesis: draft.genesis || null }, startsAt: Date.now(), endsAt: Date.now() + 365 * 86400000, status: 'active',
       rule: { kind: 'time_weighted_balance', minimumBalance, windowDays: days, minimumCoveredDays: days },
       evolutionBranches: [
         { id: 'diamond-holder', role: 'Diamond Holder', priority: 40, requirements: [{ signal: 'holdingDays', minimum: days * 3 }] },
@@ -129,7 +134,7 @@ class Component extends DCLogic {
     const labels = ['Quest and Arena prizes', 'Community treasury', 'Creator', 'Liquidity'], colors = ['#00E89A', C, '#FF6B3D', '#5A5A50'];
     const total = s.routes.reduce((a, b) => a + b, 0), ok = total === 100;
     return {
-      hold: s.hold, days: s.days, total, publishStatus: s.publishStatus, publishLabel: s.publishing ? 'Publishing…' : 'Publish Culture Pair', publish: () => this.publish(),
+      hold: s.hold, days: s.days, total, draftName: s.draftName, draftLabel: s.origin === 'nft' ? s.draftName : s.origin === 'event' ? 'EVENT-FIRST' : `$${s.ticker}`, assetUnit: s.origin === 'nft' ? 'NFT' : s.origin === 'event' ? 'verified participation' : s.ticker, setupLabel: s.origin === 'nft' ? 'Collection' : s.origin === 'twin' ? 'Token + NFT' : s.origin === 'event' ? 'Event' : 'Token', setupHref: s.origin === 'nft' ? 'NFT-First.dc.html' : s.origin === 'twin' ? 'Twin-Launch.dc.html' : s.origin === 'event' ? 'Event-First.dc.html' : 'Token-First.dc.html', publishStatus: s.publishStatus, publishLabel: s.publishing ? 'Publishing…' : 'Publish Culture Pair', publish: () => this.publish(),
       setHold: e => set({ hold: e.target.value }), setDays: e => set({ days: e.target.value.replace(/\D/g, '') }),
       templates: ['Hold-to-evolve', 'Quest-to-mint', 'Token-gated membership', 'Seasonal collection', 'Event collectible', 'NFT-to-token'].map(l => { const on = l === s.tpl, ev = l === 'Event collectible'; return { label: l, pick: () => set({ tpl: l }), style: { padding: '12px 20px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? '#00E89A' : 'transparent', color: on ? '#0D0D0B' : C, fontWeight: on ? 600 : 400, border: on ? '1px solid #00E89A' : ev ? '1px solid #FF6B3D' : '1px solid #3A3A33' } }; }),
       quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'].map(q => { const on = s.quests.includes(q); return { label: q, toggle: () => set({ quests: on ? s.quests.filter(x => x !== q) : [...s.quests, q] }), style: { padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: 15, background: on ? '#141410' : 'transparent', color: on ? C : '#6E6B62', border: on ? '1px solid #4A4A42' : '1px dashed #3A3A33' } }; }),

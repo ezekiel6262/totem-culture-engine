@@ -16,7 +16,7 @@
 <div data-screen-label="10 Event-first setup" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid #24241F;gap:20px">
     <div style="display:flex;align-items:center;gap:14px"><a href="Landing.dc.html" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:#EDE6D8">TOTEM</a><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#FF6B3D">/ EVENT-FIRST</span></div>
-    <a href="Explore.dc.html" style="padding:14px 22px;background:#FF6B3D;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px" style-hover="background:#FF8A63;color:#0D0D0B">Open the ritual</a>
+    <a href="Forge-DNA.dc.html" onClick="{{ save }}" style="padding:14px 22px;background:#FF6B3D;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px" style-hover="background:#FF8A63;color:#0D0D0B">Next: Culture DNA</a>
   </div>
   <div style="max-width:1400px;margin:0 auto;padding:40px 40px 80px">
     <div style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.06em;color:#FF6B3D">EVENT → RITUAL → COLLECTIBLE → RECORD</div>
@@ -71,6 +71,7 @@ class Component extends DCLogic {
     return {
       event: this.state.event, setEvent: e => this.setState({ event: e.target.value }), resolver: S[this.state.src][2],
       bodyLabel: (this.state.event.split(':')[0] || 'EVENT').toUpperCase().slice(0, 14),
+      save: () => sessionStorage.setItem('totem.forge.v1', JSON.stringify({ origin: 'event', name: this.state.event, ticker: 'EVENT', narrative: `Event-born culture resolved by ${S[this.state.src][0]}.`, event: { source: S[this.state.src][0], event: this.state.event, resolver: S[this.state.src][2] } })),
       sources: S.map(([t, sub], i) => { const on = i === this.state.src; return { t, sub, pick: () => this.setState({ src: i }), subS: { fontSize: 15, marginTop: 6, color: on ? '#0D0D0B' : '#C9C3B6', opacity: on ? 0.75 : 1 }, style: { textAlign: 'left', cursor: 'pointer', padding: '20px 20px', borderRadius: 12, background: on ? '#FF6B3D' : '#0D0D0B', color: on ? '#0D0D0B' : '#EDE6D8', border: on ? '2px solid #FF6B3D' : '2px solid #33332C' } }; })
     };
   }
