@@ -1,12 +1,12 @@
 # Totem
 
-**Launch a token. Grow a culture. Turn participation into living ownership.**
+**Pair a token with a living NFT culture—or turn an NFT culture into a programmable economy.**
 
-Totem is a programmable culture engine for NEAR. It connects durable token commitment and verified participation to evolving NFT identity, access, credentials, and gameplay. This repository is an independent NEAR Hackathon 2026 project and does not reuse any other project.
+Totem is a programmable culture engine for NEAR. Any community can connect or launch a memecoin and NFT collection as one **Culture Pair** with shared rules, treasury, Rites, Arena seasons, social identity, access, credentials, inventory, and gameplay. `$TOTEM` and its Totem collection are the flagship example—not the platform boundary.
 
 ## Why it is different
 
-NEAR already has good launchpads. Totem is the post-launch policy and progression layer: reusable campaign rules, anti-snapshot eligibility, provenance-bound challenge receipts, branching NFT evolution, gated utility, and auditable budget routing.
+Totem works in both directions: token → NFT culture, NFT culture → token, or a twin launch. Its differentiator is ownership with behavior: anti-snapshot eligibility, programmable Culture Accounts, provenance-bound Rites, branching evolution, Arena economies, social-money coordination, gated utility, and auditable treasury routing.
 
 ## Run locally
 

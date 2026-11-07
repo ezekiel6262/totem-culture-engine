@@ -3,13 +3,27 @@ import { invariant } from './errors.js'
 
 const ACCOUNT_ID = /^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 const CAMPAIGN_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const MODES = new Set(['token_first', 'nft_first', 'event_first'])
+const MODES = new Set(['token_first', 'nft_first', 'twin_launch', 'event_first'])
+
+function validOptionalAccount(value) { return value == null || ACCOUNT_ID.test(value) }
+
+export function normalizeCulturePair(input) {
+  const pair = input.culturePair ?? {}
+  const tokenContractId = pair.tokenContractId ?? (input.mode === 'token_first' ? input.subjectContractId : null)
+  const collectionContractId = pair.collectionContractId ?? (input.mode === 'nft_first' ? input.subjectContractId : null)
+  return { tokenContractId, collectionContractId }
+}
 
 export function validateCampaign(input) {
   invariant(CAMPAIGN_ID.test(input.id ?? ''), 'CAMPAIGN_ID_INVALID', 'Campaign id must be a lowercase kebab-case identifier')
   invariant(ACCOUNT_ID.test(input.creatorAccountId ?? ''), 'ACCOUNT_ID_INVALID', 'Creator must be a valid NEAR account id')
   invariant(ACCOUNT_ID.test(input.subjectContractId ?? ''), 'ACCOUNT_ID_INVALID', 'Subject contract must be a valid NEAR account id')
   invariant(MODES.has(input.mode), 'CAMPAIGN_MODE_INVALID', 'Campaign mode is unsupported')
+  const pair = normalizeCulturePair(input)
+  invariant(validOptionalAccount(pair.tokenContractId) && validOptionalAccount(pair.collectionContractId), 'CULTURE_PAIR_INVALID', 'Culture Pair contracts must be valid NEAR account ids')
+  invariant(input.mode !== 'token_first' || pair.tokenContractId, 'CULTURE_PAIR_INVALID', 'Token-first cultures require a token contract')
+  invariant(input.mode !== 'nft_first' || pair.collectionContractId, 'CULTURE_PAIR_INVALID', 'NFT-first cultures require a collection contract')
+  invariant(input.mode !== 'twin_launch' || (pair.tokenContractId && pair.collectionContractId), 'CULTURE_PAIR_INVALID', 'Twin launches require both token and collection contracts')
   invariant(Number.isSafeInteger(input.startsAt) && Number.isSafeInteger(input.endsAt) && input.startsAt < input.endsAt, 'CAMPAIGN_WINDOW_INVALID', 'Campaign start must precede its end')
   invariant(input.rule?.kind === 'time_weighted_balance', 'CAMPAIGN_RULE_INVALID', 'MVP campaigns require a time-weighted balance rule')
   invariant(Array.isArray(input.evolutionBranches) && input.evolutionBranches.length >= 2, 'CAMPAIGN_EVOLUTION_INVALID', 'At least two evolution branches are required')
@@ -23,7 +37,7 @@ export function createCampaignVersion(input, previous = null, now = Date.now()) 
   invariant(!previous || previous.id === input.id, 'CAMPAIGN_VERSION_INVALID', 'Previous version belongs to another campaign')
   invariant(!previous || previous.creatorAccountId === input.creatorAccountId, 'CAMPAIGN_CREATOR_IMMUTABLE', 'Campaign creator cannot change between versions')
   const version = (previous?.version ?? 0) + 1
-  const policy = structuredClone(input)
+  const policy = { ...structuredClone(input), culturePair: normalizeCulturePair(input) }
   return Object.freeze({
     ...policy,
     version,

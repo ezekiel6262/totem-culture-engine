@@ -2,11 +2,13 @@
 
 ## Product
 
-Totem is a reusable policy and progression layer for communities on NEAR. Its core primitive is a **Rite**: a versioned, auditable campaign that converts durable commitment plus verified action into a portable onchain identity state.
+Totem is a bidirectional culture-launch and programmable-ownership platform for communities on NEAR. Its root primitive is a **Culture Pair**: a memecoin contract, an NFT collection, or both, bound to one versioned rulebook, treasury, social graph, and Arena history. A **Rite** is a versioned, auditable campaign that changes eligibility, identity, access, inventory, token mechanics, or community state.
 
-Pitch: **Totem turns token holders into participants, and participants into living communities.**
+Pitch: **Totem makes a memecoin playable and an NFT community economically programmable.**
 
-Primary tracks: Memecoins With Mechanics; NFTs That Do Something. Optional only when implemented: Games With Real Economies; Social Money.
+All four tracks are product pillars: Memecoins With Mechanics; NFTs That Do Something; Games With Real Economies through Arena; Social Money through portable identity, contribution, access, and collective coordination.
+
+`$TOTEM` plus the Totem collection is the platform's flagship Culture Pair and reference implementation. Communities launch their own tokens and collections; they do not become extensions of `$TOTEM`.
 
 ## Users
 
@@ -20,13 +22,22 @@ Primary tracks: Memecoins With Mechanics; NFTs That Do Something. Optional only 
 
 ## Supported directions
 
-1. Token-first: NEP-141 → commitment → Rite → NFT identity → utility.
-2. NFT-first: NEP-171/245 ownership → token allocation/launch → Rites → evolution.
-3. Event-first: signed attendance/ritual → temporary community instrument → collectible record → later evolution.
+1. Token-first: launch or connect NEP-141 → create linked collection → Rites → living Culture Accounts → Arena and utility.
+2. NFT-first: connect NEP-171/245 collection → launch linked token → token mechanics informed by ownership, contribution, credentials, and Arena history.
+3. Twin launch: create token and collection together under one Culture Pair rulebook and treasury.
+4. Event-first: signed attendance/ritual → temporary community instrument → collectible record → later token or collection pairing.
 
 ## MVP campaign
 
-Byte Beasts Club requires a 10,000 TOTEM seven-day time-weighted holding score plus one signed creation challenge. Eligible users mint an NFT and branch into Liquidity Guardian or Meme Maker. The NFT opens a simple Signal Arena. A 1 NEAR mint fee routes 45% to community treasury, 35% to creator/artist, and 20% to the season prize pool.
+The flagship `$TOTEM` Culture Pair requires a time-weighted holding score plus verified participation. Eligible members mint a Totem Culture Account and evolve into roles such as Liquidity Guardian, Meme Commander, Diamond Holder, or Community Builder. The identity carries access, inventory, credentials, Arena history, and governance permissions. Other communities configure their own token, collection, thresholds, roles, mechanics, and treasury routes.
+
+## Culture Accounts
+
+A Culture NFT is not just media. It is a programmable identity and account surface that can hold bounded inventory and prizes, carry transferable traits and non-transferable credentials, unlock membership and tools, represent an Arena character, exercise role-scoped permissions, preserve contribution history, and expose composable state to other apps. Personal reputation must remain distinct from transferable assets when ownership changes.
+
+## Memecoin mechanics
+
+Culture Pair tokens can use transparent, capped mechanics tied to verified community outcomes: milestone unlocks, bounded burns, seasonal budgets, crafting and entry utility, creator sponsorship, quest distributions, and treasury rules. Totem avoids uncontrolled supply reactions, passive-yield promises, and mechanics judged only by price.
 
 ## Rule configuration
 
@@ -43,9 +54,13 @@ Byte Beasts Club requires a 10,000 TOTEM seven-day time-weighted holding score p
 - Participant quest view; evidence submission; mint/evolution ceremony; identity/passport; gated room/game.
 - Public audit dashboard; oracle registry; treasury flows; event log; SDK/API docs.
 
-## Game rules: Signal Arena
+## Arena: the living economy
 
-Once per round, active identities choose one of three community signals. Roles supply non-transferable modifiers (not financial leverage): Guardians can stabilize a losing signal; Makers can amplify a new signal. No wager or paid random outcome. The winning signal determines next season's cosmetic theme and a bounded community budget proposal. Ties resolve deterministically by earliest aggregate commitment score, then lexicographic signal ID.
+Arena is a core shared product, not an optional demo. Culture Accounts enter seasonal faction contests, creative challenges, raids, collaborative objectives, and culture-versus-culture tournaments. Verified action earns reputation, inventory, evolution, access, and bounded prizes. Roles provide non-financial abilities; results can update NFT state, unlock capped token mechanics, and route published community budgets. No wager or paid random outcome is required.
+
+## Social money
+
+Totem treats money as a relationship and coordination layer. Culture Pairs recognize contribution, belonging, creation, reputation, and shared history—not only balance. Portable credentials, community roles, cross-culture alliances, creator attribution, reputation-aware governance, and public treasury rules make social money a first-class product surface.
 
 ## Compliance boundaries
 

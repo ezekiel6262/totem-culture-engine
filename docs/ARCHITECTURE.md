@@ -2,9 +2,11 @@
 
 ## Target NEAR architecture
 
-- `culture_registry`: campaign factory/registry, immutable version hashes, roles, pause state.
+- `culture_registry`: Culture Pair factory/registry binding token, collection, rulebook, treasury and Arena identity; immutable version hashes, roles, pause state.
 - `eligibility_engine`: evaluates checkpoint accumulators and rule DAGs; emits deterministic decisions.
-- `identity_nft`: NEP-171 initially; stores compact state root, role, level, active policy version, inventory pointers. A future account-backed model can use subaccounts or NEP-245 where materially useful.
+- `culture_account`: NEP-171 identity plus a bounded account/vault interface; stores compact state root, role, level, credentials, permissions, Arena history and inventory pointers. Transferable assets and traits are separated from owner-bound reputation.
+- `token_mechanics`: capped, timelocked community-outcome rules for unlocks, burns, crafting, sponsorship, distributions and treasury budgets.
+- `arena`: seasons, factions, challenges, deterministic resolution, Culture Account abilities, inventory outcomes and bounded prize/community-budget routing.
 - `router_treasury`: validates exact splits, recipient allowlists, caps, timelocks, pull-payment balances, and failed-transfer recovery.
 - `receipt_gateway`: verifies NEP-413-style signed attestations, issuer scope, expiry, campaign/action binding, nonce consumption, and provenance hash.
 - Indexer/API: historical balance checkpoints, progress views, metadata rendering, public audit feed. Indexed state is a convenience; contracts remain authoritative for mint/access decisions.
@@ -17,7 +19,9 @@ Real target integrations: NEP-141 balance/calls, NEP-171 NFTs, NEAR RPC, wallet 
 ## Core records
 
 ```text
-Campaign { id, creator, mode, subject_contract, rule_root, evolution_root,
+CulturePair { id, creator, mode, token_contract?, collection_contract?, rulebook_root,
+  treasury_policy_id, arena_space_id, social_graph_root, version, status }
+Campaign { id, culture_pair_id, subject_contract, rule_root, evolution_root,
   fee_policy_id, oracle_policy_id, version, starts_at, ends_at, status }
 Rule { id, kind, params_hash, children[], threshold, version }
 Checkpoint { campaign_id, account_id, period, observed_balance, source_height }
@@ -25,7 +29,7 @@ Accumulator { campaign_id, account_id, weighted_balance, covered_duration, last_
 Receipt { issuer, subject, campaign_id, action_id, nonce, issued_at, expires_at,
   evidence_hash, provenance_uri_hash, signature }
 Identity { token_id, owner, campaign_id, role, level, state_root, inventory_root,
-  utility_status, last_evolved_at }
+  credential_root, permission_root, arena_root, utility_status, last_evolved_at }
 FeePolicy { destinations[], basis_points[], cap, timelock, version }
 Transition { identity_id, from_state, to_state, cause_hash, policy_version, timestamp }
 ```
@@ -41,7 +45,7 @@ Transition { identity_id, from_state, to_state, cause_hash, policy_version, time
 ## Milestones
 
 1. Hackathon slice: polished deterministic web demo, public spec, rule/economic flow, explicit simulation boundary.
-2. Testnet core: Rust registry, eligibility and NFT contracts; NEP-141 checkpoints; wallet; testnet mint/evolution.
+2. Testnet core: Rust Culture Pair registry, eligibility, token and Culture Account contracts; NEP-141 checkpoints; wallet; testnet mint/evolution.
 3. Attestation and treasury: issuer registry, NEP-413 receipts, replay tests, fee router, audit dashboard.
-4. Utility and SDK: gated Signal Arena, templates, embeddable TypeScript SDK, example integration.
+4. Arena and social money: seasonal engine, inventory and role abilities, Culture Pair tournaments, portable credentials, reputation-aware coordination and embeddable TypeScript SDK.
 5. Hardening: property/fuzz tests, storage/gas limits, independent review, incident runbook, staged mainnet pilot.

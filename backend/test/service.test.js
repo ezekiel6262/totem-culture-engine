@@ -34,6 +34,16 @@ test('rejects invalid creator and fee policies', () => {
   assert.throws(() => createCampaignVersion(campaign({ feePolicy: { routes: [{ destination: 'x', basisPoints: 9999 }] } })), /10,000/)
 })
 
+test('models token-first, NFT-first and twin-launch Culture Pairs', () => {
+  const tokenFirst = createCampaignVersion(campaign(), null, NOW)
+  assert.deepEqual(tokenFirst.culturePair, { tokenContractId: 'totem.demo.near', collectionContractId: null })
+  const nftFirst = createCampaignVersion(campaign({ mode: 'nft_first', subjectContractId: 'glyphs.near' }), null, NOW)
+  assert.deepEqual(nftFirst.culturePair, { tokenContractId: null, collectionContractId: 'glyphs.near' })
+  const twin = createCampaignVersion(campaign({ mode: 'twin_launch', culturePair: { tokenContractId: 'token.near', collectionContractId: 'nft.near' } }), null, NOW)
+  assert.deepEqual(twin.culturePair, { tokenContractId: 'token.near', collectionContractId: 'nft.near' })
+  assert.throws(() => createCampaignVersion(campaign({ mode: 'twin_launch' })), /both token and collection/)
+})
+
 test('prepares a mint command exactly once and emits a public audit feed', async () => {
   const repository = new MemoryTotemRepository()
   const service = new TotemService(repository, () => NOW, { nftContractId: 'nft.totem.testnet' })
