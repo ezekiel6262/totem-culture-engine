@@ -38,7 +38,7 @@
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px;align-items:start">
       <div style="grid-column:span 3;min-width:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px;flex-wrap:wrap"><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:36px;margin:0">Entries</h2><button style="padding:14px 22px;background:#00E89A;color:#0D0D0B;border:none;border-radius:10px;font-weight:600;font-size:18px;cursor:pointer" style-hover="background:#4DF2BA">Submit a meme for $TOTEM</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:16px;flex-wrap:wrap"><div><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:36px;margin:0">Entries</h2><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A8A397;margin-top:6px">{{ status }}</div></div><button onClick="{{ submit }}" style="padding:14px 22px;background:#00E89A;color:#0D0D0B;border:none;border-radius:10px;font-weight:600;font-size:18px;cursor:pointer" style-hover="background:#4DF2BA">Submit a meme for $TOTEM</button></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
           <sc-for list="{{ entries }}" as="e" hint-placeholder-count="6">
             <div style="background:#141410;border:1px solid #26261F;border-radius:16px;padding:16px">
@@ -70,19 +70,30 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { left: 6 * 3600 + 41 * 60 + 12, voted: [] };
+  state = { left: 6 * 3600 + 41 * 60 + 12, selected: null, bonusTotem: 0, bonusDoggo: 0, pending: false, status: 'Connect a NEAR wallet to cast a durable Arena vote.' };
   componentDidMount() { this.t = setInterval(() => this.setState(s => ({ left: Math.max(0, s.left - 1) })), 1000); }
   componentWillUnmount() { clearInterval(this.t); }
+  async cast(team, index) {
+    if (this.state.pending) return;
+    const accountId = window.totemApi?.session?.identity?.accountId;
+    if (!accountId) { window.totemWallet?.modal?.show(); this.setState({ status: 'Connect and authenticate your NEAR wallet first.' }); return; }
+    this.setState({ pending: true, status: 'Recording your weighted vote…' });
+    try {
+      const result = await window.totemApi.vote({ space: 'arena', subjectId: 'totem-v-doggo-s1-r2', accountId, choice: team === '$TOTEM' ? 'totem' : 'doggo', tier: 3 });
+      this.setState({ selected: result.active ? index : null, bonusTotem: result.tally.totem, bonusDoggo: result.tally.doggo, pending: false, status: result.active ? `Vote recorded on the public Arena ledger · ${result.vote.weight}× weight` : 'Vote removed from the public Arena ledger.' });
+    } catch (error) { this.setState({ pending: false, status: error.message || 'Arena vote failed.' }); }
+  }
   renderVals() {
     const s = this.state, p = n => String(n).padStart(2, '0');
     const E = [['ada.near', '$TOTEM', '#00E89A'], ['bark.near', '$DOGGO', '#FF6B3D'], ['kofi.near', '$TOTEM', '#EDE6D8'], ['sol:4kQ..9z', '$TOTEM', '#B8FF3D'], ['pup.near', '$DOGGO', '#EDE6D8'], ['zeal.near', '$TOTEM', '#00E89A']];
-    let totem = 1204, doggo = 986;
-    s.voted.forEach(i => { if (E[i][1] === '$TOTEM') totem += 3; else doggo += 3; });
+    const totem = 1204 + s.bonusTotem, doggo = 986 + s.bonusDoggo;
     return {
       clock: `${p(Math.floor(s.left / 3600))}:${p(Math.floor(s.left % 3600 / 60))}:${p(s.left % 60)}`,
       totem: totem.toLocaleString('en-US'), doggo: doggo.toLocaleString('en-US'),
       barS: { width: `${totem / (totem + doggo) * 100}%`, background: '#00E89A', transition: 'width .3s' },
-      entries: E.map(([who, team, c], i) => { const v = s.voted.includes(i); return { who, team, teamS: { color: team === '$TOTEM' ? '#00E89A' : '#FF6B3D' }, imgS: { height: 170, background: c, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D0D0B', fontFamily: "'JetBrains Mono',monospace", fontSize: 15 }, btn: v ? 'Voted · 3×' : 'Vote', vote: () => this.setState({ voted: v ? s.voted.filter(x => x !== i) : [...s.voted, i] }), btnS: { width: '100%', padding: '14px', borderRadius: 10, cursor: 'pointer', fontWeight: 600, fontSize: 18, background: v ? '#00E89A' : '#0D0D0B', color: v ? '#0D0D0B' : '#EDE6D8', border: v ? '1px solid #00E89A' : '1px solid #3A3A33' } }; })
+      status: s.status,
+      submit: () => this.setState({ status: 'Creator submissions are the next Arena transaction flow.' }),
+      entries: E.map(([who, team, c], i) => { const v = s.selected === i; return { who, team, teamS: { color: team === '$TOTEM' ? '#00E89A' : '#FF6B3D' }, imgS: { height: 170, background: c, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D0D0B', fontFamily: "'JetBrains Mono',monospace", fontSize: 15 }, btn: s.pending ? 'Recording…' : v ? 'Voted · 3×' : 'Vote', vote: () => this.cast(team, i), btnS: { width: '100%', padding: '14px', borderRadius: 10, cursor: s.pending ? 'wait' : 'pointer', fontWeight: 600, fontSize: 18, background: v ? '#00E89A' : '#0D0D0B', color: v ? '#0D0D0B' : '#EDE6D8', border: v ? '1px solid #00E89A' : '1px solid #3A3A33', opacity: s.pending ? .65 : 1 } }; })
     };
   }
 }

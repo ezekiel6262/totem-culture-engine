@@ -89,8 +89,8 @@ Resources:
   TotemApi:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: backend/lambda.handler
-      CodeUri: ../
+      Handler: lambda.handler
+      CodeUri: ../backend
       Policies:
         - DynamoDBCrudPolicy: {TableName: !Ref TotemTable}
       Events:
@@ -99,7 +99,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        EntryPoints: [backend/lambda.js]
+        EntryPoints: [lambda.js]
         Format: cjs
         Target: es2022
         Minify: true

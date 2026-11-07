@@ -65,11 +65,12 @@ export class DynamoAuthRepository extends DynamoRepository{
 }
 
 export class DynamoCoordinationRepository extends DynamoRepository{
-  key(v){return{pk:`VOTES#${v.space}#${v.subjectId}`,sk:`VOTE#${v.accountId}#${v.choice}`}}
+  key(v){return{pk:`VOTES#${v.space}#${v.subjectId}`,sk:`VOTE#${v.accountId}`}}
   async toggleVote(v){
     const key=this.key(v),current=await this.send(new GetCommand({TableName:this.tableName,Key:key,ConsistentRead:true}))
-    if(current.Item){await this.send(new DeleteCommand({TableName:this.tableName,Key:key,ConditionExpression:'attribute_exists(pk)'}));return{active:false,vote:clone(v)}}
-    try{await this.send(new PutCommand({TableName:this.tableName,Item:{...key,entity:'vote',vote:v},ConditionExpression:'attribute_not_exists(pk)'}));return{active:true,vote:clone(v)}}catch(error){if(conditional(error))return{active:false,vote:clone(v)};throw error}
+    if(current.Item?.vote?.choice===v.choice){await this.send(new DeleteCommand({TableName:this.tableName,Key:key,ConditionExpression:'attribute_exists(pk)'}));return{active:false,vote:clone(v),replaced:null}}
+    await this.send(new PutCommand({TableName:this.tableName,Item:{...key,entity:'vote',vote:v}}))
+    return{active:true,vote:clone(v),replaced:current.Item?.vote?.choice??null}
   }
   async tally(space,subjectId){
     const result=await this.send(new QueryCommand({TableName:this.tableName,KeyConditionExpression:'pk = :pk AND begins_with(sk,:prefix)',ExpressionAttributeValues:{':pk':`VOTES#${space}#${subjectId}`,':prefix':'VOTE#'},ConsistentRead:true})),totals={yes:0,no:0,totem:0,doggo:0}

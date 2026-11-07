@@ -24,6 +24,9 @@ enum StorageKey {
     Evolution,
     Votes,
     Tallies,
+    Inventory,
+    Credentials,
+    ArenaRecords,
 }
 
 #[near(serializers = [borsh, json])]
@@ -47,6 +50,24 @@ pub struct VoteTally {
     pub no: u64,
 }
 
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Default)]
+pub struct ArenaRecord {
+    pub points: u64,
+    pub wins: u32,
+    pub seasons: u32,
+}
+
+#[near(serializers = [json])]
+pub struct CultureAccount {
+    pub token_id: TokenId,
+    pub owner_id: AccountId,
+    pub evolution: Evolution,
+    pub inventory: Vec<String>,
+    pub credentials: Vec<String>,
+    pub arena: ArenaRecord,
+}
+
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct TotemNft {
@@ -58,6 +79,9 @@ pub struct TotemNft {
     evolution: LookupMap<TokenId, Evolution>,
     votes: LookupMap<String, bool>,
     tallies: LookupMap<String, (u64, u64)>,
+    inventory: LookupMap<TokenId, Vec<String>>,
+    credentials: LookupMap<AccountId, Vec<String>>,
+    arena_records: LookupMap<TokenId, ArenaRecord>,
     next_token_id: u64,
 }
 
@@ -90,6 +114,9 @@ impl TotemNft {
             evolution: LookupMap::new(StorageKey::Evolution),
             votes: LookupMap::new(StorageKey::Votes),
             tallies: LookupMap::new(StorageKey::Tallies),
+            inventory: LookupMap::new(StorageKey::Inventory),
+            credentials: LookupMap::new(StorageKey::Credentials),
+            arena_records: LookupMap::new(StorageKey::ArenaRecords),
             next_token_id: 1,
         }
     }
@@ -128,6 +155,8 @@ impl TotemNft {
         );
         self.token_by_owner.insert(&receiver_id, &token_id);
         self.evolution.insert(&token_id, &Evolution { branch: permit.branch, tier: 1, frozen: false });
+        self.inventory.insert(&token_id, &Vec::new());
+        self.arena_records.insert(&token_id, &ArenaRecord::default());
         self.eligibility.remove(&receiver_id);
         token
     }
@@ -172,6 +201,52 @@ impl TotemNft {
     pub fn get_tally(&self, proposal_id: String) -> VoteTally {
         let (yes, no) = self.tallies.get(&proposal_id).unwrap_or((0, 0));
         VoteTally { yes, no }
+    }
+
+    pub fn award_inventory(&mut self, token_id: TokenId, item: String) -> Vec<String> {
+        self.assert_owner();
+        require!(self.tokens.owner_by_id.get(&token_id).is_some(), "Token not found");
+        require!(!item.trim().is_empty() && item.len() <= 64, "Invalid inventory item");
+        let mut items = self.inventory.get(&token_id).unwrap_or_default();
+        require!(items.len() < 32, "Inventory is full");
+        require!(!items.contains(&item), "Inventory item already awarded");
+        items.push(item);
+        self.inventory.insert(&token_id, &items);
+        items
+    }
+
+    pub fn grant_credential(&mut self, account_id: AccountId, credential: String) -> Vec<String> {
+        self.assert_owner();
+        require!(!credential.trim().is_empty() && credential.len() <= 64, "Invalid credential");
+        let mut credentials = self.credentials.get(&account_id).unwrap_or_default();
+        require!(credentials.len() < 32, "Credential list is full");
+        require!(!credentials.contains(&credential), "Credential already granted");
+        credentials.push(credential);
+        self.credentials.insert(&account_id, &credentials);
+        credentials
+    }
+
+    pub fn record_arena_result(&mut self, token_id: TokenId, points: u64, won: bool) -> ArenaRecord {
+        self.assert_owner();
+        require!(self.tokens.owner_by_id.get(&token_id).is_some(), "Token not found");
+        let mut record = self.arena_records.get(&token_id).unwrap_or_default();
+        record.points = record.points.checked_add(points).expect("Arena points overflow");
+        record.seasons = record.seasons.checked_add(1).expect("Arena seasons overflow");
+        if won { record.wins = record.wins.checked_add(1).expect("Arena wins overflow"); }
+        self.arena_records.insert(&token_id, &record);
+        record
+    }
+
+    pub fn get_culture_account(&self, token_id: TokenId) -> Option<CultureAccount> {
+        let owner_id = self.tokens.owner_by_id.get(&token_id)?;
+        Some(CultureAccount {
+            token_id: token_id.clone(),
+            owner_id: owner_id.clone(),
+            evolution: self.evolution.get(&token_id)?,
+            inventory: self.inventory.get(&token_id).unwrap_or_default(),
+            credentials: self.credentials.get(&owner_id).unwrap_or_default(),
+            arena: self.arena_records.get(&token_id).unwrap_or_default(),
+        })
     }
 
     fn assert_owner(&self) { require!(env::predecessor_account_id() == self.owner_id, "Owner only") }
@@ -311,5 +386,33 @@ mod tests {
         let token = contract.mint();
         contract.freeze(token.token_id.clone());
         contract.vote("season-1".into(), token.token_id, "yes".into());
+    }
+
+    #[test]
+    fn culture_account_separates_transferable_inventory_from_owner_credentials() {
+        let owner = account("owner.testnet");
+        let alice = account("alice.testnet");
+        let bob = account("bob.testnet");
+        context(&owner, NearToken::from_near(0), 1_000);
+        let mut contract = TotemNft::new(owner.clone());
+        contract.approve_eligibility(alice.clone(), "meme-commander".into(), 10_000);
+        context(&alice, NearToken::from_near(1), 2_000);
+        let token = contract.mint();
+        context(&owner, NearToken::from_near(0), 3_000);
+        contract.award_inventory(token.token_id.clone(), "season-1-trophy".into());
+        contract.grant_credential(alice.clone(), "founding-member".into());
+        let arena = contract.record_arena_result(token.token_id.clone(), 240, true);
+        assert_eq!(arena.wins, 1);
+        let before = contract.get_culture_account(token.token_id.clone()).unwrap();
+        assert_eq!(before.inventory, vec!["season-1-trophy"]);
+        assert_eq!(before.credentials, vec!["founding-member"]);
+
+        context(&alice, NearToken::from_yoctonear(1), 4_000);
+        contract.nft_transfer(bob.clone(), token.token_id.clone(), None, None);
+        let after = contract.get_culture_account(token.token_id).unwrap();
+        assert_eq!(after.owner_id, bob);
+        assert_eq!(after.inventory, vec!["season-1-trophy"]);
+        assert!(after.credentials.is_empty());
+        assert_eq!(after.arena.points, 240);
     }
 }
