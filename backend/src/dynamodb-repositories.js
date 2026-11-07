@@ -1,5 +1,5 @@
 import {DynamoDBClient} from '@aws-sdk/client-dynamodb'
-import {DeleteCommand,DynamoDBDocumentClient,GetCommand,PutCommand,QueryCommand,TransactWriteCommand,UpdateCommand} from '@aws-sdk/lib-dynamodb'
+import {DeleteCommand,DynamoDBDocumentClient,GetCommand,PutCommand,QueryCommand,ScanCommand,TransactWriteCommand,UpdateCommand} from '@aws-sdk/lib-dynamodb'
 import {DomainError} from './errors.js'
 
 const clone=value=>value==null?null:structuredClone(value)
@@ -28,6 +28,16 @@ export class DynamoTotemRepository extends DynamoRepository{
   async getLatestCampaign(id){
     const result=await this.send(new GetCommand({TableName:this.tableName,Key:{pk:`CAMPAIGN#${id}`,sk:'LATEST'},ConsistentRead:true}))
     return clone(result.Item?.campaign??null)
+  }
+  async listLatestCampaigns({limit=50}={}){
+    const bounded=Math.min(Math.max(limit,1),100),campaigns=[]
+    let ExclusiveStartKey
+    do{
+      const result=await this.send(new ScanCommand({TableName:this.tableName,FilterExpression:'#entity = :entity',ExpressionAttributeNames:{'#entity':'entity'},ExpressionAttributeValues:{':entity':'campaign-latest'},ExclusiveStartKey}))
+      campaigns.push(...(result.Items??[]).map(item=>clone(item.campaign)))
+      ExclusiveStartKey=result.LastEvaluatedKey
+    }while(ExclusiveStartKey)
+    return campaigns.sort((a,b)=>b.createdAt-a.createdAt).slice(0,bounded)
   }
   async createCommandOnce(command){
     const key={pk:`COMMAND#${command.idempotencyKey}`,sk:'COMMAND'}

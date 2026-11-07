@@ -17,7 +17,7 @@
   <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid #24241F;gap:20px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:14px"><a href="Landing.dc.html" style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:22px;color:#EDE6D8">TOTEM</a><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#00E89A">/ FORGE</span></div>
     <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A8A397">New culture · step 1 of 6</span>
-    <a href="{{ nextHref }}" style="padding:14px 22px;background:#00E89A;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px" style-hover="background:#4DF2BA;color:#0D0D0B">{{ nextLabel }}</a>
+    <a href="{{ nextHref }}" onClick="{{ saveDraft }}" style="padding:14px 22px;background:#00E89A;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px" style-hover="background:#4DF2BA;color:#0D0D0B">{{ nextLabel }}</a>
   </div>
   <div style="max-width:1400px;margin:0 auto;padding:44px 40px 80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:36px;align-items:start">
     <div style="grid-column:span 3;min-width:0">
@@ -75,10 +75,10 @@ class Component extends DCLogic {
   state = { origin: 'token', name: 'Big Bold Cat', ticker: 'TOTEM', supply: '1,000,000,000', narrative: 'A cat that never sells. Every season the pride grows a new mark.', curve: 'Bonding curve' };
   renderVals() {
     const s = this.state, set = o => this.setState(o);
-    const O = [['token', 'TOKEN → NFT', 'Token-first', 'Launch a new memecoin with its culture engine attached.', 'Forge-DNA.dc.html', 'Next: Eligibility'], ['nft', 'NFT → TOKEN', 'NFT-first', 'Import a NEAR collection and mint a token tied to it.', 'NFT-First.dc.html', 'Next: Import collection'], ['event', 'EVENT → ARTIFACT', 'Event-first', 'Bind a culture to a real-world outcome via oracle.', 'Event-First.dc.html', 'Next: Event source']];
+    const O = [['token', 'TOKEN → NFT', 'Token-first', 'Launch or connect a memecoin, then give it a living NFT culture.', 'Forge-DNA.dc.html', 'Next: Culture DNA'], ['nft', 'NFT → TOKEN', 'NFT-first', 'Import a collection and launch a token tied to ownership and behavior.', 'NFT-First.dc.html', 'Next: Import collection'], ['twin', 'TOKEN + NFT', 'Twin launch', 'Launch both sides together as one Culture Pair.', 'Forge-DNA.dc.html', 'Next: Culture DNA'], ['event', 'EVENT → CULTURE', 'Event-first', 'Bind a culture to a verified real-world outcome.', 'Event-First.dc.html', 'Next: Event source']];
     const cur = O.find(o => o[0] === s.origin);
     return {
-      ...s, account: s.ticker.toLowerCase() || 'ticker', originTitle: cur[2], nextHref: cur[4], nextLabel: cur[5],
+      ...s, account: s.ticker.toLowerCase() || 'ticker', originTitle: cur[2], nextHref: cur[4], nextLabel: cur[5], saveDraft: () => sessionStorage.setItem('totem.forge.v1', JSON.stringify(s)),
       setName: e => set({ name: e.target.value }), setTicker: e => set({ ticker: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) }),
       setSupply: e => set({ supply: e.target.value }), setNarrative: e => set({ narrative: e.target.value }),
       origins: O.map(([id, flow, title, desc]) => { const on = id === s.origin; return { flow, title, desc, pick: () => set({ origin: id }), style: { textAlign: 'left', cursor: 'pointer', padding: '28px 28px', borderRadius: 18, background: on ? '#EDE6D8' : '#141410', color: on ? '#0D0D0B' : '#EDE6D8', border: on ? '3px solid #00E89A' : '2px solid #26261F' } }; }),

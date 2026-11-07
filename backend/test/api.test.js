@@ -8,6 +8,8 @@ const post=(url,body)=>new Request(url,{method:'POST',headers:{'content-type':'a
 test('HTTP API completes the campaign-to-mint flow', async()=>{
   const repository=new MemoryTotemRepository(), api=createTotemApi({repository,service:new TotemService(repository,()=>NOW)})
   assert.equal((await api.createCampaign(post('https://totem.test/api/v1/campaigns',campaign))).status,200)
+  const cultures=await(await api.listCampaigns(new Request('https://totem.test/api/v1/campaigns?limit=10'))).json()
+  assert.equal(cultures.data[0].culturePair.tokenContractId,'totem.demo.near')
   const evaluation=await(await api.evaluateEligibility(post('https://totem.test/api/v1/eligibility/evaluate',{campaignId:campaign.id,accountId:'member.near',checkpoints}))).json()
   assert.equal(evaluation.data.eligible,true)
   const input={campaignId:campaign.id,accountId:'member.near',eligibilityEpoch:1,checkpoints,signals:{holdingDays:7}}

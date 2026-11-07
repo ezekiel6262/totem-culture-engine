@@ -19,7 +19,7 @@
     <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A8A397">Draft · $TOTEM · autosaved</span>
     <div style="display:flex;gap:10px">
       <a href="Mint.dc.html" style="padding:14px 22px;border:1px solid #3A3A33;border-radius:10px;color:#EDE6D8;font-size:17px" style-hover="border-color:#EDE6D8;color:#EDE6D8">Simulate 30 days</a>
-      <a href="Console.dc.html" style="padding:14px 22px;background:#00E89A;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px" style-hover="background:#4DF2BA;color:#0D0D0B">Deploy to NEAR</a>
+      <button onClick="{{ publish }}" style="padding:14px 22px;background:#00E89A;border:0;border-radius:10px;color:#0D0D0B;font-weight:600;font-size:17px;cursor:pointer" style-hover="background:#4DF2BA;color:#0D0D0B">{{ publishLabel }}</button>
     </div>
   </div>
   <div style="max-width:1440px;margin:0 auto;padding:36px 40px 80px;display:grid;grid-template-columns:220px minmax(0,1fr) 300px;gap:28px;align-items:start">
@@ -67,6 +67,7 @@
           </sc-for>
         </div>
         <p style="font-size:15px;color:#A8A397;margin:18px 0 0">Routes fund participation and community budgets. Direct passive payouts to holders are off by default.</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:18px">{{ publishStatus }}</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:18px;position:sticky;top:20px">
@@ -90,13 +91,45 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15] };
+  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15], publishing: false, publishStatus: 'Connect a NEAR wallet to publish this Culture Pair.' };
+  async publish() {
+    if (this.state.publishing) return;
+    const identity = window.totemApi?.session?.identity;
+    if (!identity?.accountId) { window.totemWallet?.modal?.show(); this.setState({ publishStatus: 'Connect and authenticate your NEAR wallet first.' }); return; }
+    const draft = JSON.parse(sessionStorage.getItem('totem.forge.v1') || '{}');
+    const ticker = String(draft.ticker || 'CULTURE').toLowerCase();
+    const mode = draft.origin === 'nft' ? 'nft_first' : draft.origin === 'twin' ? 'twin_launch' : draft.origin === 'event' ? 'event_first' : 'token_first';
+    const tokenContractId = mode === 'nft_first' || mode === 'event_first' ? null : `${ticker}.totem.testnet`;
+    const collectionContractId = mode === 'token_first' || mode === 'event_first' ? null : `${ticker}-nft.totem.testnet`;
+    const subjectContractId = tokenContractId || collectionContractId || `event-${ticker}.totem.testnet`;
+    const minimumBalance = Number(String(this.state.hold).replace(/\D/g, '')) || 1;
+    const days = Math.max(1, Number(this.state.days) || 1);
+    const [quests, treasury, creator, liquidity] = this.state.routes.map(v => v * 100);
+    const input = {
+      id: `${ticker}-culture`, displayName: draft.name || `$${ticker.toUpperCase()}`, narrative: draft.narrative || '', creatorAccountId: identity.accountId,
+      subjectContractId, mode, culturePair: { tokenContractId, collectionContractId }, startsAt: Date.now(), endsAt: Date.now() + 365 * 86400000, status: 'active',
+      rule: { kind: 'time_weighted_balance', minimumBalance, windowDays: days, minimumCoveredDays: days },
+      evolutionBranches: [
+        { id: 'diamond-holder', role: 'Diamond Holder', priority: 40, requirements: [{ signal: 'holdingDays', minimum: days * 3 }] },
+        { id: 'liquidity-guardian', role: 'Liquidity Guardian', priority: 30, requirements: [{ signal: 'liquidityActions', minimum: 1 }] },
+        { id: 'meme-commander', role: 'Meme Commander', priority: 20, requirements: [{ signal: 'challengeReceipts', minimum: 1 }] },
+        { id: 'community-builder', role: 'Community Builder', priority: 10, requirements: [{ signal: 'verifiedReferrals', minimum: 3 }] }
+      ],
+      feePolicy: { routes: [
+        { destination: 'quests.totem.testnet', basisPoints: quests }, { destination: 'treasury.totem.testnet', basisPoints: treasury },
+        { destination: identity.accountId, basisPoints: creator }, { destination: 'liquidity.totem.testnet', basisPoints: liquidity }
+      ] }
+    };
+    this.setState({ publishing: true, publishStatus: 'Publishing versioned Culture DNA…' });
+    try { const culture = await window.totemApi.createCampaign(input); sessionStorage.removeItem('totem.forge.v1'); this.setState({ publishing: false, publishStatus: `Published ${culture.displayName} · version ${culture.version}` }); setTimeout(() => location.href='Explore.dc.html', 900); }
+    catch (error) { this.setState({ publishing: false, publishStatus: error.message || 'Culture publication failed.' }); }
+  }
   renderVals() {
     const s = this.state, set = o => this.setState(o), C = '#EDE6D8';
     const labels = ['Quest and Arena prizes', 'Community treasury', 'Creator', 'Liquidity'], colors = ['#00E89A', C, '#FF6B3D', '#5A5A50'];
     const total = s.routes.reduce((a, b) => a + b, 0), ok = total === 100;
     return {
-      hold: s.hold, days: s.days, total,
+      hold: s.hold, days: s.days, total, publishStatus: s.publishStatus, publishLabel: s.publishing ? 'Publishing…' : 'Publish Culture Pair', publish: () => this.publish(),
       setHold: e => set({ hold: e.target.value }), setDays: e => set({ days: e.target.value.replace(/\D/g, '') }),
       templates: ['Hold-to-evolve', 'Quest-to-mint', 'Token-gated membership', 'Seasonal collection', 'Event collectible', 'NFT-to-token'].map(l => { const on = l === s.tpl, ev = l === 'Event collectible'; return { label: l, pick: () => set({ tpl: l }), style: { padding: '12px 20px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? '#00E89A' : 'transparent', color: on ? '#0D0D0B' : C, fontWeight: on ? 600 : 400, border: on ? '1px solid #00E89A' : ev ? '1px solid #FF6B3D' : '1px solid #3A3A33' } }; }),
       quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'].map(q => { const on = s.quests.includes(q); return { label: q, toggle: () => set({ quests: on ? s.quests.filter(x => x !== q) : [...s.quests, q] }), style: { padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: 15, background: on ? '#141410' : 'transparent', color: on ? C : '#6E6B62', border: on ? '1px solid #4A4A42' : '1px dashed #3A3A33' } }; }),

@@ -28,6 +28,12 @@ export class PostgresTotemRepository {
     return result.rows[0]?.policy ?? null
   }
 
+  async listLatestCampaigns({ limit = 50 } = {}) {
+    const bounded = Math.min(Math.max(limit, 1), 100)
+    const result = await this.sql.query(`select cv.policy from campaigns c join campaign_versions cv on cv.campaign_id=c.id and cv.version=c.latest_version order by cv.created_at desc limit $1`, [bounded])
+    return result.rows.map(row => row.policy)
+  }
+
   async createCommandOnce(command) {
     const result = await this.sql.query(`insert into commands (idempotency_key,kind,campaign_id,account_id,payload,payload_hash,status,created_at,updated_at)
       values ($1,$2,$3,$4,$5::jsonb,$6,$7,to_timestamp($8/1000.0),to_timestamp($8/1000.0))

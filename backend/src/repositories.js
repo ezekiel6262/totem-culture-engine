@@ -17,6 +17,15 @@ export class MemoryTotemRepository {
     return structuredClone(this.#campaignVersions.get(id)?.at(-1) ?? null)
   }
 
+  async listLatestCampaigns({ limit = 50 } = {}) {
+    return [...this.#campaignVersions.values()]
+      .map(versions => versions.at(-1))
+      .filter(Boolean)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+      .map(campaign => structuredClone(campaign))
+  }
+
   async createCommandOnce(command) {
     const existing = this.#commands.get(command.idempotencyKey)
     if (existing) return { created: false, command: structuredClone(existing) }

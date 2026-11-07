@@ -15,6 +15,12 @@ export function createTotemApi({ service, repository, auth = null, coordination 
       if (identity) invariant(identity.accountId === body?.creatorAccountId, 'AUTH_ACCOUNT_MISMATCH', 'Creator account must match the authenticated account')
       return service.createCampaign(body)
     }),
+    listCampaigns: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      const limit = Number(new URL(request.url).searchParams.get('limit') ?? 50)
+      invariant(Number.isSafeInteger(limit) && limit > 0 && limit <= 100, 'LIMIT_INVALID', 'limit must be between 1 and 100')
+      return repository.listLatestCampaigns({ limit })
+    }),
     evaluateEligibility: jsonHandler(async ({ request, body }) => { requirePost(request); return service.evaluate(body) }),
     prepareMint: jsonHandler(async ({ request, body }) => {
       requirePost(request)
