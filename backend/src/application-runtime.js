@@ -13,7 +13,7 @@ import {createDynamoDocumentClient,DynamoAuthRepository,DynamoCoordinationReposi
 export async function createApplicationRuntime(config){
   const db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
   const dynamo=config.dynamoTable?createDynamoDocumentClient():null
-  const repository=db?new PostgresTotemRepository(db):dynamo?new DynamoTotemRepository(dynamo,config.dynamoTable):new MemoryTotemRepository(),service=new TotemService(repository)
+  const repository=db?new PostgresTotemRepository(db):dynamo?new DynamoTotemRepository(dynamo,config.dynamoTable):new MemoryTotemRepository(),service=new TotemService(repository,()=>Date.now(),{nftContractId:config.nftContractId,tokenContractId:config.tokenContractId,network:config.nearNetwork})
   if(config.seedDemo&&!await repository.getLatestCampaign(TOTEM_CAMPAIGN.id))await service.createCampaign(TOTEM_CAMPAIGN)
   const authRepository=db?new PostgresAuthRepository(db):dynamo?new DynamoAuthRepository(dynamo,config.dynamoTable):new MemoryAuthRepository()
   const coordinationRepository=db?new PostgresCoordinationRepository(db):dynamo?new DynamoCoordinationRepository(dynamo,config.dynamoTable):new MemoryCoordinationRepository()

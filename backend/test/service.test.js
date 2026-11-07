@@ -36,7 +36,7 @@ test('rejects invalid creator and fee policies', () => {
 
 test('prepares a mint command exactly once and emits a public audit feed', async () => {
   const repository = new MemoryTotemRepository()
-  const service = new TotemService(repository, () => NOW)
+  const service = new TotemService(repository, () => NOW, { nftContractId: 'nft.totem.testnet' })
   await service.createCampaign(campaign())
   const input = { campaignId: 'totem-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints, signals: { holdingDays: 7, liquidityActions: 1, challengeReceipts: 1 } }
   const first = await service.prepareMint(input)
@@ -44,13 +44,17 @@ test('prepares a mint command exactly once and emits a public audit feed', async
   assert.equal(first.replay, false)
   assert.equal(replay.replay, true)
   assert.equal(replay.command.idempotencyKey, first.command.idempotencyKey)
+  assert.equal(first.command.transactionPlan.operatorApproval.actions[0].params.methodName, 'approve_eligibility')
+  assert.equal(first.command.transactionPlan.operatorApproval.actions[0].params.args.account_id, 'member.near')
+  assert.equal(first.command.transactionPlan.memberMint.actions[0].params.methodName, 'mint')
+  assert.equal(first.command.transactionPlan.memberMint.receiverId, 'nft.totem.testnet')
   const events = await repository.listEvents({ campaignId: 'totem-genesis' })
   assert.deepEqual(events.map(event => event.type), ['campaign.version_created', 'identity.mint_prepared'])
 })
 
 test('refuses mint preparation when durable holding is incomplete', async () => {
   const repository = new MemoryTotemRepository()
-  const service = new TotemService(repository, () => NOW)
+  const service = new TotemService(repository, () => NOW, { nftContractId: 'nft.totem.testnet' })
   await service.createCampaign(campaign())
   await assert.rejects(() => service.prepareMint({ campaignId: 'totem-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints: checkpoints.slice(0, 1), signals: { challengeReceipts: 1 } }), /not satisfied/)
 })

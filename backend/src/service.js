@@ -4,11 +4,13 @@ import { evaluateHoldingRule } from './eligibility.js'
 import { chooseEvolution } from './evolution.js'
 import { mintIdempotencyKey } from './idempotency.js'
 import { invariant } from './errors.js'
+import { createMintTransactionPlan } from './near-transactions.js'
 
 export class TotemService {
-  constructor(repository, clock = () => Date.now()) {
+  constructor(repository, clock = () => Date.now(), contracts = {}) {
     this.repository = repository
     this.clock = clock
+    this.contracts = { nftContractId: 'nft.totem.testnet', ...contracts }
   }
 
   async createCampaign(input) {
@@ -33,6 +35,7 @@ export class TotemService {
     const eligibility = evaluateHoldingRule(campaign.rule, checkpoints, this.clock())
     invariant(eligibility.eligible, 'MINT_NOT_ELIGIBLE', 'Account has not satisfied the holding rule', eligibility)
     const evolution = chooseEvolution(campaign.evolutionBranches, signals)
+    const eligibilityExpiresAt = this.clock() + 15 * 60 * 1000
     const idempotencyKey = mintIdempotencyKey({ campaignId, accountId, eligibilityEpoch })
     const command = {
       idempotencyKey,
@@ -43,6 +46,13 @@ export class TotemService {
       eligibilityEpoch,
       role: evolution.role,
       branchId: evolution.branchId,
+      transactionPlan: createMintTransactionPlan({
+        nftContractId: this.contracts.nftContractId,
+        accountId,
+        branchId: evolution.branchId,
+        expiresAtMs: eligibilityExpiresAt
+      }),
+      eligibilityExpiresAt,
       payloadHash: hashRecord({ checkpoints, signals }),
       status: 'pending',
       createdAt: this.clock()

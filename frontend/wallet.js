@@ -5,8 +5,8 @@ import {setupMyNearWallet} from '@near-wallet-selector/my-near-wallet'
 import '@near-wallet-selector/modal-ui-js/styles.css'
 globalThis.Buffer=Buffer
 
-const network=document.documentElement.dataset.nearNetwork||'mainnet'
-const contractId=document.documentElement.dataset.totemContract||'totem.near'
+const network=document.documentElement.dataset.nearNetwork||'testnet'
+const contractId=document.documentElement.dataset.totemContract||'nft.totem.testnet'
 const selector=await setupWalletSelector({network,modules:[setupMyNearWallet()]})
 const modal=setupModal(selector,{contractId,theme:'dark',description:'Connect to Totem and sign a gas-free NEP-413 authentication message.'})
 let authenticating=false
@@ -35,6 +35,10 @@ async function currentAccount(){
   const accountId=accounts[0]?.accountId||null
   if(accountId)await authenticate(accountId);else paint(null)
 }
+async function signAndSend(transaction){
+  const wallet=await selector.wallet()
+  return wallet.signAndSendTransaction(transaction)
+}
 document.addEventListener('click',async event=>{
   const target=event.target.closest('[data-totem-wallet],a,button')
   if(!target||!walletTargets().includes(target))return
@@ -46,4 +50,4 @@ document.addEventListener('click',async event=>{
 })
 selector.store.observable.subscribe(state=>{const accountId=state.accounts[0]?.accountId||null;if(accountId)authenticate(accountId);else paint(null)})
 await currentAccount()
-window.totemWallet={selector,modal,authenticate,signOut:async()=>{const wallet=await selector.wallet();await wallet.signOut();window.totemApi.disconnect();paint(null)}}
+window.totemWallet={selector,modal,authenticate,signAndSend,signAndSendMint:plan=>signAndSend(plan.memberMint),signOut:async()=>{const wallet=await selector.wallet();await wallet.signOut();window.totemApi.disconnect();paint(null)}}

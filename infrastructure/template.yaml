@@ -3,7 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: Totem culture engine API
 Parameters:
   AuthRecipient: {Type: String}
-  NearRpcUrl: {Type: String, Default: 'https://rpc.mainnet.near.org'}
+  NearRpcUrl: {Type: String, Default: 'https://rpc.testnet.near.org'}
+  NearNetwork: {Type: String, Default: testnet, AllowedValues: [testnet, mainnet]}
+  TotemTokenContractId: {Type: String, Default: token.totem.testnet}
+  TotemNftContractId: {Type: String, Default: nft.totem.testnet}
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -17,6 +20,9 @@ Globals:
         TOTEM_DYNAMODB_TABLE: !Ref TotemTable
         TOTEM_AUTH_RECIPIENT: !Ref AuthRecipient
         NEAR_RPC_URL: !Ref NearRpcUrl
+        NEAR_NETWORK: !Ref NearNetwork
+        TOTEM_TOKEN_CONTRACT_ID: !Ref TotemTokenContractId
+        TOTEM_NFT_CONTRACT_ID: !Ref TotemNftContractId
         TOTEM_SEED_DEMO: 'false'
 Resources:
   FrontendBucket:
