@@ -44,6 +44,15 @@ export class DynamoTotemRepository extends DynamoRepository{
     try{await this.send(new PutCommand({TableName:this.tableName,Item:{...key,entity:'command',command},ConditionExpression:'attribute_not_exists(pk)'}));return{created:true,command:clone(command)}}
     catch(error){if(!conditional(error))throw error;const existing=await this.send(new GetCommand({TableName:this.tableName,Key:key,ConsistentRead:true}));return{created:false,command:clone(existing.Item.command)}}
   }
+  async listCommands({campaignId,kind,status,limit=100}){
+    const commands=[];let ExclusiveStartKey
+    do{const result=await this.send(new ScanCommand({TableName:this.tableName,FilterExpression:'#entity = :entity',ExpressionAttributeNames:{'#entity':'entity'},ExpressionAttributeValues:{':entity':'command'},ExclusiveStartKey}));commands.push(...(result.Items??[]).map(item=>item.command).filter(command=>command.campaignId===campaignId&&(!kind||command.kind===kind)&&(!status||command.status===status)));ExclusiveStartKey=result.LastEvaluatedKey}while(ExclusiveStartKey)
+    return commands.sort((a,b)=>b.createdAt-a.createdAt).slice(0,Math.min(Math.max(limit,1),100)).map(clone)
+  }
+  async updateCommandStatus({idempotencyKey,expectedStatus,status,reviewedBy,reviewedAt}){
+    const key={pk:`COMMAND#${idempotencyKey}`,sk:'COMMAND'}
+    try{const result=await this.send(new UpdateCommand({TableName:this.tableName,Key:key,UpdateExpression:'SET command.#status = :status, command.reviewedBy = :reviewedBy, command.reviewedAt = :reviewedAt',ConditionExpression:'command.#status = :expected',ExpressionAttributeNames:{'#status':'status'},ExpressionAttributeValues:{':status':status,':expected':expectedStatus,':reviewedBy':reviewedBy,':reviewedAt':reviewedAt},ReturnValues:'ALL_NEW'}));return clone(result.Attributes.command)}catch(error){if(conditional(error))return null;throw error}
+  }
   async nextEventSequence(campaignId='global'){
     const result=await this.send(new UpdateCommand({TableName:this.tableName,Key:{pk:`EVENTS#${campaignId}`,sk:'COUNTER'},UpdateExpression:'ADD #value :one',ExpressionAttributeNames:{'#value':'value'},ExpressionAttributeValues:{':one':1},ReturnValues:'UPDATED_NEW'}))
     return Number(result.Attributes.value)

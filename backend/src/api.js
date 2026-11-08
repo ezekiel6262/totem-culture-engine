@@ -41,6 +41,25 @@ export function createTotemApi({ service, repository, auth = null, coordination 
       invariant(identity && identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Contribution account must match the authenticated account')
       return service.submitContribution(body)
     }),
+    listContributions: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      const identity = await principal(request), campaignId = new URL(request.url).searchParams.get('campaignId')
+      invariant(identity, 'AUTH_REQUIRED', 'Authentication is required')
+      invariant(campaignId, 'CAMPAIGN_ID_REQUIRED', 'campaignId is required')
+      return service.listContributions({ campaignId, reviewerAccountId: identity.accountId })
+    }),
+    reviewContribution: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      invariant(identity, 'AUTH_REQUIRED', 'Authentication is required')
+      return service.reviewContribution({ ...body, reviewerAccountId: identity.accountId })
+    }),
+    finalizeContribution: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      invariant(identity, 'AUTH_REQUIRED', 'Authentication is required')
+      return service.finalizeContribution({ ...body, reviewerAccountId: identity.accountId })
+    }),
     listEvents: jsonHandler(async ({ request }) => {
       invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
       const url = new URL(request.url), campaignId = url.searchParams.get('campaignId')

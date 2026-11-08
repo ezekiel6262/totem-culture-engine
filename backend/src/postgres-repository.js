@@ -44,6 +44,16 @@ export class PostgresTotemRepository {
     return { created: false, command: existing.rows[0].payload }
   }
 
+  async listCommands({ campaignId, kind, status, limit = 100 }) {
+    const result = await this.sql.query(`select payload from commands where campaign_id=$1 and ($2::text is null or kind=$2) and ($3::text is null or status=$3) order by created_at desc limit $4`, [campaignId, kind ?? null, status ?? null, Math.min(Math.max(limit, 1), 100)])
+    return result.rows.map(row => row.payload)
+  }
+
+  async updateCommandStatus({ idempotencyKey, expectedStatus, status, reviewedBy, reviewedAt }) {
+    const result = await this.sql.query(`update commands set status=$3,payload=jsonb_set(jsonb_set(jsonb_set(payload,'{status}',to_jsonb($3::text)),'{reviewedBy}',to_jsonb($4::text)),'{reviewedAt}',to_jsonb($5::bigint)),updated_at=to_timestamp($5/1000.0) where idempotency_key=$1 and status=$2 returning payload`, [idempotencyKey, expectedStatus, status, reviewedBy, reviewedAt])
+    return result.rows[0]?.payload ?? null
+  }
+
   async appendEvent(event) {
     const result = await this.sql.query(`insert into audit_events (campaign_id,event_type,event_hash,data,occurred_at)
       values ($1,$2,$3,$4::jsonb,to_timestamp($5/1000.0)) returning sequence`,

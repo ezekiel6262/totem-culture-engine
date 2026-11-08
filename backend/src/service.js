@@ -42,6 +42,49 @@ export class TotemService {
     return { replay: !stored.created, contribution: stored.command }
   }
 
+  async listContributions({ campaignId, reviewerAccountId }) {
+    const campaign = await this.repository.getLatestCampaign(campaignId)
+    invariant(campaign, 'CAMPAIGN_NOT_FOUND', 'Campaign does not exist')
+    invariant(campaign.creatorAccountId === reviewerAccountId, 'CAMPAIGN_REVIEW_FORBIDDEN', 'Only the culture creator can review contributions')
+    return this.repository.listCommands({ campaignId, kind: 'verify_social_contribution', limit: 100 })
+  }
+
+  async reviewContribution({ campaignId, reviewerAccountId, idempotencyKey, decision }) {
+    const campaign = await this.repository.getLatestCampaign(campaignId)
+    invariant(campaign, 'CAMPAIGN_NOT_FOUND', 'Campaign does not exist')
+    invariant(campaign.creatorAccountId === reviewerAccountId, 'CAMPAIGN_REVIEW_FORBIDDEN', 'Only the culture creator can review contributions')
+    invariant(decision === 'approve' || decision === 'reject', 'CONTRIBUTION_DECISION_INVALID', 'Decision must be approve or reject')
+    const commands = await this.repository.listCommands({ campaignId, kind: 'verify_social_contribution', limit: 100 })
+    const current = commands.find(command => command.idempotencyKey === idempotencyKey)
+    invariant(current, 'CONTRIBUTION_NOT_FOUND', 'Contribution receipt does not exist')
+    const collectionContractId = campaign.culturePair?.collectionContractId
+    if (decision === 'approve' && current.status === 'approved_pending_credential') return { contribution: current, credential: `contribution:${current.contributionKind}`, credentialTransaction: this.#credentialTransaction(current, reviewerAccountId, collectionContractId) }
+    const status = decision === 'approve' && collectionContractId ? 'approved_pending_credential' : decision === 'approve' ? 'verified' : 'rejected', reviewedAt = this.clock()
+    const contribution = await this.repository.updateCommandStatus({ idempotencyKey, expectedStatus: 'pending_verification', status, reviewedBy: reviewerAccountId, reviewedAt })
+    invariant(contribution, 'CONTRIBUTION_ALREADY_REVIEWED', 'Contribution has already been reviewed')
+    const credential = `contribution:${contribution.contributionKind}`
+    const credentialTransaction = status === 'approved_pending_credential' ? this.#credentialTransaction(contribution, reviewerAccountId, collectionContractId) : null
+    await this.#event(campaignId, `social.contribution_${status}`, { accountId: contribution.accountId, contributionKind: contribution.contributionKind, idempotencyKey, reviewedBy: reviewerAccountId, credential })
+    return { contribution, credential, credentialTransaction }
+  }
+
+  async finalizeContribution({ campaignId, reviewerAccountId, idempotencyKey, transactionHash }) {
+    const campaign = await this.repository.getLatestCampaign(campaignId)
+    invariant(campaign?.creatorAccountId === reviewerAccountId, 'CAMPAIGN_REVIEW_FORBIDDEN', 'Only the culture creator can finalize contributions')
+    invariant(/^[A-Za-z0-9_-]{20,100}$/.test(transactionHash ?? ''), 'TRANSACTION_HASH_INVALID', 'A valid NEAR transaction hash is required')
+    const commands = await this.repository.listCommands({ campaignId, kind: 'verify_social_contribution', limit: 100 })
+    invariant(commands.some(command => command.idempotencyKey === idempotencyKey && command.status === 'approved_pending_credential'), 'CONTRIBUTION_FINALIZE_INVALID', 'Contribution is not awaiting credential confirmation')
+    const reviewedAt = this.clock(), contribution = await this.repository.updateCommandStatus({ idempotencyKey, expectedStatus: 'approved_pending_credential', status: 'verified', reviewedBy: reviewerAccountId, reviewedAt })
+    invariant(contribution, 'CONTRIBUTION_FINALIZE_INVALID', 'Contribution is not awaiting credential confirmation')
+    contribution.transactionHash = transactionHash
+    await this.#event(campaignId, 'social.contribution_verified', { accountId: contribution.accountId, contributionKind: contribution.contributionKind, idempotencyKey, reviewedBy: reviewerAccountId, transactionHash })
+    return { contribution }
+  }
+
+  #credentialTransaction(contribution, signerId, receiverId) {
+    return { signerId, receiverId, actions: [{ type: 'FunctionCall', params: { methodName: 'grant_credential', args: { account_id: contribution.accountId, credential: `contribution:${contribution.contributionKind}` }, gas: '50000000000000', deposit: '0' } }] }
+  }
+
   async createCampaign(input) {
     const current = await this.repository.getLatestCampaign(input.id)
     const campaign = createCampaignVersion(input, current, this.clock())

@@ -24,6 +24,9 @@
     cultures({limit=50}={}){return this.request('/api/v1/campaigns?limit='+limit)}
     cultureAccount(campaignId,accountId){return this.request('/api/v1/culture-account?campaignId='+encodeURIComponent(campaignId)+'&accountId='+encodeURIComponent(accountId))}
     contribute(input){return this.request('/api/v1/contributions',{method:'POST',body:input,authenticated:true})}
+    contributionsForReview(campaignId){return this.request('/api/v1/contributions/review?campaignId='+encodeURIComponent(campaignId),{authenticated:true})}
+    reviewContribution(input){return this.request('/api/v1/contributions/review',{method:'POST',body:input,authenticated:true})}
+    finalizeContribution(input){return this.request('/api/v1/contributions/finalize',{method:'POST',body:input,authenticated:true})}
     evaluate(campaignId,accountId,checkpoints){return this.request('/api/v1/eligibility/evaluate',{method:'POST',body:{campaignId,accountId,checkpoints}})}
     prepareMint(input){return this.request('/api/v1/mints/prepare',{method:'POST',body:input,authenticated:true})}
     events(campaignId,{afterSequence=0,limit=50}={}){return this.request('/api/v1/events?campaignId='+encodeURIComponent(campaignId)+'&afterSequence='+afterSequence+'&limit='+limit)}

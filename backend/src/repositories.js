@@ -33,6 +33,18 @@ export class MemoryTotemRepository {
     return { created: true, command: structuredClone(command) }
   }
 
+  async listCommands({ campaignId, kind, status, limit = 100 }) {
+    return [...this.#commands.values()].filter(command => command.campaignId === campaignId && (!kind || command.kind === kind) && (!status || command.status === status)).sort((a, b) => b.createdAt - a.createdAt).slice(0, limit).map(command => structuredClone(command))
+  }
+
+  async updateCommandStatus({ idempotencyKey, expectedStatus, status, reviewedBy, reviewedAt }) {
+    const command = this.#commands.get(idempotencyKey)
+    if (!command || command.status !== expectedStatus) return null
+    const updated = { ...command, status, reviewedBy, reviewedAt }
+    this.#commands.set(idempotencyKey, updated)
+    return structuredClone(updated)
+  }
+
   async appendEvent(event) {
     this.#events.push(structuredClone(event))
     return structuredClone(event)
