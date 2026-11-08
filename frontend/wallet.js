@@ -1,13 +1,13 @@
 import {Buffer} from 'buffer'
 import {setupWalletSelector} from '@near-wallet-selector/core'
 import {setupModal} from '@near-wallet-selector/modal-ui-js'
-import {setupMyNearWallet} from '@near-wallet-selector/my-near-wallet'
+import {setupMeteorWallet} from '@near-wallet-selector/meteor-wallet'
 import '@near-wallet-selector/modal-ui-js/styles.css'
 globalThis.Buffer=Buffer
 
 const network=document.documentElement.dataset.nearNetwork||'testnet'
 const contractId=document.documentElement.dataset.totemContract||'nft.totem.testnet'
-const selector=await setupWalletSelector({network,modules:[setupMyNearWallet()]})
+const selector=await setupWalletSelector({network,modules:[setupMeteorWallet()]})
 const modal=setupModal(selector,{contractId,theme:'dark',description:'Connect to Totem and sign a gas-free NEP-413 authentication message.'})
 let authenticating=false
 

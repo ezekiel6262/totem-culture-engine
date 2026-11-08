@@ -88,13 +88,13 @@ pub struct TotemNft {
 #[near]
 impl TotemNft {
     #[init]
-    pub fn new(owner_id: AccountId) -> Self {
+    pub fn new(owner_id: AccountId, name: String, symbol: String, base_uri: Option<String>) -> Self {
         let metadata = NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
-            name: "Totem Culture Identity".to_string(),
-            symbol: "TOTEM".to_string(),
+            name,
+            symbol,
             icon: None,
-            base_uri: None,
+            base_uri,
             reference: None,
             reference_hash: None,
         };
@@ -347,7 +347,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone());
+        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
         contract.approve_eligibility(alice.clone(), "meme-commander".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();
@@ -364,7 +364,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone());
+        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
         contract.approve_eligibility(alice.clone(), "diamond-holder".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         contract.mint();
@@ -380,7 +380,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone());
+        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
         contract.approve_eligibility(alice.clone(), "diamond-holder".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();
@@ -394,7 +394,7 @@ mod tests {
         let alice = account("alice.testnet");
         let bob = account("bob.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone());
+        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
         contract.approve_eligibility(alice.clone(), "meme-commander".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();

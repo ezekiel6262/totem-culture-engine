@@ -21,8 +21,8 @@ Get-FileHash contracts/artifacts/*.wasm -Algorithm SHA256
 Use two dedicated testnet accounts. Replace the example account names below with accounts controlled by the project owner.
 
 ```powershell
-near contract deploy token.totem.testnet use-file contracts/artifacts/totem_token.wasm with-init-call new json-args '{"owner_id":"totem.testnet","total_supply":"1000000000000000000000000000"}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
-near contract deploy nft.totem.testnet use-file contracts/artifacts/totem_nft.wasm with-init-call new json-args '{"owner_id":"totem.testnet"}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
+near contract deploy token.totem.testnet use-file contracts/artifacts/totem_token.wasm with-init-call new json-args '{"owner_id":"totem.testnet","total_supply":"1000000000000000000000000000","name":"Totem","symbol":"TOTEM","decimals":18}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
+near contract deploy nft.totem.testnet use-file contracts/artifacts/totem_nft.wasm with-init-call new json-args '{"owner_id":"totem.testnet","name":"Totem Culture Identity","symbol":"TOTEM","base_uri":null}' prepaid-gas '100 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-keychain send
 ```
 
 The NFT mint flow intentionally requires two signatures:

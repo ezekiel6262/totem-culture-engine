@@ -25,15 +25,15 @@ pub struct TotemToken {
 #[near]
 impl TotemToken {
     #[init]
-    pub fn new(owner_id: AccountId, total_supply: U128) -> Self {
+    pub fn new(owner_id: AccountId, total_supply: U128, name: String, symbol: String, decimals: u8) -> Self {
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
-            name: "Totem".to_string(),
-            symbol: "TOTEM".to_string(),
+            name,
+            symbol,
             icon: None,
             reference: None,
             reference_hash: None,
-            decimals: 18,
+            decimals,
         };
         metadata.assert_valid();
         let mut token = FungibleToken::new(StorageKey::Token);
@@ -114,7 +114,7 @@ mod tests {
     fn initializes_fixed_supply_and_metadata() {
         let owner = account("owner.testnet");
         testing_env!(VMContextBuilder::new().predecessor_account_id(owner.clone()).build());
-        let contract = TotemToken::new(owner.clone(), U128(1_000_000_000 * 10u128.pow(18)));
+        let contract = TotemToken::new(owner.clone(), U128(1_000_000_000 * 10u128.pow(18)), "Totem".into(), "TOTEM".into(), 18);
         assert_eq!(contract.ft_metadata().symbol, "TOTEM");
         assert_eq!(contract.ft_total_supply().0, 1_000_000_000 * 10u128.pow(18));
         assert_eq!(contract.ft_balance_of(owner).0, contract.ft_total_supply().0);
