@@ -4,7 +4,7 @@ import { evaluateHoldingRule } from './eligibility.js'
 import { chooseEvolution } from './evolution.js'
 import { mintIdempotencyKey } from './idempotency.js'
 import { invariant } from './errors.js'
-import { createMintTransactionPlan } from './near-transactions.js'
+import { createMintTransactionPlan, mintDepositFor } from './near-transactions.js'
 
 export class TotemService {
   constructor(repository, clock = () => Date.now(), contracts = {}) {
@@ -119,10 +119,11 @@ export class TotemService {
       role: evolution.role,
       branchId: evolution.branchId,
       transactionPlan: createMintTransactionPlan({
-        nftContractId: this.contracts.nftContractId,
+        nftContractId: campaign.culturePair?.collectionContractId ?? this.contracts.nftContractId,
         accountId,
         branchId: evolution.branchId,
-        expiresAtMs: eligibilityExpiresAt
+        expiresAtMs: eligibilityExpiresAt,
+        mintDepositYocto: campaign.launchConfig?.nft ? mintDepositFor(campaign.launchConfig.nft.mintModel === 'Free claim' ? '0' : campaign.launchConfig.nft.mintPrice ?? campaign.launchConfig.nft.price) : undefined
       }),
       eligibilityExpiresAt,
       payloadHash: hashRecord({ checkpoints, signals }),

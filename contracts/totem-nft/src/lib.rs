@@ -6,9 +6,10 @@ use near_contract_standards::non_fungible_token::{
     NonFungibleTokenEnumeration, NonFungibleTokenResolver, Token, TokenId,
 };
 use near_contract_standards::non_fungible_token::core::NonFungibleTokenCore;
+use near_contract_standards::non_fungible_token::events::NftMint;
 use near_sdk::collections::{LazyOption, LookupMap};
 use near_sdk::json_types::U128;
-use near_sdk::{AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseOrValue, env, near, require};
+use near_sdk::{AccountId, BorshStorageKey, NearToken, PanicOnDefault, Promise, PromiseOrValue, env, near, require};
 use std::collections::HashMap;
 
 #[derive(BorshStorageKey)]
@@ -68,6 +69,11 @@ pub struct CultureAccount {
     pub arena: ArenaRecord,
 }
 
+#[near(serializers = [json])]
+pub struct Payout {
+    pub payout: HashMap<AccountId, U128>,
+}
+
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct TotemNft {
@@ -83,12 +89,31 @@ pub struct TotemNft {
     credentials: LookupMap<AccountId, Vec<String>>,
     arena_records: LookupMap<TokenId, ArenaRecord>,
     next_token_id: u64,
+    max_supply: u64,
+    mint_price: u128,
+    primary_sale_receiver_id: AccountId,
+    creator_royalty_bps: u16,
+    creator_royalty_receiver_id: AccountId,
+    treasury_royalty_bps: u16,
+    treasury_royalty_receiver_id: AccountId,
 }
 
 #[near]
 impl TotemNft {
     #[init]
-    pub fn new(owner_id: AccountId, name: String, symbol: String, base_uri: Option<String>) -> Self {
+    pub fn new(
+        owner_id: AccountId,
+        name: String,
+        symbol: String,
+        base_uri: Option<String>,
+        max_supply: u64,
+        mint_price: U128,
+        primary_sale_receiver_id: AccountId,
+        creator_royalty_bps: u16,
+        creator_royalty_receiver_id: AccountId,
+        treasury_royalty_bps: u16,
+        treasury_royalty_receiver_id: AccountId,
+    ) -> Self {
         let metadata = NFTContractMetadata {
             spec: NFT_METADATA_SPEC.to_string(),
             name,
@@ -99,6 +124,10 @@ impl TotemNft {
             reference_hash: None,
         };
         metadata.assert_valid();
+        require!(max_supply > 0, "Maximum supply must be positive");
+        require!(creator_royalty_bps <= 5_000, "Creator royalty exceeds 50%");
+        require!(treasury_royalty_bps <= 5_000, "Treasury royalty exceeds 50%");
+        require!(u32::from(creator_royalty_bps) + u32::from(treasury_royalty_bps) <= 5_000, "Total royalty exceeds 50%");
         Self {
             tokens: NonFungibleToken::new(
                 StorageKey::Tokens,
@@ -118,7 +147,26 @@ impl TotemNft {
             credentials: LookupMap::new(StorageKey::Credentials),
             arena_records: LookupMap::new(StorageKey::ArenaRecords),
             next_token_id: 1,
+            max_supply,
+            mint_price: mint_price.0,
+            primary_sale_receiver_id,
+            creator_royalty_bps,
+            creator_royalty_receiver_id,
+            treasury_royalty_bps,
+            treasury_royalty_receiver_id,
         }
+    }
+
+    pub fn launch_config(&self) -> HashMap<String, String> {
+        HashMap::from([
+            ("max_supply".into(), self.max_supply.to_string()),
+            ("mint_price_yocto".into(), self.mint_price.to_string()),
+            ("primary_sale_receiver_id".into(), self.primary_sale_receiver_id.to_string()),
+            ("creator_royalty_bps".into(), self.creator_royalty_bps.to_string()),
+            ("creator_royalty_receiver_id".into(), self.creator_royalty_receiver_id.to_string()),
+            ("treasury_royalty_bps".into(), self.treasury_royalty_bps.to_string()),
+            ("treasury_royalty_receiver_id".into(), self.treasury_royalty_receiver_id.to_string()),
+        ])
     }
 
     pub fn approve_eligibility(&mut self, account_id: AccountId, branch: String, expires_at_ms: u64) {
@@ -132,8 +180,10 @@ impl TotemNft {
     pub fn mint(&mut self) -> Token {
         let receiver_id = env::predecessor_account_id();
         require!(self.token_by_owner.get(&receiver_id).is_none(), "One Totem per account");
+        require!(self.next_token_id <= self.max_supply, "Collection supply exhausted");
         let permit = self.eligibility.get(&receiver_id).expect("Eligibility approval required");
         require!(permit.expires_at_ms >= env::block_timestamp_ms(), "Eligibility approval expired");
+        let storage_before = env::storage_usage();
         let token_id = self.next_token_id.to_string();
         self.next_token_id += 1;
         let metadata = TokenMetadata {
@@ -150,15 +200,45 @@ impl TotemNft {
             reference: None,
             reference_hash: None,
         };
-        let token = self.tokens.internal_mint_with_refund(
-            token_id.clone(), receiver_id.clone(), Some(metadata), None,
-        );
+        let token = self.tokens.internal_mint_with_refund(token_id.clone(), receiver_id.clone(), Some(metadata), None);
         self.token_by_owner.insert(&receiver_id, &token_id);
         self.evolution.insert(&token_id, &Evolution { branch: permit.branch, tier: 1, frozen: false });
         self.inventory.insert(&token_id, &Vec::new());
         self.arena_records.insert(&token_id, &ArenaRecord::default());
         self.eligibility.remove(&receiver_id);
+        let storage_used = env::storage_usage().saturating_sub(storage_before);
+        let storage_cost = env::storage_byte_cost().saturating_mul(storage_used.into());
+        let required = storage_cost.saturating_add(NearToken::from_yoctonear(self.mint_price));
+        require!(env::attached_deposit() >= required, format!("Attach at least {} yoctoNEAR for mint and storage", required.as_yoctonear()));
+        if self.mint_price > 0 {
+            Promise::new(self.primary_sale_receiver_id.clone()).transfer(NearToken::from_yoctonear(self.mint_price)).detach();
+        }
+        let refund = env::attached_deposit().saturating_sub(required);
+        if refund.as_yoctonear() > 1 {
+            Promise::new(receiver_id).transfer(refund).detach();
+        }
+        NftMint { owner_id: &token.owner_id, token_ids: &[&token.token_id], memo: None }.emit();
         token
+    }
+
+    pub fn nft_payout(&self, token_id: TokenId, balance: U128, max_len_payout: Option<u32>) -> Payout {
+        let seller_id = self.tokens.owner_by_id.get(&token_id).expect("Token not found");
+        self.payout_for(seller_id, balance.0, max_len_payout)
+    }
+
+    #[payable]
+    pub fn nft_transfer_payout(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: TokenId,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+        balance: U128,
+        max_len_payout: Option<u32>,
+    ) -> Payout {
+        let seller_id = self.tokens.owner_by_id.get(&token_id).expect("Token not found");
+        self.nft_transfer(receiver_id, token_id, approval_id, memo);
+        self.payout_for(seller_id, balance.0, max_len_payout)
     }
 
     pub fn evolve(&mut self, token_id: TokenId, branch: String, tier: u8) -> Evolution {
@@ -256,6 +336,25 @@ impl TotemNft {
     fn valid_branch(branch: &str) -> bool {
         matches!(branch, "diamond-holder" | "liquidity-guardian" | "meme-commander" | "community-builder")
     }
+
+    fn payout_for(&self, seller_id: AccountId, balance: u128, max_len_payout: Option<u32>) -> Payout {
+        let creator_amount = balance.saturating_mul(u128::from(self.creator_royalty_bps)) / 10_000;
+        let treasury_amount = balance.saturating_mul(u128::from(self.treasury_royalty_bps)) / 10_000;
+        let seller_amount = balance.saturating_sub(creator_amount).saturating_sub(treasury_amount);
+        let mut payout = HashMap::new();
+        Self::add_payout(&mut payout, seller_id, seller_amount);
+        Self::add_payout(&mut payout, self.creator_royalty_receiver_id.clone(), creator_amount);
+        Self::add_payout(&mut payout, self.treasury_royalty_receiver_id.clone(), treasury_amount);
+        require!(payout.len() as u32 <= max_len_payout.unwrap_or(10), "Payout exceeds marketplace limit");
+        Payout { payout: payout.into_iter().map(|(account_id, amount)| (account_id, U128(amount))).collect() }
+    }
+
+    fn add_payout(payout: &mut HashMap<AccountId, u128>, account_id: AccountId, amount: u128) {
+        if amount > 0 {
+            let current = payout.get(&account_id).copied().unwrap_or(0);
+            payout.insert(account_id, current.saturating_add(amount));
+        }
+    }
 }
 
 #[near]
@@ -334,6 +433,21 @@ mod tests {
     use near_sdk::testing_env;
 
     fn account(value: &str) -> AccountId { value.parse().unwrap() }
+    fn contract(owner: &AccountId) -> TotemNft {
+        TotemNft::new(
+            owner.clone(),
+            "Totem Culture Identity".into(),
+            "TOTEM".into(),
+            None,
+            10_000,
+            U128(0),
+            owner.clone(),
+            500,
+            owner.clone(),
+            250,
+            account("treasury.testnet"),
+        )
+    }
     fn context(predecessor: &AccountId, deposit: NearToken, timestamp_ms: u64) {
         testing_env!(VMContextBuilder::new()
             .predecessor_account_id(predecessor.clone())
@@ -347,7 +461,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
+        let mut contract = contract(&owner);
         contract.approve_eligibility(alice.clone(), "meme-commander".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();
@@ -364,7 +478,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
+        let mut contract = contract(&owner);
         contract.approve_eligibility(alice.clone(), "diamond-holder".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         contract.mint();
@@ -380,7 +494,7 @@ mod tests {
         let owner = account("owner.testnet");
         let alice = account("alice.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
+        let mut contract = contract(&owner);
         contract.approve_eligibility(alice.clone(), "diamond-holder".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();
@@ -394,7 +508,7 @@ mod tests {
         let alice = account("alice.testnet");
         let bob = account("bob.testnet");
         context(&owner, NearToken::from_near(0), 1_000);
-        let mut contract = TotemNft::new(owner.clone(), "Totem Culture Identity".into(), "TOTEM".into(), None);
+        let mut contract = contract(&owner);
         contract.approve_eligibility(alice.clone(), "meme-commander".into(), 10_000);
         context(&alice, NearToken::from_near(1), 2_000);
         let token = contract.mint();

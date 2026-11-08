@@ -15,15 +15,27 @@
     const months=Math.max(0,Number.parseInt(String(token.vesting||'0'),10)||0),creatorUnlock=months?Date.now()+months*30*86400000:null;
     return allocationLabels.map((role,i)=>({role,account_id:destinations[i],amount:amounts[i].toString(),unlock_at_ms:i===3?creatorUnlock:null}));
   }
+  const resolveAccount=(value,owner)=>String(value||'').trim()==='@creator'?owner:String(value||'').trim().toLowerCase();
+  const percentBps=value=>Math.round(Number.parseFloat(String(value||'0').replace('%',''))*100);
+  const nearToYocto=value=>{const match=String(value||'0').replace(/,/g,'').match(/\d+(?:\.\d+)?/);if(!match)return'0';const[whole,fraction='']=match[0].split('.');return(BigInt(whole)*YOCTO_PER_NEAR+BigInt((fraction+'0'.repeat(24)).slice(0,24))).toString()};
+  function nftLaunchConfig(nft,owner){
+    const max_supply=Number.parseInt(String(nft.supply||'').replace(/,/g,''),10),mint_price=nft.mintModel==='Free claim'?'0':nearToYocto(nft.mintPrice||nft.price),creator_royalty_bps=percentBps(nft.royalty),treasury_royalty_bps=percentBps(nft.treasuryRoyalty),creator_royalty_receiver_id=resolveAccount(nft.royaltyRecipient||'@creator',owner),treasury_royalty_receiver_id=resolveAccount(nft.treasuryRecipient,owner),primary_sale_receiver_id=resolveAccount(nft.primarySaleRecipient||nft.treasuryRecipient,owner);
+    if(!Number.isSafeInteger(max_supply)||max_supply<=0)throw new Error('NFT maximum supply must be a positive whole number.');
+    if(!Number.isInteger(creator_royalty_bps)||!Number.isInteger(treasury_royalty_bps)||creator_royalty_bps<0||treasury_royalty_bps<0||creator_royalty_bps+treasury_royalty_bps>5000)throw new Error('NFT royalties must be positive and total no more than 50%.');
+    if(!accountPattern.test(creator_royalty_receiver_id))throw new Error('Enter a valid creator royalty account.');
+    if(!accountPattern.test(treasury_royalty_receiver_id))throw new Error('Enter a valid treasury royalty account.');
+    if(!accountPattern.test(primary_sale_receiver_id))throw new Error('Enter a valid primary sale treasury account.');
+    return{max_supply,mint_price,primary_sale_receiver_id,creator_royalty_bps,creator_royalty_receiver_id,treasury_royalty_bps,treasury_royalty_receiver_id};
+  }
   const child=(prefix,owner)=>`${slug(prefix)}.${owner}`;
   async function code(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw new Error(`Contract artifact unavailable: ${path}`);return new Uint8Array(await response.arrayBuffer())}
   function modes(draft){return{token:draft.origin==='token'||draft.origin==='twin',nft:draft.origin==='nft'||draft.origin==='twin'}}
   function preview(draft,owner){const need=modes(draft),ticker=draft.token?.ticker||draft.ticker||'culture',symbol=draft.nft?.symbol||draft.ticker||'culture';return{need,tokenContractId:need.token?child(`${ticker}-token`,owner):null,nftContractId:need.nft?child(`${symbol}-nft`,owner):null,depositNear:(Number(need.token)+Number(need.nft))*5}}
   async function build(draft,owner){const p=preview(draft,owner),transactions=[];
     if(p.need.token){const token=draft.token||{},decimals=Number(token.decimals||18),allocations=tokenAllocations(token).map(({account_id,amount,unlock_at_ms})=>({account_id,amount,unlock_at_ms}));transactions.push({signerId:owner,receiverId:p.tokenContractId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:CONTRACT_DEPOSIT}},{type:'DeployContract',params:{code:await code('./contracts/totem_token.wasm')}},{type:'FunctionCall',params:{methodName:'new',args:{owner_id:owner,total_supply:units(token.supply,decimals),name:token.name||draft.name||'Culture Token',symbol:token.ticker||draft.ticker||'CULTURE',decimals,allocations},gas:GAS,deposit:'0'}}]})}
-    if(p.need.nft){const nft=draft.nft||{};transactions.push({signerId:owner,receiverId:p.nftContractId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:CONTRACT_DEPOSIT}},{type:'DeployContract',params:{code:await code('./contracts/totem_nft.wasm')}},{type:'FunctionCall',params:{methodName:'new',args:{owner_id:owner,name:nft.name||draft.name||'Culture Collection',symbol:nft.symbol||draft.ticker||'CULTURE',base_uri:null},gas:GAS,deposit:'0'}}]})}
+    if(p.need.nft){const nft=draft.nft||{},config=nftLaunchConfig(nft,owner);transactions.push({signerId:owner,receiverId:p.nftContractId,actions:[{type:'CreateAccount'},{type:'Transfer',params:{deposit:CONTRACT_DEPOSIT}},{type:'DeployContract',params:{code:await code('./contracts/totem_nft.wasm')}},{type:'FunctionCall',params:{methodName:'new',args:{owner_id:owner,name:nft.name||draft.name||'Culture Collection',symbol:nft.symbol||draft.ticker||'CULTURE',base_uri:null,...config},gas:GAS,deposit:'0'}}]})}
     return{...p,transactions};
   }
   async function deploy(draft,owner){const plan=await build(draft,owner);if(plan.transactions.length){const wallet=await window.totemWallet.selector.wallet();plan.results=await wallet.signAndSendTransactions({transactions:plan.transactions})}return plan}
-  window.totemDeploy={preview,build,deploy,tokenAllocations};
+  window.totemDeploy={preview,build,deploy,tokenAllocations,nftLaunchConfig};
 })();

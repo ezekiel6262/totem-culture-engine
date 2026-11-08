@@ -38,8 +38,30 @@ test('token allocation plan rejects ambiguous custody', () => {
   assert.throws(() => api.tokenAllocations(token), /unique custody account/);
 });
 
+test('NFT launch config converts price and royalties into enforceable init args', () => {
+  const api = deploymentApi();
+  const config = api.nftLaunchConfig({
+    supply: '10,000',
+    price: '2.5 NEAR',
+    royalty: '5%',
+    royaltyRecipient: '@creator',
+    treasuryRoyalty: '2.5%',
+    treasuryRecipient: 'treasury.testnet',
+  }, 'creator.testnet');
+
+  assert.deepEqual({ ...config }, {
+    max_supply: 10000,
+    mint_price: '2500000000000000000000000',
+    primary_sale_receiver_id: 'treasury.testnet',
+    creator_royalty_bps: 500,
+    creator_royalty_receiver_id: 'creator.testnet',
+    treasury_royalty_bps: 250,
+    treasury_royalty_receiver_id: 'treasury.testnet',
+  });
+});
+
 test('all Forge component scripts parse as JavaScript', () => {
-  for (const file of ['dist/Token-First.dc.html', 'dist/Twin-Launch.dc.html', 'dist/Launch-Review.dc.html']) {
+  for (const file of ['dist/Token-First.dc.html', 'dist/NFT-First.dc.html', 'dist/Twin-Launch.dc.html', 'dist/Launch-Review.dc.html']) {
     const html = fs.readFileSync(file, 'utf8');
     const scripts = [...html.matchAll(/<script type="text\/x-dc" data-dc-script>([\s\S]*?)<\/script>/g)];
     assert.ok(scripts.length, `${file} includes a component script`);

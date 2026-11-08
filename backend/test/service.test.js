@@ -112,6 +112,20 @@ test('prepares a mint command exactly once and emits a public audit feed', async
   assert.deepEqual(events.map(event => event.type), ['campaign.version_created', 'identity.mint_prepared'])
 })
 
+test('prepares mint against the launched collection with price plus refundable storage', async () => {
+  const repository = new MemoryTotemRepository()
+  const service = new TotemService(repository, () => NOW, { nftContractId: 'fallback.testnet' })
+  await service.createCampaign(campaign({
+    mode: 'nft_first',
+    subjectContractId: 'culture-nft.creator.testnet',
+    culturePair: { tokenContractId: null, collectionContractId: 'culture-nft.creator.testnet' },
+    launchConfig: { nft: { price: '2.5 NEAR' } }
+  }))
+  const prepared = await service.prepareMint({ campaignId: 'totem-genesis', accountId: 'member.near', eligibilityEpoch: 1, checkpoints, signals: { challengeReceipts: 1 } })
+  assert.equal(prepared.command.transactionPlan.memberMint.receiverId, 'culture-nft.creator.testnet')
+  assert.equal(prepared.command.transactionPlan.memberMint.actions[0].params.deposit, '3500000000000000000000000')
+})
+
 test('refuses mint preparation when durable holding is incomplete', async () => {
   const repository = new MemoryTotemRepository()
   const service = new TotemService(repository, () => NOW, { nftContractId: 'nft.totem.testnet' })
