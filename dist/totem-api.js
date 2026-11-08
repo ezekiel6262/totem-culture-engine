@@ -23,6 +23,7 @@
     createCampaign(campaign){return this.request('/api/v1/campaigns',{method:'POST',body:campaign,authenticated:true})}
     cultures({limit=50}={}){return this.request('/api/v1/campaigns?limit='+limit)}
     cultureAccount(campaignId,accountId){return this.request('/api/v1/culture-account?campaignId='+encodeURIComponent(campaignId)+'&accountId='+encodeURIComponent(accountId))}
+    decideAccess(campaignId,accountId){return this.request('/api/v1/access/decide',{method:'POST',body:{campaignId,accountId},authenticated:true})}
     contribute(input){return this.request('/api/v1/contributions',{method:'POST',body:input,authenticated:true})}
     contributionsForReview(campaignId){return this.request('/api/v1/contributions/review?campaignId='+encodeURIComponent(campaignId),{authenticated:true})}
     reviewContribution(input){return this.request('/api/v1/contributions/review',{method:'POST',body:input,authenticated:true})}

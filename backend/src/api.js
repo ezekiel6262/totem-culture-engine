@@ -28,6 +28,12 @@ export function createTotemApi({ service, repository, auth = null, coordination 
       invariant(accountId, 'ACCOUNT_ID_REQUIRED', 'accountId is required')
       return service.cultureAccount({ campaignId, accountId })
     }),
+    decideAccess: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      invariant(identity && identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Access account must match the authenticated account')
+      return service.accessDecision(body)
+    }),
     evaluateEligibility: jsonHandler(async ({ request, body }) => { requirePost(request); return service.evaluate(body) }),
     prepareMint: jsonHandler(async ({ request, body }) => {
       requirePost(request)

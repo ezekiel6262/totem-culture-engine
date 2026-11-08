@@ -27,6 +27,13 @@ export function validateCampaign(input) {
   invariant(Number.isSafeInteger(input.startsAt) && Number.isSafeInteger(input.endsAt) && input.startsAt < input.endsAt, 'CAMPAIGN_WINDOW_INVALID', 'Campaign start must precede its end')
   invariant(input.rule?.kind === 'time_weighted_balance', 'CAMPAIGN_RULE_INVALID', 'MVP campaigns require a time-weighted balance rule')
   invariant(Array.isArray(input.evolutionBranches) && input.evolutionBranches.length >= 2, 'CAMPAIGN_EVOLUTION_INVALID', 'At least two evolution branches are required')
+  if (input.accessPolicy) {
+    invariant(typeof input.accessPolicy.minimumTokenBalance === 'string' && /^\d+$/.test(input.accessPolicy.minimumTokenBalance), 'ACCESS_POLICY_INVALID', 'Minimum token balance must be an integer string')
+    invariant(Number.isSafeInteger(input.accessPolicy.minimumTier) && input.accessPolicy.minimumTier >= 0 && input.accessPolicy.minimumTier <= 3, 'ACCESS_POLICY_INVALID', 'Minimum Culture Account tier must be between 0 and 3')
+    invariant(Array.isArray(input.accessPolicy.requiredCredentials) && input.accessPolicy.requiredCredentials.length <= 16, 'ACCESS_POLICY_INVALID', 'Required credentials must be a bounded list')
+    invariant(input.accessPolicy.requiredCredentials.every(value => typeof value === 'string' && value.length > 0 && value.length <= 64), 'ACCESS_POLICY_INVALID', 'Required credentials are invalid')
+    invariant(Number.isSafeInteger(input.accessPolicy.ttlSeconds) && input.accessPolicy.ttlSeconds >= 60 && input.accessPolicy.ttlSeconds <= 86_400, 'ACCESS_POLICY_INVALID', 'Access receipt lifetime must be between 60 seconds and 24 hours')
+  }
   invariant(Array.isArray(input.feePolicy?.routes), 'CAMPAIGN_FEE_POLICY_INVALID', 'A fee policy is required')
   invariant(input.feePolicy.routes.reduce((sum, route) => sum + route.basisPoints, 0) === 10_000, 'CAMPAIGN_FEE_POLICY_INVALID', 'Fee routes must total 10,000 basis points')
   return true

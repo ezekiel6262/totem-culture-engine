@@ -63,6 +63,43 @@ test('reads a Culture Account from one finalized NFT state', async () => {
   assert.ok(calls.every(call => call.blockId === 'final-block'))
 })
 
+test('combines finalized token, NFT tier, and credentials into an access receipt', async () => {
+  const repository = new MemoryTotemRepository(), calls = []
+  const rpc = {
+    finalBlock: async () => ({ hash: 'final-access-block', height: 91 }),
+    callFunctionAtBlock: async input => {
+      calls.push(input)
+      if (input.methodName === 'ft_balance_of') return { value: '150000' }
+      if (input.methodName === 'get_token_for_owner') return { value: '7' }
+      return { value: { evolution: { tier: 2, frozen: false }, credentials: ['founding-member'] } }
+    }
+  }
+  const service = new TotemService(repository, () => NOW, { rpc })
+  await service.createCampaign(campaign({
+    mode: 'twin_launch', culturePair: { tokenContractId: 'token.near', collectionContractId: 'nft.near' },
+    accessPolicy: { minimumTokenBalance: '100000', requireCultureAccount: true, minimumTier: 2, requiredCredentials: ['founding-member'], ttlSeconds: 900, grants: ['arena', 'treasury-proposals'] }
+  }))
+  const decision = await service.accessDecision({ campaignId: 'totem-genesis', accountId: 'member.near' })
+  assert.equal(decision.granted, true)
+  assert.deepEqual(decision.grants, ['arena', 'treasury-proposals'])
+  assert.equal(decision.blockHash, 'final-access-block')
+  assert.match(decision.decisionHash, /^[a-f0-9]{64}$/)
+  assert.ok(calls.every(call => call.blockId === 'final-access-block'))
+})
+
+test('denies access when a Culture Account is frozen', async () => {
+  const repository = new MemoryTotemRepository()
+  const rpc = {
+    finalBlock: async () => ({ hash: 'final-access-block', height: 92 }),
+    callFunctionAtBlock: async input => input.methodName === 'get_token_for_owner' ? { value: '8' } : { value: { evolution: { tier: 3, frozen: true }, credentials: [] } }
+  }
+  const service = new TotemService(repository, () => NOW, { rpc })
+  await service.createCampaign(campaign({ mode: 'nft_first', subjectContractId: 'nft.near', accessPolicy: { minimumTokenBalance: '0', requireCultureAccount: true, minimumTier: 1, requiredCredentials: [], ttlSeconds: 900, grants: ['members'] } }))
+  const decision = await service.accessDecision({ campaignId: 'totem-genesis', accountId: 'member.near' })
+  assert.equal(decision.granted, false)
+  assert.equal(decision.checks.find(check => check.kind === 'evolution_tier').pass, false)
+})
+
 test('records a social contribution once without self-awarding value', async () => {
   const repository = new MemoryTotemRepository(), service = new TotemService(repository, () => NOW)
   await service.createCampaign(campaign())

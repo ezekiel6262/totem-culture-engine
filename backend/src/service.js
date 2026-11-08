@@ -1,4 +1,4 @@
-import { createCampaignVersion } from './campaigns.js'
+import { createCampaignVersion, normalizeCulturePair } from './campaigns.js'
 import { hashRecord } from './canonical.js'
 import { evaluateHoldingRule } from './eligibility.js'
 import { chooseEvolution } from './evolution.js'
@@ -25,6 +25,42 @@ export class TotemService {
     if (token.value == null) return { campaignId, accountId, contractId, tokenId: null, cultureAccount: null, blockHeight: token.blockHeight, blockHash: token.blockHash }
     const state = await this.contracts.rpc.callFunctionAtBlock({ contractId, methodName: 'get_culture_account', args: { token_id: token.value }, blockId: block.hash })
     return { campaignId, accountId, contractId, tokenId: token.value, cultureAccount: state.value, blockHeight: state.blockHeight, blockHash: state.blockHash }
+  }
+
+  async accessDecision({ campaignId, accountId }) {
+    const campaign = await this.repository.getLatestCampaign(campaignId)
+    invariant(campaign, 'CAMPAIGN_NOT_FOUND', 'Campaign does not exist')
+    invariant(campaign.status === 'active', 'CAMPAIGN_NOT_ACTIVE', 'Campaign is not active')
+    invariant(/^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(accountId ?? ''), 'ACCOUNT_ID_INVALID', 'Account must be a valid NEAR account id')
+    invariant(this.contracts.rpc, 'RPC_UNAVAILABLE', 'NEAR RPC is not configured')
+    const pair = campaign.culturePair ?? {}, policy = campaign.accessPolicy ?? {
+      minimumTokenBalance: pair.tokenContractId ? String(campaign.rule?.minimumBalance ?? 0) : '0',
+      requireCultureAccount: Boolean(pair.collectionContractId), minimumTier: pair.collectionContractId ? 1 : 0,
+      requiredCredentials: [], ttlSeconds: 900, grants: ['community-member']
+    }
+    const block = await this.contracts.rpc.finalBlock(), checks = []
+    let tokenBalance = null, tokenId = null, cultureAccount = null
+    if (pair.tokenContractId && BigInt(policy.minimumTokenBalance) > 0n) {
+      const result = await this.contracts.rpc.callFunctionAtBlock({ contractId: pair.tokenContractId, methodName: 'ft_balance_of', args: { account_id: accountId }, blockId: block.hash })
+      invariant(/^\d+$/.test(result.value), 'RPC_BALANCE_INVALID', 'NEP-141 balance response is not an integer string')
+      tokenBalance = result.value
+      checks.push({ kind: 'token_balance', required: policy.minimumTokenBalance, actual: tokenBalance, pass: BigInt(tokenBalance) >= BigInt(policy.minimumTokenBalance) })
+    }
+    if (pair.collectionContractId && (policy.requireCultureAccount || policy.minimumTier > 0 || policy.requiredCredentials.length)) {
+      const token = await this.contracts.rpc.callFunctionAtBlock({ contractId: pair.collectionContractId, methodName: 'get_token_for_owner', args: { account_id: accountId }, blockId: block.hash })
+      tokenId = token.value
+      if (tokenId != null) {
+        const state = await this.contracts.rpc.callFunctionAtBlock({ contractId: pair.collectionContractId, methodName: 'get_culture_account', args: { token_id: tokenId }, blockId: block.hash })
+        cultureAccount = state.value
+      }
+      checks.push({ kind: 'culture_account', required: Boolean(policy.requireCultureAccount), actual: tokenId != null, pass: !policy.requireCultureAccount || tokenId != null })
+      const tier = cultureAccount?.evolution?.tier ?? 0
+      checks.push({ kind: 'evolution_tier', required: policy.minimumTier, actual: tier, pass: tier >= policy.minimumTier && !cultureAccount?.evolution?.frozen })
+      for (const credential of policy.requiredCredentials) checks.push({ kind: 'credential', required: credential, actual: cultureAccount?.credentials?.includes(credential) ?? false, pass: cultureAccount?.credentials?.includes(credential) ?? false })
+    }
+    const granted = checks.every(check => check.pass), evaluatedAt = this.clock(), expiresAt = evaluatedAt + policy.ttlSeconds * 1000
+    const receipt = { campaignId, campaignVersion: campaign.version, accountId, granted, grants: granted ? policy.grants ?? ['community-member'] : [], checks, blockHeight: block.height, blockHash: block.hash, evaluatedAt, expiresAt }
+    return { ...receipt, decisionHash: hashRecord(receipt), tokenBalance, tokenId }
   }
 
   async submitContribution({ campaignId, accountId, kind, evidence, nonce }) {
@@ -86,8 +122,12 @@ export class TotemService {
   }
 
   async createCampaign(input) {
-    const current = await this.repository.getLatestCampaign(input.id)
-    const campaign = createCampaignVersion(input, current, this.clock())
+    const pair = normalizeCulturePair(input), accessPolicy = input.accessPolicy ?? input.launchConfig?.genesis?.accessPolicy ?? {
+      minimumTokenBalance: pair.tokenContractId ? String(input.rule?.minimumBalance ?? 0) : '0', requireCultureAccount: Boolean(pair.collectionContractId),
+      minimumTier: pair.collectionContractId ? 1 : 0, requiredCredentials: [], ttlSeconds: 900, grants: ['community-member']
+    }
+    const policyInput = { ...input, accessPolicy }, current = await this.repository.getLatestCampaign(input.id)
+    const campaign = createCampaignVersion(policyInput, current, this.clock())
     await this.repository.saveCampaignVersion(campaign)
     await this.#event(campaign.id, 'campaign.version_created', { version: campaign.version, versionHash: campaign.versionHash })
     return campaign

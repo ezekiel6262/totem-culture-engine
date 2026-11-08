@@ -27,9 +27,10 @@
       <a href="{{ setupHref }}" style="display:flex;gap:14px;padding:12px 14px;border-radius:10px;color:#EDE6D8;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">01</span>{{ setupLabel }}</a>
       <div style="display:flex;gap:14px;padding:12px 14px;border-radius:10px;background:#1C1C18;font-size:17px;font-weight:600"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#00E89A">02</span>Eligibility</div>
       <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">03</span>Evolution tree</div>
-      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">04</span>Fee routes</div>
-      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">05</span>Seasons and Arena</div>
-      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">06</span>Review</div>
+      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">04</span>Access rights</div>
+      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">05</span>Fee routes</div>
+      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">06</span>Seasons and Arena</div>
+      <div style="display:flex;gap:14px;padding:12px 14px;font-size:17px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397">07</span>Review</div>
     </div>
     <div style="min-width:0">
       <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(38px,4vw,54px);letter-spacing:-0.04em;margin:0 0 8px">Write the Community DNA</h1>
@@ -57,6 +58,18 @@
             <div style="border:1px solid #3A3A33;border-radius:12px;padding:16px 18px"><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px">Community Builder</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">5 verified referrals</div></div>
           </div>
         </div>
+      </div>
+      <div style="background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px;margin-bottom:24px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#00E89A;margin-bottom:8px">RECIPROCAL TOKEN ↔ NFT RIGHTS</div>
+        <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;margin:0 0 8px">Member access policy</h2>
+        <p style="color:#C9C3B6;line-height:1.5;margin:0 0 18px">Access decisions pin token balance, Culture Account ownership, evolution, and credentials to one finalized NEAR block.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+          <label style="color:#C9C3B6">Minimum token balance<input value="{{ hold }}" disabled style="display:block;width:100%;margin-top:7px;background:#0D0D0B;border:1px solid #33332C;border-radius:10px;padding:14px;color:#77746C"></label>
+          <label style="color:#C9C3B6">Minimum NFT tier<input value="{{ accessTier }}" onChange="{{ setAccessTier }}" style="display:block;width:100%;margin-top:7px;background:#0D0D0B;border:1px solid #33332C;border-radius:10px;padding:14px;color:#EDE6D8"></label>
+          <label style="color:#C9C3B6">Required credential<input value="{{ accessCredential }}" onChange="{{ setAccessCredential }}" placeholder="Optional · founding-member" style="display:block;width:100%;margin-top:7px;background:#0D0D0B;border:1px solid #33332C;border-radius:10px;padding:14px;color:#EDE6D8"></label>
+          <label style="color:#C9C3B6">Receipt lifetime · hours<input value="{{ accessHours }}" onChange="{{ setAccessHours }}" style="display:block;width:100%;margin-top:7px;background:#0D0D0B;border:1px solid #33332C;border-radius:10px;padding:14px;color:#EDE6D8"></label>
+        </div>
+        <div style="margin-top:16px;padding:14px 16px;background:#0D0D0B;border-radius:10px;color:#C9C3B6">Passing members receive: community membership · Arena entry · gated drops · treasury proposals. Frozen Culture Accounts automatically lose utility while the NFT remains owned.</div>
       </div>
       <div style="background:#141410;border:1px solid #26261F;border-radius:18px;padding:28px">
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px"><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;margin:0">Fee routes</h2><span style="{{ totalS }}">TOTAL {{ total }}%</span></div>
@@ -91,12 +104,13 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
-  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', origin: 'token', draftName: 'Totem', ticker: 'TOTEM', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15], publishing: false, publishStatus: 'Connect a NEAR wallet to publish this Culture Pair.' };
+  state = { tpl: 'Hold-to-evolve', hold: '100,000', days: '30', origin: 'token', draftName: 'Totem', ticker: 'TOTEM', decimals: '18', accessTier: '1', accessCredential: '', accessHours: '1', quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'], routes: [30, 30, 25, 15], publishing: false, publishStatus: 'Connect a NEAR wallet to publish this Culture Pair.' };
   componentDidMount() {
     const draft = JSON.parse(sessionStorage.getItem('totem.forge.v1') || '{}');
     const nftFirst = draft.origin === 'nft';
-    this.setState({ origin: draft.origin || 'token', draftName: draft.name || 'Totem', ticker: draft.ticker || 'TOTEM', hold: nftFirst ? '1' : this.state.hold, tpl: nftFirst ? 'NFT-to-token' : draft.origin === 'event' ? 'Event collectible' : this.state.tpl });
+    this.setState({ origin: draft.origin || 'token', draftName: draft.name || 'Totem', ticker: draft.ticker || 'TOTEM', decimals: draft.token?.decimals || '18', hold: nftFirst ? '0' : this.state.hold, accessTier: draft.origin === 'token' || draft.origin === 'event' ? '0' : '1', tpl: nftFirst ? 'NFT-to-token' : draft.origin === 'event' ? 'Event collectible' : this.state.tpl });
   }
+  accessPolicy(draft) { const hasToken = draft.origin === 'token' || draft.origin === 'twin', hasNft = draft.origin === 'nft' || draft.origin === 'twin', digits = String(this.state.hold).replace(/\D/g, '') || '0', raw = hasToken ? (BigInt(digits) * 10n ** BigInt(Number(this.state.decimals) || 0)).toString() : '0', credential = this.state.accessCredential.trim(); return { minimumTokenBalance: raw, requireCultureAccount: hasNft, minimumTier: hasNft ? Math.min(3, Math.max(0, Number(this.state.accessTier) || 0)) : 0, requiredCredentials: credential ? [credential] : [], ttlSeconds: Math.min(86400, Math.max(60, (Number(this.state.accessHours) || 1) * 3600)), grants: ['community-member','arena-entry','gated-drops','treasury-proposals'] }; }
   async publish() {
     if (this.state.publishing) return;
     const identity = window.totemApi?.session?.identity;
@@ -112,7 +126,7 @@ class Component extends DCLogic {
     const [quests, treasury, creator, liquidity] = this.state.routes.map(v => v * 100);
     const input = {
       id: `${ticker}-culture`, displayName: draft.name || `$${ticker.toUpperCase()}`, narrative: draft.narrative || '', creatorAccountId: identity.accountId,
-      subjectContractId, mode, culturePair: { tokenContractId, collectionContractId }, launchConfig: { token: draft.token || null, nft: draft.nft || null, event: draft.event || null, genesis: draft.genesis || null }, startsAt: Date.now(), endsAt: Date.now() + 365 * 86400000, status: 'active',
+      subjectContractId, mode, culturePair: { tokenContractId, collectionContractId }, launchConfig: { token: draft.token || null, nft: draft.nft || null, event: draft.event || null, genesis: draft.genesis || null }, accessPolicy: this.accessPolicy(draft), startsAt: Date.now(), endsAt: Date.now() + 365 * 86400000, status: 'active',
       rule: { kind: 'time_weighted_balance', minimumBalance, windowDays: days, minimumCoveredDays: days },
       evolutionBranches: [
         { id: 'diamond-holder', role: 'Diamond Holder', priority: 40, requirements: [{ signal: 'holdingDays', minimum: days * 3 }] },
@@ -134,8 +148,8 @@ class Component extends DCLogic {
     const labels = ['Quest and Arena prizes', 'Community treasury', 'Creator', 'Liquidity'], colors = ['#00E89A', C, '#FF6B3D', '#5A5A50'];
     const total = s.routes.reduce((a, b) => a + b, 0), ok = total === 100;
     return {
-      hold: s.hold, days: s.days, total, draftName: s.draftName, draftLabel: s.origin === 'nft' ? s.draftName : s.origin === 'event' ? 'EVENT-FIRST' : `$${s.ticker}`, assetUnit: s.origin === 'nft' ? 'NFT' : s.origin === 'event' ? 'verified participation' : s.ticker, setupLabel: s.origin === 'nft' ? 'Collection' : s.origin === 'twin' ? 'Token + NFT' : s.origin === 'event' ? 'Event' : 'Token', setupHref: s.origin === 'nft' ? 'NFT-First.dc.html' : s.origin === 'twin' ? 'Twin-Launch.dc.html' : s.origin === 'event' ? 'Event-First.dc.html' : 'Token-First.dc.html', publishStatus: s.publishStatus, saveDNA: () => { const draft = JSON.parse(sessionStorage.getItem('totem.forge.v1') || '{}'); sessionStorage.setItem('totem.forge.v1', JSON.stringify({ ...draft, dna: { template: s.tpl, minimumBalance: Number(String(s.hold).replace(/\D/g, '')) || 1, windowDays: Math.max(1, Number(s.days) || 1), quests: s.quests, feeRoutes: s.routes } })); },
-      setHold: e => set({ hold: e.target.value }), setDays: e => set({ days: e.target.value.replace(/\D/g, '') }),
+      hold: s.hold, days: s.days, accessTier:s.accessTier, accessCredential:s.accessCredential, accessHours:s.accessHours, total, draftName: s.draftName, draftLabel: s.origin === 'nft' ? s.draftName : s.origin === 'event' ? 'EVENT-FIRST' : `$${s.ticker}`, assetUnit: s.origin === 'nft' ? 'NFT' : s.origin === 'event' ? 'verified participation' : s.ticker, setupLabel: s.origin === 'nft' ? 'Collection' : s.origin === 'twin' ? 'Token + NFT' : s.origin === 'event' ? 'Event' : 'Token', setupHref: s.origin === 'nft' ? 'NFT-First.dc.html' : s.origin === 'twin' ? 'Twin-Launch.dc.html' : s.origin === 'event' ? 'Event-First.dc.html' : 'Token-First.dc.html', publishStatus: s.publishStatus, saveDNA: () => { const draft = JSON.parse(sessionStorage.getItem('totem.forge.v1') || '{}'),accessPolicy=this.accessPolicy(draft); sessionStorage.setItem('totem.forge.v1', JSON.stringify({ ...draft, genesis:{...(draft.genesis||{}),accessPolicy}, dna: { template: s.tpl, minimumBalance: Number(String(s.hold).replace(/\D/g, '')) || 0, windowDays: Math.max(1, Number(s.days) || 1), quests: s.quests, feeRoutes: s.routes, accessPolicy } })); },
+      setHold: e => set({ hold: e.target.value }), setDays: e => set({ days: e.target.value.replace(/\D/g, '') }), setAccessTier:e=>set({accessTier:e.target.value.replace(/\D/g,'').slice(0,1)}), setAccessCredential:e=>set({accessCredential:e.target.value.slice(0,64)}), setAccessHours:e=>set({accessHours:e.target.value.replace(/\D/g,'').slice(0,2)}),
       templates: ['Hold-to-evolve', 'Quest-to-mint', 'Token-gated membership', 'Seasonal collection', 'Event collectible', 'NFT-to-token'].map(l => { const on = l === s.tpl, ev = l === 'Event collectible'; return { label: l, pick: () => set({ tpl: l }), style: { padding: '12px 20px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? '#00E89A' : 'transparent', color: on ? '#0D0D0B' : C, fontWeight: on ? 600 : 400, border: on ? '1px solid #00E89A' : ev ? '1px solid #FF6B3D' : '1px solid #3A3A33' } }; }),
       quests: ['Meme raid', 'Refer a verified holder', 'Provide liquidity'].map(q => { const on = s.quests.includes(q); return { label: q, toggle: () => set({ quests: on ? s.quests.filter(x => x !== q) : [...s.quests, q] }), style: { padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontFamily: "'JetBrains Mono',monospace", fontSize: 15, background: on ? '#141410' : 'transparent', color: on ? C : '#6E6B62', border: on ? '1px solid #4A4A42' : '1px dashed #3A3A33' } }; }),
       bars: s.routes.map((v, i) => ({ width: `${Math.min(v, 100)}%`, background: colors[i] })),
