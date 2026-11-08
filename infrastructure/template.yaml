@@ -7,6 +7,10 @@ Parameters:
   NearNetwork: {Type: String, Default: testnet, AllowedValues: [testnet, mainnet]}
   TotemTokenContractId: {Type: String, Default: token.totem.testnet}
   TotemNftContractId: {Type: String, Default: nft.totem.testnet}
+  MainnetLaunchEnabled: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}
+  ContractsAudited: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}
+  TokenArtifactSha256: {Type: String, Default: A5D0C35166FC2D8E331AD9DE563383333558BC29D643770F302223BC19A44B85}
+  NftArtifactSha256: {Type: String, Default: F510D2A3DFE467079A273058A7DAE48ECC2B79761C5FDC2FBDBEEF7F0C354C44}
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -23,6 +27,10 @@ Globals:
         NEAR_NETWORK: !Ref NearNetwork
         TOTEM_TOKEN_CONTRACT_ID: !Ref TotemTokenContractId
         TOTEM_NFT_CONTRACT_ID: !Ref TotemNftContractId
+        TOTEM_MAINNET_LAUNCH_ENABLED: !Ref MainnetLaunchEnabled
+        TOTEM_CONTRACTS_AUDITED: !Ref ContractsAudited
+        TOTEM_TOKEN_ARTIFACT_SHA256: !Ref TokenArtifactSha256
+        TOTEM_NFT_ARTIFACT_SHA256: !Ref NftArtifactSha256
         TOTEM_SEED_DEMO: 'false'
 Resources:
   FrontendBucket:

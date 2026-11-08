@@ -1,7 +1,7 @@
 import { jsonHandler } from './http.js'
 import { invariant } from './errors.js'
 const requirePost = request => invariant(request.method === 'POST', 'METHOD_NOT_ALLOWED', 'This endpoint requires POST')
-export function createTotemApi({ service, repository, auth = null, coordination = null }) {
+export function createTotemApi({ service, repository, auth = null, coordination = null, deployment = null }) {
   invariant(service && repository, 'API_CONFIGURATION_INVALID', 'Totem API requires a service and repository')
   const principal = async request => {
     if (!auth) return null
@@ -9,6 +9,10 @@ export function createTotemApi({ service, repository, auth = null, coordination 
     return auth.authenticate(header.startsWith('Bearer ') ? header.slice(7) : '')
   }
   const api = {
+    deploymentConfig: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      return deployment
+    }),
     createCampaign: jsonHandler(async ({ request, body }) => {
       requirePost(request)
       const identity = await principal(request)

@@ -21,6 +21,7 @@
     async restore(){if(!this.session?.token)return null;try{return await this.request('/api/v1/auth/session',{authenticated:true})}catch{this.disconnect();return null}}
     disconnect(){this.session=null;sessionStorage.removeItem(SESSION_KEY)}
     createCampaign(campaign){return this.request('/api/v1/campaigns',{method:'POST',body:campaign,authenticated:true})}
+    deploymentConfig(){return this.request('/api/v1/deployment/config')}
     cultures({limit=50}={}){return this.request('/api/v1/campaigns?limit='+limit)}
     cultureAccount(campaignId,accountId){return this.request('/api/v1/culture-account?campaignId='+encodeURIComponent(campaignId)+'&accountId='+encodeURIComponent(accountId))}
     decideAccess(campaignId,accountId){return this.request('/api/v1/access/decide',{method:'POST',body:{campaignId,accountId},authenticated:true})}
