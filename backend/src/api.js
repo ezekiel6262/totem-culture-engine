@@ -21,12 +21,25 @@ export function createTotemApi({ service, repository, auth = null, coordination 
       invariant(Number.isSafeInteger(limit) && limit > 0 && limit <= 100, 'LIMIT_INVALID', 'limit must be between 1 and 100')
       return repository.listLatestCampaigns({ limit })
     }),
+    getCultureAccount: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      const url = new URL(request.url), campaignId = url.searchParams.get('campaignId'), accountId = url.searchParams.get('accountId')
+      invariant(campaignId, 'CAMPAIGN_ID_REQUIRED', 'campaignId is required')
+      invariant(accountId, 'ACCOUNT_ID_REQUIRED', 'accountId is required')
+      return service.cultureAccount({ campaignId, accountId })
+    }),
     evaluateEligibility: jsonHandler(async ({ request, body }) => { requirePost(request); return service.evaluate(body) }),
     prepareMint: jsonHandler(async ({ request, body }) => {
       requirePost(request)
       const identity = await principal(request)
       if (identity) invariant(identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Mint account must match the authenticated account')
       return service.prepareMint(body)
+    }),
+    submitContribution: jsonHandler(async ({ request, body }) => {
+      requirePost(request)
+      const identity = await principal(request)
+      invariant(identity && identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Contribution account must match the authenticated account')
+      return service.submitContribution(body)
     }),
     listEvents: jsonHandler(async ({ request }) => {
       invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')

@@ -22,6 +22,8 @@
     disconnect(){this.session=null;sessionStorage.removeItem(SESSION_KEY)}
     createCampaign(campaign){return this.request('/api/v1/campaigns',{method:'POST',body:campaign,authenticated:true})}
     cultures({limit=50}={}){return this.request('/api/v1/campaigns?limit='+limit)}
+    cultureAccount(campaignId,accountId){return this.request('/api/v1/culture-account?campaignId='+encodeURIComponent(campaignId)+'&accountId='+encodeURIComponent(accountId))}
+    contribute(input){return this.request('/api/v1/contributions',{method:'POST',body:input,authenticated:true})}
     evaluate(campaignId,accountId,checkpoints){return this.request('/api/v1/eligibility/evaluate',{method:'POST',body:{campaignId,accountId,checkpoints}})}
     prepareMint(input){return this.request('/api/v1/mints/prepare',{method:'POST',body:input,authenticated:true})}
     events(campaignId,{afterSequence=0,limit=50}={}){return this.request('/api/v1/events?campaignId='+encodeURIComponent(campaignId)+'&afterSequence='+afterSequence+'&limit='+limit)}

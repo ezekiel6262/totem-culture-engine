@@ -44,6 +44,38 @@ test('models token-first, NFT-first and twin-launch Culture Pairs', () => {
   assert.throws(() => createCampaignVersion(campaign({ mode: 'twin_launch' })), /both token and collection/)
 })
 
+test('reads a Culture Account from one finalized NFT state', async () => {
+  const repository = new MemoryTotemRepository(), calls = []
+  const rpc = {
+    finalBlock: async () => ({ hash: 'final-block', height: 77 }),
+    callFunctionAtBlock: async input => {
+      calls.push(input)
+      if (input.methodName === 'get_token_for_owner') return { value: '42', blockHeight: 77, blockHash: 'final-block' }
+      return { value: { token_id: '42', owner_id: 'member.near', evolution: { branch: 'maker', tier: 3, frozen: false }, inventory: ['kente-wings'], credentials: ['founding-member'], arena: { points: 90, wins: 2, seasons: 3 } }, blockHeight: 77, blockHash: 'final-block' }
+    }
+  }
+  const service = new TotemService(repository, () => NOW, { rpc })
+  await service.createCampaign(campaign({ mode: 'twin_launch', culturePair: { tokenContractId: 'token.near', collectionContractId: 'nft.near' } }))
+  const result = await service.cultureAccount({ campaignId: 'totem-genesis', accountId: 'member.near' })
+  assert.equal(result.cultureAccount.inventory[0], 'kente-wings')
+  assert.equal(result.blockHash, 'final-block')
+  assert.deepEqual(calls.map(call => call.methodName), ['get_token_for_owner', 'get_culture_account'])
+  assert.ok(calls.every(call => call.blockId === 'final-block'))
+})
+
+test('records a social contribution once without self-awarding value', async () => {
+  const repository = new MemoryTotemRepository(), service = new TotemService(repository, () => NOW)
+  await service.createCampaign(campaign())
+  const input = { campaignId: 'totem-genesis', accountId: 'member.near', kind: 'meme_raid', evidence: 'ipfs://proof', nonce: 'receipt_12345678' }
+  const first = await service.submitContribution(input), replay = await service.submitContribution(input)
+  assert.equal(first.replay, false)
+  assert.equal(replay.replay, true)
+  assert.equal(first.contribution.status, 'pending_verification')
+  assert.equal('points' in first.contribution, false)
+  const events = await repository.listEvents({ campaignId: 'totem-genesis' })
+  assert.deepEqual(events.map(event => event.type), ['campaign.version_created', 'social.contribution_submitted'])
+})
+
 test('prepares a mint command exactly once and emits a public audit feed', async () => {
   const repository = new MemoryTotemRepository()
   const service = new TotemService(repository, () => NOW, { nftContractId: 'nft.totem.testnet' })
