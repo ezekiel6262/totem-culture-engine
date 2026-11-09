@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOTEM | Culture Engine on NEAR</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./wallet.css">
+<link rel="stylesheet" href="./platform.css">
 </head>
 <body>
 <x-dc>
@@ -13,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>body{margin:0;background:#0D0D0B;color:#EDE6D8;font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#00E89A;text-decoration:none}a:hover{color:#EDE6D8}input,button{font:inherit}</style>
 </helmet>
-<div data-screen-label="07 Buy via Intents" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
+<div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div class="totem-status"><strong>INTENTS ROUTE PROTOTYPE</strong> Quotes and signatures are disabled until the cross-chain integration is complete.</div><div data-screen-label="07 Buy via Intents" style="min-height:100vh;background:#0D0D0B;color:#EDE6D8">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 48px;border-bottom:1px solid #24241F">
     <a href="Community.dc.html" style="color:#EDE6D8;font-size:18px">‹&nbsp; Back to $TOTEM</a>
     <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.08em;color:#A8A397">SETTLED BY NEAR INTENTS</span>
@@ -37,13 +40,13 @@
         </div>
       </div>
       <div style="display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:20px 0;font-size:15px">
-        <span style="color:#C9C3B6">Route</span><span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ chain }} → Intents → NEAR</span>
+        <span style="color:#C9C3B6">Route</span><span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">{{ chain }} to NEAR via planned Intents route</span>
         <span style="color:#C9C3B6">Solver quote</span><span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">best of 4</span>
         <span style="color:#C9C3B6">Culture fee</span><span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">routed 30/30/25/15</span>
         <span style="color:#C9C3B6">Lands in</span><span style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px">ada.totem.near</span>
       </div>
       <sc-if value="{{ notSigned }}" hint-placeholder-val="{{ true }}">
-        <button onClick="{{ sign }}" style="width:100%;padding:18px;background:#00E89A;color:#0D0D0B;border:none;border-radius:12px;font-weight:600;font-size:18px;cursor:pointer" style-hover="background:#4DF2BA">Sign intent</button>
+        <button disabled="true" style="width:100%;padding:18px;background:#00E89A;color:#0D0D0B;border:none;border-radius:12px;font-weight:600;font-size:18px;cursor:pointer" style-hover="background:#4DF2BA">Intents integration pending</button>
         <div style="text-align:center;font-size:13px;color:#A8A397;margin-top:12px">One signature on your source chain. No bridging steps.</div>
       </sc-if>
       <sc-if value="{{ signed }}" hint-placeholder-val="{{ false }}">

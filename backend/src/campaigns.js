@@ -3,7 +3,7 @@ import { invariant } from './errors.js'
 
 const ACCOUNT_ID = /^(?=.{2,64}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 const CAMPAIGN_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const MODES = new Set(['token_first', 'nft_first', 'twin_launch', 'event_first'])
+const MODES = new Set(['token_first', 'nft_first', 'twin_launch'])
 
 function validOptionalAccount(value) { return value == null || ACCOUNT_ID.test(value) }
 
@@ -21,9 +21,9 @@ export function validateCampaign(input) {
   invariant(MODES.has(input.mode), 'CAMPAIGN_MODE_INVALID', 'Campaign mode is unsupported')
   const pair = normalizeCulturePair(input)
   invariant(validOptionalAccount(pair.tokenContractId) && validOptionalAccount(pair.collectionContractId), 'CULTURE_PAIR_INVALID', 'Culture Pair contracts must be valid NEAR account ids')
-  invariant(input.mode !== 'token_first' || pair.tokenContractId, 'CULTURE_PAIR_INVALID', 'Token-first cultures require a token contract')
-  invariant(input.mode !== 'nft_first' || pair.collectionContractId, 'CULTURE_PAIR_INVALID', 'NFT-first cultures require a collection contract')
-  invariant(input.mode !== 'twin_launch' || (pair.tokenContractId && pair.collectionContractId), 'CULTURE_PAIR_INVALID', 'Twin launches require both token and collection contracts')
+  invariant(input.mode !== 'token_first' || pair.tokenContractId, 'CULTURE_PAIR_INVALID', 'Token cultures require a token contract')
+  invariant(input.mode !== 'nft_first' || pair.collectionContractId, 'CULTURE_PAIR_INVALID', 'NFT cultures require a collection contract')
+  invariant(input.mode !== 'twin_launch' || (pair.tokenContractId && pair.collectionContractId), 'CULTURE_PAIR_INVALID', 'Twin cultures require both token and collection contracts')
   invariant(Number.isSafeInteger(input.startsAt) && Number.isSafeInteger(input.endsAt) && input.startsAt < input.endsAt, 'CAMPAIGN_WINDOW_INVALID', 'Campaign start must precede its end')
   invariant(input.rule?.kind === 'time_weighted_balance', 'CAMPAIGN_RULE_INVALID', 'MVP campaigns require a time-weighted balance rule')
   invariant(Array.isArray(input.evolutionBranches) && input.evolutionBranches.length >= 2, 'CAMPAIGN_EVOLUTION_INVALID', 'At least two evolution branches are required')

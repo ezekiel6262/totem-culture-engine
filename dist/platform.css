@@ -1,0 +1,16 @@
+:root{--totem-bg:#0d0d0b;--totem-ink:#ede6d8;--totem-line:#2e2e28;--totem-green:#00e89a}
+html{overflow-x:hidden}body{overflow-x:hidden}
+.totem-status{margin:0;padding:10px 20px;background:#171713;border-bottom:1px solid var(--totem-line);color:#c9c3b6;text-align:center;font:12px/1.45 'JetBrains Mono',monospace;letter-spacing:.03em}
+.totem-status strong{color:#b8ff3d}.totem-status a{color:var(--totem-green)}
+@media(max-width:760px){
+  .totem-nav,.totem-home-header{padding:14px 18px!important;gap:12px!important;align-items:flex-start!important}
+  .totem-nav>div,.totem-home-header nav{order:3;width:100%;display:flex!important;gap:8px!important;overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:4px;scrollbar-width:none}
+  .totem-nav>div::-webkit-scrollbar,.totem-home-header nav::-webkit-scrollbar{display:none}
+  .totem-nav>div a,.totem-home-header nav a{white-space:nowrap;padding:8px 9px;border:1px solid #292922;border-radius:8px}
+  .totem-main{padding:28px 18px 56px!important}
+  .arena-world-grid,.colosseum-hero,.colosseum-content{grid-template-columns:1fr!important}
+  #arena-world-stage{min-height:480px!important}
+  .colosseum-rounds{grid-template-columns:1fr!important}
+  .colosseum-rounds>div{border-right:0!important;border-bottom:1px solid #303128}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}

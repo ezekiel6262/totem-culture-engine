@@ -1,0 +1,19 @@
+html,body{max-width:100%;overflow-x:hidden}img,video,canvas,svg{max-width:100%}button,a,input,select,textarea{touch-action:manipulation}button{min-height:44px}
+@media(max-width:720px){
+  [data-screen-label]>div:first-child,.totem-nav{padding:14px 16px!important;gap:12px!important;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}
+  [data-screen-label]>div:first-child::-webkit-scrollbar,.totem-nav::-webkit-scrollbar{display:none}
+  [data-screen-label]>div:first-child>a:first-child,.totem-nav>a:first-child{position:sticky;left:0;background:#0D0D0B;z-index:4;padding-right:8px}
+  [data-screen-label]>div:first-child>div,.totem-nav>div{gap:16px!important;flex-wrap:nowrap!important;white-space:nowrap}
+  .totem-main,[style*="padding:44px 48px"],[style*="padding:40px 48px"],[style*="padding:48px"]{padding:24px 14px 72px!important}
+  .card{padding:20px!important;border-radius:16px!important}
+  [style*="font-size:64px"],[style*="font-size:72px"],[style*="font-size:80px"],[style*="font-size:96px"]{font-size:42px!important;line-height:1!important}
+  [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns:2fr 1fr"],[style*="grid-template-columns:1.3fr"],[style*="grid-template-columns:minmax"]{grid-template-columns:minmax(0,1fr)!important}
+  input,textarea,select{font-size:16px!important;max-width:100%}
+  .arena-world-grid,.colosseum-hero,.colosseum-content{grid-template-columns:minmax(0,1fr)!important}
+  .arena-world-grid>aside{border-left:0!important;border-top:1px solid #303128!important}
+  #arena-world-stage{min-height:460px!important;background-position:center!important}
+  .colosseum-hero,.colosseum-content{padding:24px 18px!important}
+  .colosseum-rounds{display:flex!important;overflow-x:auto;scroll-snap-type:x mandatory}
+  .colosseum-rounds>div{min-width:145px;scroll-snap-align:start}
+  .nws-modal-wrapper .nws-modal-background{width:100%!important;max-width:100%!important}
+}

@@ -60,8 +60,8 @@ test('NFT launch config converts price and royalties into enforceable init args'
   });
 });
 
-test('all Forge component scripts parse as JavaScript', () => {
-  for (const file of ['dist/Token-First.dc.html', 'dist/NFT-First.dc.html', 'dist/Twin-Launch.dc.html', 'dist/Forge-DNA.dc.html', 'dist/Launch-Review.dc.html', 'dist/Access.dc.html']) {
+test('all Forge and Arena component scripts parse as JavaScript', () => {
+  for (const file of ['dist/Token-First.dc.html', 'dist/NFT-First.dc.html', 'dist/Twin-Launch.dc.html', 'dist/Forge-DNA.dc.html', 'dist/Launch-Review.dc.html', 'dist/Access.dc.html', 'dist/Arena.dc.html', 'dist/Market.dc.html']) {
     const html = fs.readFileSync(file, 'utf8');
     const scripts = [...html.matchAll(/<script type="text\/x-dc" data-dc-script>([\s\S]*?)<\/script>/g)];
     assert.ok(scripts.length, `${file} includes a component script`);

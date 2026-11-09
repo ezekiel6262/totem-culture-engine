@@ -25,3 +25,11 @@ test('HTTP API rejects bad methods and cursors',async()=>{
   assert.equal((await method.json()).error.code,'METHOD_NOT_ALLOWED')
   assert.equal((await cursor.json()).error.code,'CURSOR_INVALID')
 })
+test('health and readiness report truthful launch state',async()=>{
+  const repository=new MemoryTotemRepository(), api=createTotemApi({repository,service:new TotemService(repository,()=>NOW),deployment:{network:'testnet',contractsAudited:false,mainnetLaunchEnabled:false}})
+  const health=await(await api.health(new Request('https://totem.test/api/v1/health'))).json()
+  const readiness=await(await api.readiness(new Request('https://totem.test/api/v1/readiness'))).json()
+  assert.equal(health.data.status,'ok')
+  assert.equal(readiness.data.launch,'gated')
+  assert.equal(readiness.data.crossChainIntents,'planned')
+})

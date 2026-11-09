@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test backend/test/*.test.js",
+    "test:static": "node scripts/normalize-static.js && node scripts/audit-static.mjs",
     "backend:demo": "node backend/scripts/demo.js",
     "start": "node backend/server.js",
     "db:migrate": "node backend/scripts/migrate.js",
     "build:wallet": "node scripts/build-wallet.js",
     "test:contracts": "cargo test --manifest-path contracts/Cargo.toml --workspace",
     "build:contracts": "cargo build --manifest-path contracts/Cargo.toml --workspace --target wasm32-unknown-unknown --release",
-    "build:lambda": "esbuild backend/lambda.js --bundle --platform=node --format=esm --target=node24 --outfile=build/lambda.js"
+    "build:lambda": "esbuild ./backend/lambda.js --bundle --platform=node --format=esm --target=node24 --outfile=./build/lambda.js"
   },
   "engines": {
     "node": ">=22"
@@ -24,6 +25,7 @@
     "@near-wallet-selector/modal-ui-js": "^10.1.4",
     "buffer": "^6.0.3",
     "pg": "^8.23.1",
+    "three": "^0.187.0",
     "util": "^0.12.5"
   },
   "devDependencies": {

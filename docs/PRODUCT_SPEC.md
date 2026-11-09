@@ -22,10 +22,11 @@ All four tracks are product pillars: Memecoins With Mechanics; NFTs That Do Some
 
 ## Supported directions
 
-1. Token-first: launch or connect NEP-141 → create linked collection → Rites → living Culture Accounts → Arena and utility.
-2. NFT-first: connect NEP-171/245 collection → launch linked token → token mechanics informed by ownership, contribution, credentials, and Arena history.
-3. Twin launch: create token and collection together under one Culture Pair rulebook and treasury.
-4. Event-first: signed attendance/ritual → temporary community instrument → collectible record → later token or collection pairing.
+1. Token: launch or connect NEP-141, create a linked collection, then activate living Culture Accounts, Arena, and utility.
+2. NFT: launch or connect a NEP-171/245 collection, then connect token mechanics informed by ownership, contribution, credentials, and Arena history.
+3. Twin: create the token and collection together under one Culture Pair rulebook and treasury.
+
+Events and rituals are Arena mechanics for an existing Culture Pair, not independent Forge origins.
 
 ## MVP campaign
 

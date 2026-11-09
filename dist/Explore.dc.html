@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOTEM | Culture Engine on NEAR</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./wallet.css">
+<link rel="stylesheet" href="./platform.css">
 </head>
 <body>
 <x-dc>
@@ -32,9 +35,9 @@
     </div>
     <a href="Community.dc.html" style="display:flex;justify-content:space-between;align-items:center;gap:30px;flex-wrap:wrap;background:#EDE6D8;color:#0D0D0B;border-radius:20px;padding:36px 42px;margin-bottom:28px" style-hover="color:#0D0D0B;background:#F4EEE2">
       <div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.06em">CULTURE OF THE WEEK · TOKEN-FIRST</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.06em">CULTURE OF THE WEEK · TOKEN</div>
         <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:64px;letter-spacing:-0.03em;margin:6px 0">$TOTEM</div>
-        <div style="font-size:18px;line-height:1.5;max-width:520px;margin-bottom:18px">412 totems carved, Season 01 live, leading the Arena against $DOGGO.</div>
+        <div style="font-size:18px;line-height:1.5;max-width:520px;margin-bottom:18px">Sample community profile showing how a future season and Arena history can look.</div>
         <div style="display:flex;gap:4px;height:20px;width:440px;max-width:100%"><div style="flex:10;background:#00E89A"></div><div style="flex:6;background:#0D0D0B"></div><div style="flex:4;background:#FF6B3D"></div><div style="flex:8;background:#5A5A50"></div><div style="flex:4;background:#0D0D0B"></div></div>
       </div>
       <div style="display:flex;gap:40px;padding-right:40px">
@@ -62,12 +65,12 @@
           <div style="font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.06em;color:#FF6B3D;margin-bottom:16px">ORACLE FEED</div>
           <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">Lagos Derby: final whistle confirmed. 1,904 totems updated.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">2 min ago</div></div>
           <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">$TOTEM crossed its Season 01 holder milestone.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">41 min ago</div></div>
-          <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">Afrobeats Drop: stream target reached, Gold Ear trait live.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">3 h ago</div></div>
+          <div style="padding:12px 0;border-bottom:1px solid #2A2A24"><div style="font-size:17px;line-height:1.35">Afrobeats Drop: stream target reached, Gold Ear trait previewed.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">3 h ago</div></div>
           <div style="padding:12px 0"><div style="font-size:17px;line-height:1.35">$MOON survived a 40% drawdown. Crater crowns granted.</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A8A397;margin-top:4px">Yesterday</div></div>
         </div>
         <a href="Forge-Origin.dc.html" style="display:block;background:#00E89A;color:#0D0D0B;border-radius:18px;padding:28px" style-hover="background:#4DF2BA;color:#0D0D0B">
           <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.02em;margin-bottom:8px">Start a culture</div>
-          <div style="font-size:17px;line-height:1.4">Token-first, NFT-first or born from an event.</div>
+          <div style="font-size:17px;line-height:1.4">Launch a Token, NFT, or Twin Culture Pair.</div>
         </a>
       </div>
     </div>
@@ -83,7 +86,7 @@ class Component extends DCLogic {
       const colors = ['#00E89A','#EDE6D8','#FF6B3D','#3A3A33'];
       const live = campaigns.map((campaign, i) => ({
         name: campaign.displayName || campaign.id.split('-').map(x => x[0].toUpperCase()+x.slice(1)).join(' '),
-        type: campaign.mode === 'nft_first' ? 'NFT-FIRST' : campaign.mode === 'twin_launch' ? 'TWIN-LAUNCH' : campaign.mode === 'event_first' ? 'EVENT-BORN' : 'TOKEN-FIRST',
+        type: campaign.mode === 'nft_first' ? 'NFT' : campaign.mode === 'twin_launch' ? 'TWIN' : 'TOKEN',
         bars: [[4+(i%4),colors[0]],[6,colors[1]],[3,colors[2]],[5,colors[3]]],
         desc: campaign.narrative || `Live Culture Pair · ${campaign.culturePair?.tokenContractId || 'no token yet'} ↔ ${campaign.culturePair?.collectionContractId || 'collection pending'}`,
         totems: 0,
@@ -96,19 +99,17 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state, G = '#00E89A', C = '#EDE6D8', O = '#FF6B3D', D = '#3A3A33';
     const data = [...s.live,
-      { name: '$DOGGO', type: 'TOKEN-FIRST', bars: [[5, G], [7, C], [3, O], [5, D]], desc: 'Pack ranks evolve by raid wins. Losers keep a scar trait.', totems: 287, rule: 'Hold 50,000', tags: ['Trending', 'I qualify'] },
-      { name: 'Lagos Derby', type: 'EVENT-BORN', bars: [[3, G], [3, C], [9, O], [4, D]], desc: 'Supporter totems rewrite themselves at the final whistle.', totems: '1,904', rule: 'Check-in or hold', tags: ['Trending', 'Event-born', 'I qualify'] },
-      { name: 'Glyphs', type: 'NFT-FIRST', bars: [[6, G], [7, C], [1.5, O], [4.5, D]], desc: 'An old collection minted $GLY. Holders feed new segments.', totems: 640, rule: 'Own a Glyph', tags: ['Trending', 'NFT-first', 'I qualify'] },
-      { name: '$FUFU', type: 'TOKEN-FIRST', bars: [[9, G], [3, C], [3, O], [4.5, D]], desc: 'Recipe quests. Each season unlocks a new dish trait.', totems: 158, rule: 'Hold 10,000', tags: ['New launches'] },
-      { name: 'Afrobeats Drop', type: 'EVENT-BORN', bars: [[3, G], [4.5, C], [7.5, O], [4.5, D]], desc: 'Album release fan quests. Streams verified by oracle.', totems: '3,212', rule: 'Quest to mint', tags: ['Trending', 'Event-born', 'New launches'] },
-      { name: '$MOON', type: 'TOKEN-FIRST', bars: [[7, G], [4, C], [4, O], [4.5, D]], desc: 'Survive every red day to grow a crater crown.', totems: 77, rule: 'Hold 1,000,000', tags: ['New launches'] }
+      { name: '$DOGGO', type: 'TOKEN', bars: [[5, G], [7, C], [3, O], [5, D]], desc: 'Pack ranks evolve by raid wins. Losers keep a scar trait.', totems: 287, rule: 'Hold 50,000', tags: ['Trending', 'I qualify'] },
+      { name: 'Glyphs', type: 'NFT', bars: [[6, G], [7, C], [1.5, O], [4.5, D]], desc: 'An old collection minted $GLY. Holders feed new segments.', totems: 640, rule: 'Own a Glyph', tags: ['Trending', 'NFT', 'I qualify'] },
+      { name: '$FUFU', type: 'TOKEN', bars: [[9, G], [3, C], [3, O], [4.5, D]], desc: 'Recipe quests. Each season unlocks a new dish trait.', totems: 158, rule: 'Hold 10,000', tags: ['New launches'] },
+      { name: '$MOON', type: 'TOKEN', bars: [[7, G], [4, C], [4, O], [4.5, D]], desc: 'Survive every red day to grow a crater crown.', totems: 77, rule: 'Hold 1,000,000', tags: ['New launches'] }
     ];
     const q = s.q.toLowerCase();
     const list = data.filter(d => d.tags.includes(s.filter) && (!q || (d.name + d.desc).toLowerCase().includes(q)));
-    const tagC = { 'TOKEN-FIRST': G, 'TWIN-LAUNCH': G, 'EVENT-BORN': O, 'NFT-FIRST': C };
+    const tagC = { 'TOKEN': G, 'TWIN': G, 'NFT': C };
     return {
       q: s.q, setQ: e => this.setState({ q: e.target.value }), empty: list.length === 0,
-      filters: ['Trending', 'New launches', 'Event-born', 'NFT-first', 'I qualify'].map(f => { const on = f === s.filter; return { label: f, pick: () => this.setState({ filter: f }), style: { padding: '12px 22px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? C : 'transparent', color: on ? '#0D0D0B' : C, border: on ? `1px solid ${C}` : '1px solid #3A3A33' } }; }),
+      filters: ['Trending', 'New launches', 'NFT', 'I qualify'].map(f => { const on = f === s.filter; return { label: f, pick: () => this.setState({ filter: f }), style: { padding: '12px 22px', borderRadius: 999, fontSize: 17, cursor: 'pointer', background: on ? C : 'transparent', color: on ? '#0D0D0B' : C, border: on ? `1px solid ${C}` : '1px solid #3A3A33' } }; }),
       cards: list.map(d => ({ ...d, tag: d.type, tagS: { fontFamily: "'JetBrains Mono',monospace", fontSize: 12, letterSpacing: '0.05em', padding: '6px 10px', border: `1px solid ${tagC[d.type]}`, color: tagC[d.type], borderRadius: 6, whiteSpace: 'nowrap' }, bars: d.bars.map(([f, c]) => ({ flex: f, background: c, borderRadius: 1 })) }))
     };
   }

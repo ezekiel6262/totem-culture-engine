@@ -1,0 +1,13 @@
+html,body{overflow-x:hidden}
+.totem-hero-stage{perspective:1100px;isolation:isolate;overflow:hidden;border-radius:40px}
+.totem-hero-stage:before,.totem-hero-stage:after{content:"";position:absolute;inset:12%;border:1px solid rgba(0,232,154,.28);border-radius:50%;transform:rotateX(68deg) rotateZ(-12deg);animation:totem-orbit 14s linear infinite;pointer-events:none}
+.totem-hero-stage:after{inset:23%;border-color:rgba(255,107,61,.35);animation-duration:9s;animation-direction:reverse}
+.totem-hero-model{position:relative;z-index:2;transform-style:preserve-3d;filter:drop-shadow(0 28px 34px rgba(0,232,154,.18));animation:totem-float 5.4s ease-in-out infinite;transition:transform .18s ease-out}
+.totem-hero-stage .totem-glow{position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(0,232,154,.24),transparent 68%);filter:blur(14px);animation:totem-pulse 4s ease-in-out infinite;pointer-events:none}
+.totem-reveal{opacity:0;transform:translateY(46px) scale(.985);transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1)}
+.totem-reveal.is-visible{opacity:1;transform:none}
+@keyframes totem-float{0%,100%{transform:translateY(0) rotateY(-7deg) rotateX(2deg)}50%{transform:translateY(-18px) rotateY(8deg) rotateX(-2deg)}}
+@keyframes totem-orbit{to{transform:rotateX(68deg) rotateZ(348deg)}}
+@keyframes totem-pulse{0%,100%{transform:scale(.88);opacity:.55}50%{transform:scale(1.16);opacity:1}}
+@media(max-width:720px){.totem-home-header{padding:18px 20px!important;gap:14px!important}.totem-home-nav{order:3;flex:0 0 100%;max-width:100%;overflow-x:auto;gap:20px!important;padding:4px 0 2px;scrollbar-width:none}.totem-home-nav::-webkit-scrollbar{display:none}.totem-hero-stage{height:350px!important}.totem-hero-stage [style*="position:absolute"]{font-size:9px!important}.totem-reveal{transform:translateY(24px)}}
+@media(prefers-reduced-motion:reduce){.totem-hero-model,.totem-hero-stage:before,.totem-hero-stage:after,.totem-hero-stage .totem-glow{animation:none}.totem-reveal{opacity:1;transform:none;transition:none}}

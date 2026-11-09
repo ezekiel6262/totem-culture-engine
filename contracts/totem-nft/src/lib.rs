@@ -169,6 +169,17 @@ impl TotemNft {
         ])
     }
 
+    pub fn available_native_balance(&self) -> NearToken {
+        let required = env::storage_byte_cost().saturating_mul(env::storage_usage().into());
+        env::account_balance().saturating_sub(required)
+    }
+
+    pub fn withdraw_surplus(&mut self, amount: NearToken, receiver_id: Option<AccountId>) -> Promise {
+        require!(env::predecessor_account_id() == self.owner_id, "Only the owner can withdraw surplus");
+        require!(amount <= self.available_native_balance(), "Amount exceeds available native balance");
+        Promise::new(receiver_id.unwrap_or_else(|| self.owner_id.clone())).transfer(amount)
+    }
+
     pub fn approve_eligibility(&mut self, account_id: AccountId, branch: String, expires_at_ms: u64) {
         self.assert_owner();
         require!(Self::valid_branch(&branch), "Unsupported evolution branch");

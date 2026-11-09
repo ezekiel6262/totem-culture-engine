@@ -24,6 +24,16 @@ export class NearRpcClient {
     return { height: result.header.height, hash: result.header.hash, timestampNanoseconds: result.header.timestamp_nanosec ?? String(result.header.timestamp) }
   }
 
+  async protocolConfig(){
+    const result=await this.call('EXPERIMENTAL_protocol_config',{finality:'final'})
+    return{protocolVersion:result.protocol_version,storageAmountPerByte:result.runtime_config.storage_amount_per_byte}
+  }
+
+  async callFunctionFinal({contractId,methodName,args={}}){
+    const result=await this.call('query',{request_type:'call_function',finality:'final',account_id:contractId,method_name:methodName,args_base64:Buffer.from(JSON.stringify(args)).toString('base64')})
+    return JSON.parse(Buffer.from(result.result).toString('utf8'))
+  }
+
   async callFunctionAtBlock({ contractId, methodName, args = {}, blockId }) {
     const result = await this.call('query', {
       request_type: 'call_function',

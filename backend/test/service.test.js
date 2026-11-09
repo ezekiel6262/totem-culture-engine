@@ -34,7 +34,7 @@ test('rejects invalid creator and fee policies', () => {
   assert.throws(() => createCampaignVersion(campaign({ feePolicy: { routes: [{ destination: 'x', basisPoints: 9999 }] } })), /10,000/)
 })
 
-test('models token-first, NFT-first and twin-launch Culture Pairs', () => {
+test('models Token, NFT and Twin Culture Pairs', () => {
   const tokenFirst = createCampaignVersion(campaign(), null, NOW)
   assert.deepEqual(tokenFirst.culturePair, { tokenContractId: 'totem.demo.near', collectionContractId: null })
   const nftFirst = createCampaignVersion(campaign({ mode: 'nft_first', subjectContractId: 'glyphs.near' }), null, NOW)

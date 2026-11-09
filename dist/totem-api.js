@@ -22,6 +22,8 @@
     disconnect(){this.session=null;sessionStorage.removeItem(SESSION_KEY)}
     createCampaign(campaign){return this.request('/api/v1/campaigns',{method:'POST',body:campaign,authenticated:true})}
     deploymentConfig(){return this.request('/api/v1/deployment/config')}
+    launchQuote(input){return this.request('/api/v1/launch/quote',{method:'POST',body:input})}
+    rheaPlan(input){return this.request('/api/v1/launch/rhea-plan',{method:'POST',body:input,authenticated:true})}
     cultures({limit=50}={}){return this.request('/api/v1/campaigns?limit='+limit)}
     cultureAccount(campaignId,accountId){return this.request('/api/v1/culture-account?campaignId='+encodeURIComponent(campaignId)+'&accountId='+encodeURIComponent(accountId))}
     decideAccess(campaignId,accountId){return this.request('/api/v1/access/decide',{method:'POST',body:{campaignId,accountId},authenticated:true})}
@@ -33,6 +35,9 @@
     prepareMint(input){return this.request('/api/v1/mints/prepare',{method:'POST',body:input,authenticated:true})}
     events(campaignId,{afterSequence=0,limit=50}={}){return this.request('/api/v1/events?campaignId='+encodeURIComponent(campaignId)+'&afterSequence='+afterSequence+'&limit='+limit)}
     vote(input){return this.request('/api/v1/votes',{method:'POST',body:input,authenticated:true})}
+    evolveArenaSeason(input){return this.request('/api/v1/arena/seasons/evolve',{method:'POST',body:input,authenticated:true})}
+    prepareAgentReward(input){return this.request('/api/v1/arena/agents/rewards/prepare',{method:'POST',body:input,authenticated:true})}
+    prepareMarketListing(input){return this.request('/api/v1/arena/market/listings/prepare',{method:'POST',body:input,authenticated:true})}
     health(){return this.request('/api/health')}
   }
   global.TotemApiClient=TotemApiClient

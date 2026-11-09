@@ -1,5 +1,5 @@
 [workspace]
-members = ["totem-token", "totem-nft"]
+members = ["totem-token", "totem-nft", "totem-factory", "totem-agent", "totem-market"]
 resolver = "2"
 
 [workspace.package]

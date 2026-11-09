@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOTEM | Culture Engine on NEAR</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./wallet.css">
+<link rel="stylesheet" href="./platform.css">
 </head>
 <body>
 <x-dc>
@@ -40,7 +43,7 @@
       <sc-if value="{{ is2 }}" hint-placeholder-val="{{ false }}">
         <div style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.1em;color:#00E89A">CONNECT FROM ANYWHERE</div>
         <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(40px,5vw,62px);letter-spacing:-0.04em;margin:18px 0 16px">Bring any wallet</h1>
-        <p style="font-size:18px;color:#C9C3B6;margin:0 0 28px">NEAR wallets sign directly. Other chains settle through NEAR Intents, so your totem still lives on NEAR.</p>
+        <p style="font-size:18px;color:#C9C3B6;margin:0 0 28px">NEAR wallets sign directly. Cross-chain onboarding through NEAR Intents is planned. Start with a NEAR wallet for the testnet release.</p>
         <div style="display:grid;gap:10px;max-width:640px">
           <sc-for list="{{ wallets }}" as="wl" hint-placeholder-count="4">
             <button onClick="{{ wl.pick }}" style="{{ wl.style }}"><span style="font-size:17px;font-weight:500">{{ wl.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A8A397">{{ wl.via }}</span></button>
@@ -90,7 +93,7 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state, set = (o) => this.setState(o);
     const roles = [['holder', 'I hold a token', 'Check where you already qualify and carve your first totem.'], ['creator', 'I am a creator', 'Launch a token or attach a culture engine to one you run.'], ['explorer', 'Just exploring', 'Browse living communities before you commit.']];
-    const wallets = [['near', 'NEAR wallet', 'direct'], ['meteor', 'Meteor', 'direct'], ['evm', 'MetaMask / EVM', 'via Intents'], ['sol', 'Phantom / Solana', 'via Intents']];
+    const wallets = [['near', 'NEAR wallet', 'direct'], ['meteor', 'Meteor', 'direct'], ['evm', 'MetaMask / EVM', 'planned'], ['sol', 'Phantom / Solana', 'planned']];
     const all = ['$TOTEM', '$DOGGO', 'Glyphs', 'Lagos Derby', '$FUFU', 'Afrobeats Drop', '$MOON'];
     return {
       step: s.step, name: s.name || 'you', stepName: ['Arrival', 'Wallet', 'Name', 'Communities'][s.step - 1],

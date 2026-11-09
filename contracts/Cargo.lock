@@ -2408,6 +2408,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "totem-agent"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+ "serde",
+]
+
+[[package]]
+name = "totem-factory"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
+name = "totem-market"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+ "serde",
+]
+
+[[package]]
 name = "totem-nft"
 version = "0.1.0"
 dependencies = [

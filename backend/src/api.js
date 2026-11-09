@@ -1,7 +1,7 @@
 import { jsonHandler } from './http.js'
 import { invariant } from './errors.js'
 const requirePost = request => invariant(request.method === 'POST', 'METHOD_NOT_ALLOWED', 'This endpoint requires POST')
-export function createTotemApi({ service, repository, auth = null, coordination = null, deployment = null }) {
+export function createTotemApi({ service, repository, auth = null, coordination = null, deployment = null, launchQuotes = null, rheaLaunch = null, arenaEconomy = null }) {
   invariant(service && repository, 'API_CONFIGURATION_INVALID', 'Totem API requires a service and repository')
   const principal = async request => {
     if (!auth) return null
@@ -9,6 +9,15 @@ export function createTotemApi({ service, repository, auth = null, coordination 
     return auth.authenticate(header.startsWith('Bearer ') ? header.slice(7) : '')
   }
   const api = {
+    health: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      return { status: 'ok', service: 'totem', network: deployment?.network ?? 'unknown' }
+    }),
+    readiness: jsonHandler(async ({ request }) => {
+      invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
+      const launchEnabled = Boolean(deployment?.contractsAudited && (deployment?.network !== 'mainnet' || deployment?.mainnetLaunchEnabled))
+      return { api: 'ready', network: deployment?.network ?? 'unknown', launch: launchEnabled ? 'enabled' : 'gated', contractsAudited: Boolean(deployment?.contractsAudited), crossChainIntents: 'planned' }
+    }),
     deploymentConfig: jsonHandler(async ({ request }) => {
       invariant(request.method === 'GET', 'METHOD_NOT_ALLOWED', 'This endpoint requires GET')
       return deployment
@@ -96,5 +105,12 @@ export function createTotemApi({ service, repository, auth = null, coordination 
     invariant(identity && identity.accountId === body?.accountId, 'AUTH_ACCOUNT_MISMATCH', 'Vote account must match the authenticated account')
     return coordination.vote(body)
   })
+  if(launchQuotes)api.launchQuote=jsonHandler(async({request,body})=>{requirePost(request);return launchQuotes.quote(body)})
+  if(rheaLaunch)api.rheaPlan=jsonHandler(async({request,body})=>{requirePost(request);const identity=await principal(request);invariant(identity&&identity.accountId===body?.creatorId,'AUTH_ACCOUNT_MISMATCH','Liquidity creator must match the authenticated account');return rheaLaunch.plan(body)})
+  if(arenaEconomy){
+    api.evolveArenaSeason=jsonHandler(async({request,body})=>{requirePost(request);const identity=await principal(request);invariant(identity,'AUTH_REQUIRED','Authentication is required');return arenaEconomy.evolveSeason(body)})
+    api.prepareAgentReward=jsonHandler(async({request,body})=>{requirePost(request);const identity=await principal(request);invariant(identity,'AUTH_REQUIRED','Authentication is required');return arenaEconomy.prepareAgentReward(body)})
+    api.prepareMarketListing=jsonHandler(async({request,body})=>{requirePost(request);const identity=await principal(request);invariant(identity&&identity.accountId===body?.ownerId,'AUTH_ACCOUNT_MISMATCH','Listing owner must match the authenticated account');return arenaEconomy.prepareMarketListing(body)})
+  }
   return api
 }

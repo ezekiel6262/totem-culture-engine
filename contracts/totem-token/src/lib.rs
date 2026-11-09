@@ -5,7 +5,7 @@ use near_contract_standards::fungible_token::metadata::{
 use near_sdk::collections::{LazyOption, LookupMap};
 use near_sdk::json_types::U128;
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
-use near_sdk::{AccountId, BorshStorageKey, NearToken, PanicOnDefault, PromiseOrValue, env, log, near, require};
+use near_sdk::{AccountId, BorshStorageKey, NearToken, PanicOnDefault, Promise, PromiseOrValue, env, log, near, require};
 
 #[derive(BorshStorageKey)]
 #[near]
@@ -81,6 +81,17 @@ impl TotemToken {
     }
 
     pub fn get_lock(&self, account_id: AccountId) -> Option<TokenLock> { self.locks.get(&account_id) }
+
+    pub fn available_native_balance(&self) -> NearToken {
+        let required = env::storage_byte_cost().saturating_mul(env::storage_usage().into());
+        env::account_balance().saturating_sub(required)
+    }
+
+    pub fn withdraw_surplus(&mut self, amount: NearToken, receiver_id: Option<AccountId>) -> Promise {
+        require!(env::predecessor_account_id() == self.owner_id, "Only the owner can withdraw surplus");
+        require!(amount <= self.available_native_balance(), "Amount exceeds available native balance");
+        Promise::new(receiver_id.unwrap_or_else(|| self.owner_id.clone())).transfer(amount)
+    }
 
     fn assert_transferable(&self, account_id: &AccountId, amount: u128) {
         let locked = self.locks.get(account_id).filter(|lock| env::block_timestamp_ms() < lock.unlock_at_ms).map(|lock| lock.amount.0).unwrap_or(0);

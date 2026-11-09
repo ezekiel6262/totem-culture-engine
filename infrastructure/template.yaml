@@ -7,11 +7,17 @@ Parameters:
   NearNetwork: {Type: String, Default: testnet, AllowedValues: [testnet, mainnet]}
   TotemTokenContractId: {Type: String, Default: token.totem.testnet}
   TotemNftContractId: {Type: String, Default: nft.totem.testnet}
+  ArenaAgentContractId: {Type: String, Default: agent.totem.testnet}
+  ArenaMarketContractId: {Type: String, Default: market.totem.testnet}
   MainnetLaunchEnabled: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}
   MainnetParentAccount: {Type: String, Default: maleegg7870.near}
   ContractsAudited: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}
-  TokenArtifactSha256: {Type: String, Default: A5D0C35166FC2D8E331AD9DE563383333558BC29D643770F302223BC19A44B85}
-  NftArtifactSha256: {Type: String, Default: F510D2A3DFE467079A273058A7DAE48ECC2B79761C5FDC2FBDBEEF7F0C354C44}
+  CustomDomainName: {Type: String, Default: ''}
+  CustomDomainCertificateArn: {Type: String, Default: ''}
+  TokenArtifactSha256: {Type: String, Default: 2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E}
+  NftArtifactSha256: {Type: String, Default: 9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929}
+Conditions:
+  UseCustomDomain: !Not [!Equals [!Ref CustomDomainName, '']]
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -28,6 +34,8 @@ Globals:
         NEAR_NETWORK: !Ref NearNetwork
         TOTEM_TOKEN_CONTRACT_ID: !Ref TotemTokenContractId
         TOTEM_NFT_CONTRACT_ID: !Ref TotemNftContractId
+        TOTEM_ARENA_AGENT_CONTRACT_ID: !Ref ArenaAgentContractId
+        TOTEM_ARENA_MARKET_CONTRACT_ID: !Ref ArenaMarketContractId
         TOTEM_MAINNET_LAUNCH_ENABLED: !Ref MainnetLaunchEnabled
         TOTEM_MAINNET_PARENT_ACCOUNT: !Ref MainnetParentAccount
         TOTEM_CONTRACTS_AUDITED: !Ref ContractsAudited
@@ -119,12 +127,22 @@ Resources:
     DependsOn: ServerlessHttpApiApiGatewayDefaultStage
     Properties:
       DistributionConfig:
+        Aliases: !If
+          - UseCustomDomain
+          - [!Ref CustomDomainName, !Sub 'www.${CustomDomainName}']
+          - !Ref AWS::NoValue
         Comment: Totem live product
         DefaultRootObject: index.html
         Enabled: true
         HttpVersion: http2and3
         IPV6Enabled: true
         PriceClass: PriceClass_100
+        ViewerCertificate: !If
+          - UseCustomDomain
+          - AcmCertificateArn: !Ref CustomDomainCertificateArn
+            MinimumProtocolVersion: TLSv1.2_2021
+            SslSupportMethod: sni-only
+          - CloudFrontDefaultCertificate: true
         Origins:
           - Id: frontend
             DomainName: !GetAtt FrontendBucket.RegionalDomainName
