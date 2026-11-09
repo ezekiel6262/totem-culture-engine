@@ -6,6 +6,8 @@
   "scripts": {
     "test": "node --test backend/test/*.test.js",
     "test:static": "node scripts/normalize-static.js && node scripts/audit-static.mjs",
+    "test:submission": "node scripts/audit-submission.mjs",
+    "judge:verify": "npm test && npm run test:static && npm run test:submission",
     "backend:demo": "node backend/scripts/demo.js",
     "start": "node backend/server.js",
     "db:migrate": "node backend/scripts/migrate.js",

@@ -19,6 +19,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:static
+      - run: npm run test:submission
 
   contracts:
     runs-on: ubuntu-latest

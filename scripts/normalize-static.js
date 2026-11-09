@@ -35,7 +35,10 @@ for (const name of fs.readdirSync(dist)) {
     .replaceAll('—', '-')
     .replaceAll('–', '-')
     .replaceAll("||','", "||'Not set'");
-  for (const [from, to] of replacements[name] ?? []) source = source.replaceAll(from, to);
+  for (const [from, to] of replacements[name] ?? []) {
+    if (!source.includes(to)) source = source.replaceAll(from, to);
+  }
+  source = source.replace(/(<div class="totem-status">.*?<\/div>)(?:\1)+/g, '$1');
   if (name === 'Arena.dc.html') {
     const banner = '<div class="totem-status"><strong>INTERACTIVE ARENA PREVIEW</strong> Sample worlds and mechanics are shown below. No campaign, vote, reward or market is live yet.</div>';
     source = source.replace(new RegExp(`(?:${banner.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})+`), banner);
