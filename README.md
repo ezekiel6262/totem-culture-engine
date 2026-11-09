@@ -61,3 +61,9 @@ Totem was developed during the NEAR HACKATHON window with AI-assisted coding and
 Health and readiness are exposed at `/api/v1/health` and `/api/v1/readiness`.
 
 See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/TESTNET_RELEASE.md](docs/TESTNET_RELEASE.md).
+
+## Other hackathon project
+
+The same solo builder is also submitting **Scion** as a separate, independent project. Scion is a non-custodial strategy network for private strategies, public proof, verifiable fork lineage, wallet-approved NEAR Intents execution, and bounded user-owned agents. Totem and Scion have separate products, repositories, demos, descriptions, and judging evidence.
+
+[Scion live site](https://scionhub.xyz) · [Scion repository](https://github.com/ezekiel6262/scion)
