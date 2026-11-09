@@ -16,6 +16,16 @@
 5. Run Token, NFT, and Twin launch smoke tests using disposable testnet communities.
 6. Enable launch quotes only after those receipts pass review.
 
+## Social treasury activation
+
+1. Create or connect a Sputnik DAO controlled by the community.
+2. Configure proposer and council roles, approval threshold, spending permissions, and proposal bond.
+3. Fund the DAO with testnet NEAR and record its policy response.
+4. Prepare one capped Arena reward proposal in Totem and submit it through Meteor Wallet or Trezu.
+5. Approve and execute it with the required DAO members.
+6. Record the proposal ID, proposal hash, transaction hash, and execution result.
+7. Finalize the Totem receipt and verify that only an approved proposal becomes Arena-reward eligible.
+
 ## Explicitly later
 
 - NEAR Intents cross-chain funding and origin proofs.

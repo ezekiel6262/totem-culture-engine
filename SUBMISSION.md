@@ -23,10 +23,11 @@
 | NPC wallets and safety | `contracts/totem-agent`, spending caps and approved actions |
 | Player-owned market | `contracts/totem-market`, market listing preparation API |
 | Autonomous economy | deterministic Arena season evolution tests |
+| Social Money | bounded Sputnik transfer/bounty proposal adapter, Trezu workflow, contribution receipts, access decisions, and approved-proposal Arena receipts |
 
 ## Links
 
 - Product: https://mytotem.buzz
-- Repository: pending
+- Repository: https://github.com/ezekiel6262/totem-culture-engine (private until approved for publication)
 - Demo post: pending
 - Testnet account: `totemtest.testnet`

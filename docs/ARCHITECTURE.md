@@ -8,6 +8,7 @@
 - `token_mechanics`: capped, timelocked community-outcome rules for unlocks, burns, crafting, sponsorship, distributions and treasury budgets.
 - `arena`: seasons, factions, challenges, deterministic resolution, Culture Account abilities, inventory outcomes and bounded prize/community-budget routing.
 - `router_treasury`: validates exact splits, recipient allowlists, caps, timelocks, pull-payment balances, and failed-transfer recovery.
+- `social_treasury`: prepares Sputnik DAO `add_proposal` calls for transfers and bounties. Trezu is a supported treasury surface over the same DAO contract. Proposal bonds come from DAO policy, agents cannot execute transfers, and Arena settlement requires an approved onchain proposal receipt.
 - `receipt_gateway`: verifies NEP-413-style signed attestations, issuer scope, expiry, campaign/action binding, nonce consumption, and provenance hash.
 - Indexer/API: historical balance checkpoints, progress views, metadata rendering, public audit feed. Indexed state is a convenience; contracts remain authoritative for mint/access decisions.
 - SDK: TypeScript campaign builder, eligibility reader, receipt submitter, mint/evolve/access helpers, and embeddable progress UI.
@@ -15,6 +16,8 @@
 ## Integration boundary
 
 Real target integrations: NEP-141 balance/calls, NEP-171 NFTs, NEAR RPC, wallet signing, NEP-413 receipts, optional NEAR Intents acquisition link. The current web demo simulates wallet, acquisition, elapsed time, and oracle review. It does not claim mainnet deployment.
+
+Social treasury transactions are non-custodial. Totem returns a wallet transaction plan, Sputnik roles and thresholds govern approval, and Trezu can manage the treasury workflow. Testnet execution evidence is attached only after the DAO is funded.
 
 ## Core records
 

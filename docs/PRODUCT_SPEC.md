@@ -63,6 +63,8 @@ Arena is a core shared product, not an optional demo. Culture Accounts enter sea
 
 Totem treats money as a relationship and coordination layer. Culture Pairs recognize contribution, belonging, creation, reputation, and shared history—not only balance. Portable credentials, community roles, cross-culture alliances, creator attribution, reputation-aware governance, and public treasury rules make social money a first-class product surface.
 
+Communities connect a Sputnik DAO directly or manage that DAO through Trezu. Verified Arena contributions, sponsorships and collective missions become transfer or bounty proposals with campaign caps, approved tokens, recipient policies and proposal hashes. Culture Agents may draft proposals inside those limits, but only DAO members can approve and execute them. Totem builds what communities do with shared money without rebuilding custody or multisig governance.
+
 ## Compliance boundaries
 
 - No guaranteed return, APY, dividend, appreciation claim, or passive fee entitlement.

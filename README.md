@@ -13,8 +13,9 @@ Memecoins launch quickly but struggle to sustain coordinated culture. NFT commun
 1. Open https://mytotem.buzz/Forge-Origin.dc.html. See exactly three launch paths: Token, NFT, and Twin.
 2. Open https://mytotem.buzz/Arena.dc.html. Explore the world map and inspect the deterministic game loop, quests, treasury consequences, and Culture Account progression.
 3. Open https://mytotem.buzz/Traits.dc.html. Inspect the player-owned trait-market design.
-4. Run `npm test`. See deterministic eligibility, agent policy, market, launch, and Arena-economy tests pass.
-5. Run `npm run test:static`. See every local page and asset reference verified.
+4. Open https://mytotem.buzz/Treasury.dc.html. Prepare a bounded Sputnik or Trezu treasury proposal and inspect the DAO-approval boundary.
+5. Run `npm test`. See deterministic eligibility, agent policy, market, launch, Arena-economy, and treasury tests pass.
+6. Run `npm run test:static`. See every local page and asset reference verified.
 
 The public UI labels sample data and incomplete integrations. Contract deployment remains gated until the funded testnet accounts are ready.
 
@@ -23,7 +24,7 @@ The public UI labels sample data and incomplete integrations. Contract deploymen
 - NFTs That Do Something: Culture Accounts carry inventory, credentials, memberships, access rights, royalties, and evolution.
 - Memecoins With Mechanics: Arena turns a token community into rule-bound rituals, bagwork, treasury challenges, and evolving seasons.
 - Games With Real Economies: Culture Agents have constrained budgets, players own market assets, and season parameters evolve from finalized data.
-- Social Money: programmable rewards, shared budgets, reputation-aware access, and contribution receipts.
+- Social Money: Totem converts verified work into policy-checked Sputnik DAO transfer or bounty proposals. Communities can operate those proposals through Trezu; the DAO remains custodian and approver while Culture Agents stay inside published caps and allowlists.
 - Open Innovation: reciprocal Token/NFT economies and culture-owned game systems.
 
 ## Current release state

@@ -38,6 +38,8 @@
     evolveArenaSeason(input){return this.request('/api/v1/arena/seasons/evolve',{method:'POST',body:input,authenticated:true})}
     prepareAgentReward(input){return this.request('/api/v1/arena/agents/rewards/prepare',{method:'POST',body:input,authenticated:true})}
     prepareMarketListing(input){return this.request('/api/v1/arena/market/listings/prepare',{method:'POST',body:input,authenticated:true})}
+    prepareTreasuryProposal(input){return this.request('/api/v1/treasury/proposals/prepare',{method:'POST',body:input,authenticated:true})}
+    finalizeTreasuryReceipt(input){return this.request('/api/v1/treasury/receipts/finalize',{method:'POST',body:input,authenticated:true})}
     health(){return this.request('/api/health')}
   }
   global.TotemApiClient=TotemApiClient
