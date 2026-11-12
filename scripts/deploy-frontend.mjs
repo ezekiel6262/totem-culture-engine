@@ -54,11 +54,13 @@ try {
   console.log('The sync deletes objects that are no longer in dist, including the pages of the previous design.')
   console.log('The bucket has versioning enabled, so deleted objects stay recoverable.')
 
-  // Long-lived assets first, then the entry point with no-cache so a publish is visible at once.
-  run('1/3 assets', ['s3', 'sync', 'dist', `s3://${bucket}`, '--delete', '--exclude', 'index.html', '--exclude', 'favicon.svg', '--cache-control', 'public,max-age=31536000,immutable'])
-  run('2/3 entry point', ['s3', 'cp', 'dist/index.html', `s3://${bucket}/index.html`, '--cache-control', 'no-cache', '--content-type', 'text/html; charset=utf-8'])
-  run('2/3 favicon', ['s3', 'cp', 'dist/favicon.svg', `s3://${bucket}/favicon.svg`, '--cache-control', 'public,max-age=3600', '--content-type', 'image/svg+xml'])
-  run('3/3 invalidation', ['cloudfront', 'create-invalidation', '--distribution-id', distribution, '--paths', '/*'])
+  // Only content that never changes under a given name may be cached hard. Everything at
+  // the root (index.html, wallet.js, totem-api.js) can change while keeping its name, so
+  // it gets a short cache and a browser picks the new one up after an invalidation.
+  run('1/4 immutable assets', ['s3', 'sync', 'dist', `s3://${bucket}`, '--exclude', '*', '--include', 'assets/*', '--include', 'contracts/*', '--cache-control', 'public,max-age=31536000,immutable'])
+  run('2/4 scripts and styles', ['s3', 'sync', 'dist', `s3://${bucket}`, '--delete', '--exclude', 'assets/*', '--exclude', 'contracts/*', '--exclude', 'index.html', '--cache-control', 'public,max-age=300'])
+  run('3/4 entry point', ['s3', 'cp', 'dist/index.html', `s3://${bucket}/index.html`, '--cache-control', 'no-cache', '--content-type', 'text/html; charset=utf-8'])
+  run('4/4 invalidation', ['cloudfront', 'create-invalidation', '--distribution-id', distribution, '--paths', '/*'])
 
   console.log(dryRun ? '\nDry run complete.' : '\nPublished. CloudFront takes a minute or two to finish the invalidation.')
 } catch (error) {

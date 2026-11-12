@@ -2550,8 +2550,11 @@ async function call(path, options){
   } finally { clearTimeout(timer); }
 }
 
+let settleReady;
 T.api = {
   live: false,
+  // Resolves with the probe result, so later parts can wait instead of guessing.
+  ready: new Promise((resolve) => { settleReady = resolve; }),
   get: (path) => call(path),
   post: (path, body) => call(path, { method: 'POST', body: JSON.stringify(body || {}) })
 };
@@ -2665,15 +2668,180 @@ T.modules.rules = { enter(){
 } };
 
 /* ---------- probe once, then repaint if the open screen has a live section ---------- */
-const wired = ['arenas', 'season', 'market', 'nft', 'rules'];
+const wired = ['arenas', 'season', 'market', 'nft', 'rules', 'profile'];
 window.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const probe = await T.api.get('/arenas');
     T.api.live = probe.ok;
+    settleReady(T.api.live);
     if (!T.api.live) return;
     const current = (location.hash || '#home').slice(1).split('-')[0];
     const module = T.modules[wired.indexOf(current) === -1 ? '' : current];
     if (module) module.enter();
+  })();
+});
+})();
+</script>
+<script>
+/* ======================= WALLET AND WRITES ========================
+   Real NEAR sign-in, and the writes that need it. Everything here is additive and gated
+   on a signed session: with no wallet connected the screens behave exactly as the demo
+   always has. The wallet bundle is only fetched when someone asks to connect. */
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const section = (route) => document.querySelector('[data-route="' + route + '"]');
+const append = (route, id, html) => {
+  const page = section(route);
+  if (!page) return null;
+  const existing = page.querySelector('#' + id);
+  if (existing) existing.remove();
+  const box = document.createElement('div');
+  box.id = id;
+  box.style.marginTop = '22px';
+  box.innerHTML = html;
+  page.appendChild(box);
+  return box;
+};
+
+/* ---------- lazy loading of the wallet bundle ---------- */
+let loading = null;
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src; el.onload = resolve; el.onerror = () => reject(new Error('Could not load ' + src));
+    document.head.appendChild(el);
+  });
+}
+async function loadWallet(){
+  if (!loading) loading = (async () => {
+    if (!document.querySelector('link[data-wallet-css]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet'; link.href = 'wallet.css'; link.dataset.walletCss = '';
+      document.head.appendChild(link);
+    }
+    if (!window.totemApi) await loadScript('totem-api.js');
+    if (!window.totemWallet) await import('./wallet.js');
+    const health = await T.api.get('/health');
+    return { network: (health.ok && health.data.network) || 'testnet', contractId: 'nft.totem.testnet' };
+  })().catch((error) => { loading = null; throw error; });
+  return loading;
+}
+
+/* ---------- session ---------- */
+const session = () => (window.totemApi && window.totemApi.session) || null;
+const signedInAs = () => { const s = session(); return s && s.identity ? s.identity.accountId : null; };
+const authed = (path, options) => window.totemApi.request(path, Object.assign({ authenticated: true }, options || {}));
+
+T.wallet = {
+  account: signedInAs,
+  async connect(){
+    const options = await loadWallet();
+    const identity = await window.totemWallet.connect(options);
+    return identity ? identity.accountId : null;
+  },
+  async signOut(){
+    if (!window.totemWallet) return;
+    await window.totemWallet.signOut(await loadWallet());
+  }
+};
+
+/* ---------- profile: sign in, and the Totems the server holds for you ---------- */
+async function paintWallet(){
+  if (!T.api.live) return;
+  const account = signedInAs();
+  const head = '<h2 style="font-size:32px;margin:0 0 12px">NEAR wallet ' + (account ? '<span class="chip g">Signed in</span>' : '<span class="chip">Not signed in</span>') + '</h2>';
+
+  if (!account) {
+    const box = append('profile', 'walletBox', head +
+      '<div class="card" style="display:flex;flex-direction:column;gap:12px;max-width:720px">' +
+      '<p style="margin:0">Sign in with a NEAR wallet to use the live Totem API. Signing is a gas free NEP-413 message, not a transaction, and it proves the account is yours.</p>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="walletConnect">Connect NEAR wallet</button></div>' +
+      '<p class="muted" style="font-size:13px;margin:0">The demo wallet above is separate and changes nothing on the server.</p></div>');
+    if (!box) return;
+    $('#walletConnect').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.textContent = 'Opening wallet...'; button.setAttribute('aria-disabled', 'true');
+      try {
+        const connected = await T.wallet.connect();
+        if (!connected) { T.toast('Wallet was not connected'); paintWallet(); return; }
+        T.toast('Signed in as ' + connected);
+        paintWallet();
+      } catch (error) {
+        T.toast(error && error.message ? error.message : 'Could not connect the wallet');
+        paintWallet();
+      }
+    });
+    return;
+  }
+
+  const owned = await T.api.get('/totems?owner=' + encodeURIComponent(account));
+  const totems = owned.ok ? owned.data.totems : [];
+  const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
+  const rows = ledger.ok ? ledger.data.ledger : [];
+
+  const cards = totems.length
+    ? totems.map((totem) => '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
+        '<div style="display:flex;gap:14px;align-items:center">' + T.svgTotem(totem.pieces, 56) +
+        '<div><a href="#nft-' + esc(totem.id) + '" style="font-family:var(--serif);font-size:28px;line-height:1;text-decoration:none">Totem #' + esc(totem.id) + '</a><br>' +
+        '<span class="muted" style="font-size:13px">' + T.fmt(totem.holds) + ' $TOTEM inside</span></div></div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn small" type="button" data-lock="' + esc(totem.id) + '"' + (totem.pieces >= 4 ? ' aria-disabled="true"' : '') + '>Lock a piece</button>' +
+        '<button class="btn small ghost" type="button" data-unlock="' + esc(totem.id) + '"' + (totem.pieces < 1 ? ' aria-disabled="true"' : '') + '>Take one out</button></div></div>').join('')
+    : '<div class="card"><p style="margin:0">This account holds no Totem on the server yet.</p></div>';
+
+  const activity = rows.length
+    ? '<div class="card" style="margin-top:14px"><span class="muted" style="font-size:13px">Activity on the server</span>' +
+      rows.map((row) => '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px"><span>' + esc(row.title) + '</span><strong style="color:' + (row.tone === 'e' ? 'var(--ember-ink)' : 'var(--green-ink)') + '">' + esc(row.amount) + '</strong></div>').join('') + '</div>'
+    : '';
+
+  const box = append('profile', 'walletBox', head +
+    '<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+    '<span style="font-family:var(--mono)">' + esc(account) + '</span>' +
+    '<button class="btn ghost small" type="button" id="walletOut">Sign out</button></div>' +
+    '<div class="grid g3">' + cards + '</div>' + activity);
+  if (!box) return;
+
+  $('#walletOut').addEventListener('click', async () => { await T.wallet.signOut(); T.toast('Signed out'); paintWallet(); });
+
+  const write = async (button, run, done) => {
+    if (button.getAttribute('aria-disabled') === 'true') return;
+    button.setAttribute('aria-disabled', 'true');
+    try {
+      const result = await run();
+      T.toast(done(result));
+      if (result.calls) T.chain('On the server', result.calls, true);
+      paintWallet();
+    } catch (error) {
+      T.toast(error && error.message ? error.message : 'That did not work');
+      paintWallet();
+    }
+  };
+
+  $$('[data-lock]').forEach((button) => button.addEventListener('click', () => write(button,
+    () => authed('/api/v1/totems/' + encodeURIComponent(button.dataset.lock) + '/pieces', { method: 'POST' }),
+    (result) => 'Locked a piece. Totem #' + result.totem.id + ' now holds ' + T.fmt(result.totem.holds) + ' $TOTEM.')));
+
+  $$('[data-unlock]').forEach((button) => button.addEventListener('click', () => write(button,
+    () => authed('/api/v1/totems/' + encodeURIComponent(button.dataset.unlock) + '/pieces', { method: 'DELETE' }),
+    (result) => 'Took a piece out. Totem #' + result.totem.id + ' now holds ' + T.fmt(result.totem.holds) + ' $TOTEM.')));
+}
+
+const baseProfile = T.modules.profile;
+T.modules.profile = { enter(){ baseProfile.enter(); paintWallet(); } };
+
+/* Restore a session saved earlier in this tab, so a reload keeps you signed in. */
+window.addEventListener('DOMContentLoaded', () => {
+  (async () => {
+    if (!(await T.api.ready)) return;
+    try {
+      if (!window.totemApi) await loadScript('totem-api.js');
+      if (!window.totemApi.session) return;
+      await window.totemApi.restore();
+      if ((location.hash || '').indexOf('#profile') === 0) T.modules.profile.enter();
+    } catch (error) { /* a stale session is cleared by restore itself */ }
   })();
 });
 })();

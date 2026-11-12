@@ -11,12 +11,13 @@ if(config.seedDemo&&!await repository.getLatestCampaign(TOTEM_CAMPAIGN.id))await
 const authRepository=db?new PostgresAuthRepository(db):new MemoryAuthRepository()
 const auth=new TotemAuthService({repository:authRepository,recipient:config.authRecipient,rpc:new NearRpcClient({endpoint:config.nearRpcUrl})})
 const coordinationRepository=db?new PostgresCoordinationRepository(db):new MemoryCoordinationRepository()
-const api=createTotemApi({repository,service,auth,coordination:new CoordinationService(coordinationRepository)})
+const deployment={network:config.nearNetwork,rpcUrl:config.nearRpcUrl,mainnetLaunchEnabled:config.mainnetLaunchEnabled,contractsAudited:config.contractsAudited}
+const api=createTotemApi({repository,service,auth,coordination:new CoordinationService(coordinationRepository),deployment})
 const productRepository=new MemoryProductRepository()
 await ensurePlatform(productRepository)
 if(config.seedDemo)await seedProduct(productRepository)
 const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository}),auth})
-const routes=new Map([['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])
+const routes=new Map([['GET /api/v1/health',api.health],['GET /api/v1/readiness',api.readiness],['GET /api/v1/deployment/config',api.deploymentConfig],['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'}
 const webRequest=req=>{const init={method:req.method,headers:req.headers};if(!['GET','HEAD'].includes(req.method)){init.body=req;init.duplex='half'}return new Request('http://'+(req.headers.host??'localhost')+req.url,init)}
 const send=async(res,response)=>{res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))}

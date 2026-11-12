@@ -133,7 +133,32 @@ Wired so far: `#arenas` (the Arena record and the server's entry decision for th
 account), `#season` (settled standings), `#market` (open listings), `#nft-<id>` (the real
 Totem record) and `#rules` (an accurate statement of what is live).
 
-Writes are not wired. Every mutating route requires a wallet session, so the demo buttons
-deliberately do not change server state. Connecting the existing NEAR wallet selector to
-`/api/v1/auth/*` and then pointing lock, claim, market and rent at the API is the next
-step.
+## 9. Writes and the wallet
+
+`frontend/site/p13.html` adds real sign-in and the first authenticated writes.
+
+`frontend/wallet.js` is now a module that owns the wallet and nothing else: it paints no
+UI and listens to no page events, so the product decides when to open the modal. It pairs
+with `totem-api.js`, which already held the session token and performed the NEP-413
+exchange for the previous design. The bundle is fetched only when someone asks to connect,
+so the page does not carry 1.6MB for a visitor who never signs in.
+
+Sign-in lives on `#profile`, deliberately separate from the demo connect button, which
+still does what it always did and changes nothing on the server. Once a session exists the
+profile shows the Totems the server holds for that account, its ledger, and buttons that
+lock and withdraw pieces through the API.
+
+Every write is gated on a signed session. With no wallet connected the screens behave
+exactly as the demo always has, so an untested write path cannot affect a visitor.
+
+Known gaps:
+
+- The signature itself is unverified. Opening the modal, loading the bundle, the challenge
+  endpoint and the session restore are all confirmed, but completing a NEP-413 signature
+  needs a real NEAR testnet wallet.
+- `POST /api/v1/claims/starter` is public by design, because claiming a first Totem cannot
+  require an account that does not exist yet. It is uniquely constrained per handle but has
+  no rate limit, so a script could create unbounded Totem records. The rules page already
+  promises one starter per person per day, checked by device and account. That check has to
+  exist before the claim screen is wired to it.
+- Market, rent and launch writes are still demo only.
