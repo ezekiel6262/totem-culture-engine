@@ -5,14 +5,21 @@
 | Contract | Account | Deployed | Code hash |
 | --- | --- | --- | --- |
 | Totem NFT, NEP-171 | `nft.totemtest.testnet` | 2026-11-12 | `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz` |
+| Totem token, NEP-141 | `token.totemtest.testnet` | 2026-11-13 | `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j` |
 
-4.10 NEAR staked as storage on the sub-account. `launch_config` reports 10,000 max supply
-with a 500 / 250 bps creator and treasury royalty split, and `nft_total_supply` is 0.
-The code hash is the base58 of the sha256 pinned in `infrastructure/template.yaml`, so the
-deployed code is the artifact in this repository.
+4.10 and 2.60 NEAR staked as storage on the two sub-accounts. Each code hash is the base58
+of the sha256 pinned in `infrastructure/template.yaml`, so the deployed code is the artifact
+in this repository in both cases.
 
-The parent `totemtest.testnet` held 5.40 NEAR and now holds about 1.29. The token needs
-3.1, so it waits on a faucet top up.
+- NFT: `launch_config` reports 10,000 max supply with a 500 / 250 bps creator and treasury
+  royalty split. `nft_total_supply` is 0, so nothing has been minted.
+- Token: `ft_total_supply` is 1,000,000,000 at 18 decimals, all of it held by
+  `totemtest.testnet` at launch. That figure is exactly the lockable float, since
+  10,000 Totems x 4 pieces x 25,000 is 1,000,000,000, so rewards and locking draw on one
+  shared float rather than a separate emission.
+
+The parent `totemtest.testnet` holds about 4.49 NEAR. The three remaining contracts are the
+launchpad factory, the player owned market and the Arena agent; see the costs below.
 
 ## Ready now
 

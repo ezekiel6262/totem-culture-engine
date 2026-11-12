@@ -102,7 +102,8 @@ Stated plainly, because the UI labels it and a judge should not have to guess.
 | Rate limiting on the public claim path | **Live**, hashed identifiers only |
 | Arena games, prizes, balances, the demo wallet | **Simulated in the browser**, labelled as such |
 | Totem NFT contract (NEP-171) | **Live on testnet** at `nft.totemtest.testnet` |
-| Token, market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
+| Totem token contract (NEP-141) | **Live on testnet** at `token.totemtest.testnet` |
+| Market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
 
 The contracts are real Rust against `near-sdk 5.30.1` with tests, and they build
 reproducibly. **The Totem NFT contract is deployed to NEAR testnet** at
@@ -123,7 +124,18 @@ near contract call-function as-read-only nft.totemtest.testnet launch_config \
   json-args {} network-config testnet now
 ```
 
-The remaining four contracts are not deployed: each needs its own funded sub-account, and
+`$TOTEM` is live too, at `token.totemtest.testnet`, NEP-141 with 18 decimals and a total
+supply of **1,000,000,000**, all of it held by the owner account at launch. Its on-chain
+`code_hash` is `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j`, the base58 of the sha256
+`2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E` that the template pins.
+
+That supply is exactly the lockable float: 10,000 Totems x 4 pieces x 25,000 `$TOTEM` is
+1,000,000,000, so a fully built collection would hold every token in existence. In practice
+not every Totem is fully built, and the unlocked remainder is what funds Arena prizes and
+quest rewards, so rewards and locking draw on the same float rather than on a separate
+emission.
+
+The remaining three contracts are not deployed: each needs its own funded sub-account, and
 `docs/TESTNET_RELEASE.md` records the exact cost and command for each. Launch quoting fails
 closed in the meantime, in `backend/src/launch-quotes.js`, rather than pretending a factory
 exists.

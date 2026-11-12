@@ -54,6 +54,13 @@ curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
 near contract call-function as-read-only nft.totemtest.testnet launch_config \
   json-args {} network-config testnet now
 # max_supply 10000, creator_royalty_bps 500, treasury_royalty_bps 250
+
+# 4. The same for the token, at token.totemtest.testnet.
+near contract call-function as-read-only token.totemtest.testnet ft_total_supply \
+  json-args {} network-config testnet now
+# "1000000000000000000000000000"  -> 1,000,000,000 at 18 decimals
+#    deployed code_hash 3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j
+#    base58 of sha256 2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E
 ```
 
 `nft_total_supply` is `0`: the contract is deployed and initialised, and nothing has been
@@ -107,7 +114,12 @@ No wallet needed for steps 1–3.
   the base58 of the sha256 pinned in `infrastructure/template.yaml`. `nft_metadata` and
   `launch_config` answer over public RPC, the latter reporting 10,000 max supply and the
   500 / 250 bps royalty split. Total supply is 0: nothing has been minted.
-- The other four contracts are complete Rust with tests and build reproducibly, but are
+- **The Totem token is live on NEAR testnet** at `token.totemtest.testnet`, NEP-141, 18
+  decimals, total supply 1,000,000,000, all held by the owner at launch. Deployed from this
+  repository's artifact by the same hash check. Note that the supply is exactly the lockable
+  float for a fully built collection, so rewards and locking share one float rather than
+  drawing on a separate emission.
+- The other three contracts are complete Rust with tests and build reproducibly, but are
   **not deployed yet** — each needs its own funded sub-account.
   `docs/TESTNET_RELEASE.md` holds the per-contract cost and the exact deploy command.
   Launch quoting fails closed meanwhile, in `backend/src/launch-quotes.js`.

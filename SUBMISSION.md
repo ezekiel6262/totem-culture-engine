@@ -15,7 +15,7 @@ development phase; outside it the API answers 403.
 - [x] Authorise `totemtest.testnet` for near-cli-rs. The key is in the legacy key store and matches the account full access key on chain, `ed25519:247jogH965g1UaFCMjWY4ShQPfqLKNLELETr1vMHsCeC`.
 - [x] Deploy the NFT: `nft.totemtest.testnet`, collection size 10,000, 4.10 NEAR staked.
 - [ ] Top up `totemtest.testnet` from https://near-faucet.io: it holds about 1.29 NEAR and the token needs 3.1 (testnet NEAR is free, Q-008).
-- [ ] Decide the `$TOTEM` total supply, then deploy: `npm run launch:testnet -- --only token --execute --supply <n>`.
+- [x] Deploy the token: `token.totemtest.testnet`, total supply 1,000,000,000 at 18 decimals, 2.60 NEAR staked.
 - [x] Record the deployed contract ids and code hashes here (see Deployed contracts below).
 - [x] Stack parameter `TotemNftContractId` already defaults to `nft.totemtest.testnet`, which is what was deployed. The others follow their own deploys.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).
@@ -31,7 +31,7 @@ development phase; outside it the API answers 403.
 | Claim | Evidence |
 | --- | --- |
 | NFTs with behaviour | `contracts/totem-nft`, a Totem is a sub-account holding `$TOTEM`, `#profile` lock and unlock against the live API |
-| Memecoin mechanics | `contracts/totem-token`, 25,000 `$TOTEM` per piece and 4 pieces per Totem, enforced in `backend/src/totem-product.js` |
+| Memecoin mechanics | `token.totemtest.testnet` live on testnet, 25,000 `$TOTEM` per piece and 4 pieces per Totem, enforced in `backend/src/totem-product.js` |
 | Arena entry gated on locked value | `backend/src/arena-economy.js`, `#arenas` shows the entry rule and the server's decision |
 | Agent wallets with limits | `contracts/totem-agent`, per-payment cap, daily cap, action allowlist in the contract |
 | Player-owned market | `contracts/totem-market`, NEP-171 royalty payouts on sale |
@@ -46,6 +46,7 @@ development phase; outside it the API answers 403.
 | Contract | Account | Network | Evidence |
 | --- | --- | --- | --- |
 | Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`, 4.10 NEAR staked, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
+| Totem token, NEP-141 | `token.totemtest.testnet` | testnet | `code_hash` `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j`, 2.60 NEAR staked, `ft_total_supply` 1,000,000,000 at 18 decimals, all held by `totemtest.testnet` |
 
 Deployed 2026-11-12 from `totem_nft.wasm`, sha256 `9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929`, with
 `npm run launch:testnet -- --only nft --execute`. Read it back over public RPC:
