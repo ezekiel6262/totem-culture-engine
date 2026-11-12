@@ -156,9 +156,21 @@ Known gaps:
 - The signature itself is unverified. Opening the modal, loading the bundle, the challenge
   endpoint and the session restore are all confirmed, but completing a NEP-413 signature
   needs a real NEAR testnet wallet.
-- `POST /api/v1/claims/starter` is public by design, because claiming a first Totem cannot
-  require an account that does not exist yet. It is uniquely constrained per handle but has
-  no rate limit, so a script could create unbounded Totem records. The rules page already
-  promises one starter per person per day, checked by device and account. That check has to
-  exist before the claim screen is wired to it.
 - Market, rent and launch writes are still demo only.
+
+## 10. Rate limits on the public claim
+
+`POST /api/v1/claims/starter` has to stay public, because the claimer has no account yet.
+It is bounded by fixed window counters on the same table (`backend/src/rate-limit.js`),
+which is what the rules page already promised: one per device per day, three per address
+per day, and a ceiling of 200 for the whole Arena per day. Counters carry the table's `ttl`
+attribute, so they expire on their own.
+
+A counter records attempts rather than successes, so a refused attempt still spends quota
+and probing is not free. The one exception is a handle that is already taken: that is
+checked before the limiter, so mistyping a name does not cost someone their daily try.
+
+The address comes from `CloudFront-Viewer-Address` when the origin request policy forwards
+it, and otherwise from the first `X-Forwarded-For` entry. The policy does not forward the
+viewer's own `X-Forwarded-For`, so a client cannot prepend an address of its own. The
+header is in the template; until the stack is next deployed the fallback is in use.

@@ -18,6 +18,7 @@ import {MemoryProductRepository,ensurePlatform,seedProduct} from './totem-produc
 import {DynamoProductRepository} from './dynamo-product-repository.js'
 import {TotemProductService} from './totem-product.js'
 import {createProductRouter} from './totem-product-api.js'
+import {DynamoRateLimiter,MemoryRateLimiter} from './rate-limit.js'
 export async function createApplicationRuntime(config){
   const db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
   const dynamo=config.dynamoTable?createDynamoDocumentClient():null
@@ -39,6 +40,7 @@ export async function createApplicationRuntime(config){
   // whole API down with it: the product routes then answer ARENA_NOT_FOUND until it succeeds.
   try{await ensurePlatform(productRepository);if(config.seedDemo)await seedProduct(productRepository)}
   catch(error){console.error(JSON.stringify({event:'platform_setup_failed',message:error?.message??String(error)}))}
-  const product=createProductRouter({product:new TotemProductService({repository:productRepository}),auth})
+  const rateLimiter=dynamo?new DynamoRateLimiter(dynamo,config.dynamoTable):new MemoryRateLimiter()
+  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter}),auth})
   return{db,dynamo,api,routes,product}
 }

@@ -87,7 +87,11 @@ Resources:
         CookiesConfig: {CookieBehavior: none}
         HeadersConfig:
           HeaderBehavior: whitelist
-          Headers: [Accept, Authorization, Content-Type, Origin]
+          # CloudFront-Viewer-Address is the authoritative client address for the rate
+          # limits on the public claim endpoint. Until this reaches the stack the API
+          # falls back to the first X-Forwarded-For entry, which CloudFront sets and the
+          # viewer cannot forge, because the viewer's own copy is not forwarded.
+          Headers: [Accept, Authorization, Content-Type, Origin, CloudFront-Viewer-Address]
         QueryStringsConfig: {QueryStringBehavior: all}
   TotemTable:
     Type: AWS::DynamoDB::Table

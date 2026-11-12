@@ -7,6 +7,7 @@
 // "What happens onchain" list whether or not the contracts are deployed yet.
 import { invariant } from './errors.js'
 import { hashRecord } from './canonical.js'
+import { MemoryRateLimiter } from './rate-limit.js'
 
 export const PIECE_TOKENS = 25000
 export const MAX_PIECES = 4
@@ -129,15 +130,21 @@ export const callPlans = {
 
 /* ---------- service ---------- */
 
+export const CLAIM_LIMITS = Object.freeze({ claimsPerDevice: 1, claimsPerAddress: 3, claimsPerDay: 200 })
+
 export class TotemProductService {
   #repository
   #now
   #accounts
+  #rateLimiter
+  #limits
 
-  constructor({ repository, now = () => Date.now(), accounts = {} }) {
+  constructor({ repository, now = () => Date.now(), accounts = {}, rateLimiter = new MemoryRateLimiter(), limits = {} }) {
     invariant(repository, 'PRODUCT_REPOSITORY_REQUIRED', 'TotemProductService requires a repository')
     this.#repository = repository
     this.#now = now
+    this.#rateLimiter = rateLimiter
+    this.#limits = { ...CLAIM_LIMITS, ...limits }
     this.#accounts = {
       token: accounts.token ?? 'token.totem.near',
       factory: accounts.factory ?? 'totem.near',
@@ -357,10 +364,34 @@ export class TotemProductService {
 
   /* claims */
 
-  async claimStarter({ handle }) {
+  // Claiming a first Totem has to stay open, because the claimer has no account yet.
+  // The limits below are what the rules page promises: one per person per day, checked by
+  // device and address, under a daily ceiling for the whole Arena.
+  async #guardClaim({ ip, deviceId }) {
+    const now = this.#now()
+    // Addresses and device ids are identifiers for a person, so only a hash is stored.
+    // It limits just as well, and the table never holds the address itself.
+    const anonymous = (scope, value) => hashRecord({ scope: `totem.rate.${scope}.v1`, value }).slice(0, 32)
+
+    const checks = [{ key: 'claim#all', limit: this.#limits.claimsPerDay }]
+    if (deviceId) checks.push({ key: `claim#device#${anonymous('device', deviceId)}`, limit: this.#limits.claimsPerDevice })
+    if (ip) checks.push({ key: `claim#ip#${anonymous('ip', ip)}`, limit: this.#limits.claimsPerAddress })
+
+    for (const check of checks) {
+      const result = await this.#rateLimiter.hit({ ...check, now })
+      if (result.allowed) continue
+      const scope = check.key.startsWith('claim#device') ? 'device' : check.key.startsWith('claim#ip') ? 'address' : 'Arena'
+      invariant(false, 'CLAIM_RATE_LIMITED', scope === 'Arena'
+        ? 'The free starters for today are gone. Try again tomorrow.'
+        : `That ${scope} has already claimed a starter today. Try again tomorrow.`, { scope, resetAt: result.resetAt })
+    }
+  }
+
+  async claimStarter({ handle, ip = null, deviceId = null }) {
     requireAccount(handle, 'HANDLE_INVALID', 'Pick a name like yourname.totem.near')
     const existing = await this.#repository.getClaim(handle)
     invariant(!existing, 'CLAIM_ALREADY_USED', 'That name has already claimed a starter Totem')
+    await this.#guardClaim({ ip, deviceId })
     const totem = await this.#repository.createTotem({ owner: handle, pieces: 1, items: [], origin: 'gasless starter', createdAt: this.#now() })
     await this.#repository.createClaim({ handle, totemId: totem.id, kind: 'starter', at: this.#now() })
     await this.#ledger(handle, { title: 'Claimed a starter Totem', amount: `+${PIECE_TOKENS.toLocaleString('en-US')} $TOTEM`, tone: 'g' })

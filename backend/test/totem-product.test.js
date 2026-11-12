@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createProductRouter, DISPUTE_WINDOW_MS, MemoryProductRepository, PIECE_TOKENS, seedProduct, TotemProductService } from '../src/index.js'
+import { clientAddress } from '../src/totem-product-api.js'
 
 let clock = 1_700_000_000_000
 const now = () => clock
@@ -286,4 +287,78 @@ test('unknown product routes do not match', async () => {
   const router = createProductRouter({ product, auth: authStub })
   assert.equal(router.matches('GET', '/api/v1/totems/417'), true)
   assert.equal(router.matches('GET', '/api/v1/nothing'), false)
+})
+
+/* ---------- claim rate limits ---------- */
+
+const limited = async (overrides = {}) => {
+  clock = 1_700_000_000_000
+  const repository = new MemoryProductRepository()
+  await seedProduct(repository, { now: clock })
+  return new TotemProductService({ repository, now, limits: Object.assign({ claimsPerDevice: 1, claimsPerAddress: 3, claimsPerDay: 200 }, overrides) })
+}
+
+test('one starter per device per day', async () => {
+  const product = await limited()
+  await product.claimStarter({ handle: 'first.near', deviceId: 'device-a', ip: '1.1.1.1' })
+  assert.equal(await code(product.claimStarter({ handle: 'second.near', deviceId: 'device-a', ip: '2.2.2.2' })), 'CLAIM_RATE_LIMITED')
+  // A different device on the same day is unaffected.
+  const other = await product.claimStarter({ handle: 'third.near', deviceId: 'device-b', ip: '3.3.3.3' })
+  assert.equal(other.totem.pieces, 1)
+})
+
+test('a device may claim again the next day', async () => {
+  const product = await limited()
+  await product.claimStarter({ handle: 'first.near', deviceId: 'device-a', ip: '1.1.1.1' })
+  clock += 24 * 60 * 60 * 1000
+  const later = await product.claimStarter({ handle: 'second.near', deviceId: 'device-a', ip: '1.1.1.1' })
+  assert.equal(later.totem.owner, 'second.near')
+})
+
+test('an address is capped even across devices', async () => {
+  const product = await limited()
+  for (let i = 0; i < 3; i++) await product.claimStarter({ handle: `claimer${i}.near`, deviceId: 'device-' + i, ip: '9.9.9.9' })
+  assert.equal(await code(product.claimStarter({ handle: 'fourth.near', deviceId: 'device-9', ip: '9.9.9.9' })), 'CLAIM_RATE_LIMITED')
+})
+
+test('the Arena has a ceiling for the day', async () => {
+  const product = await limited({ claimsPerDay: 2, claimsPerDevice: 50, claimsPerAddress: 50 })
+  await product.claimStarter({ handle: 'a.near', deviceId: 'd', ip: '1.1.1.1' })
+  await product.claimStarter({ handle: 'b.near', deviceId: 'd', ip: '1.1.1.1' })
+  const refused = await code(product.claimStarter({ handle: 'c.near', deviceId: 'd', ip: '1.1.1.1' }))
+  assert.equal(refused, 'CLAIM_RATE_LIMITED')
+})
+
+test('a name that is already taken does not cost the claimer their daily try', async () => {
+  const product = await limited({ claimsPerAddress: 2, claimsPerDevice: 50 })
+  await product.claimStarter({ handle: 'a.near', ip: '5.5.5.5', deviceId: 'd1' })
+  // The handle is checked before the limiter, so a mistyped or taken name is free to retry.
+  assert.equal(await code(product.claimStarter({ handle: 'a.near', ip: '5.5.5.5', deviceId: 'd2' })), 'CLAIM_ALREADY_USED')
+  const second = await product.claimStarter({ handle: 'b.near', ip: '5.5.5.5', deviceId: 'd3' })
+  assert.equal(second.totem.owner, 'b.near')
+  // The address limit of two is reached by claims that actually happened.
+  assert.equal(await code(product.claimStarter({ handle: 'c.near', ip: '5.5.5.5', deviceId: 'd4' })), 'CLAIM_RATE_LIMITED')
+})
+
+test('the address returned to the limiter is the one CloudFront saw', async () => {
+  const headers = (values) => new Request('http://localhost/api/v1/claims/starter', { method: 'POST', headers: values, body: '{}' })
+  assert.equal(clientAddress(headers({ 'cloudfront-viewer-address': '203.0.113.9:51234' })), '203.0.113.9')
+  // The viewer's own X-Forwarded-For is not forwarded, so the first entry is CloudFront's.
+  assert.equal(clientAddress(headers({ 'x-forwarded-for': '203.0.113.9, 70.132.0.1' })), '203.0.113.9')
+  assert.equal(clientAddress(headers({})), null)
+})
+
+test('rate limit keys never contain the address or device id', async () => {
+  const seen = []
+  const repository = new MemoryProductRepository()
+  await seedProduct(repository, { now: clock })
+  const spy = { hit: async ({ key, limit }) => { seen.push(key); return { allowed: true, count: 1, limit, resetAt: 0 } } }
+  const product = new TotemProductService({ repository, now, rateLimiter: spy })
+
+  await product.claimStarter({ handle: 'privacy.near', ip: '203.0.113.9', deviceId: 'device-abc' })
+  assert.ok(seen.length >= 3)
+  for (const key of seen) {
+    assert.ok(!key.includes('203.0.113.9'), 'no raw address in ' + key)
+    assert.ok(!key.includes('device-abc'), 'no raw device id in ' + key)
+  }
 })

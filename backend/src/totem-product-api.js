@@ -23,6 +23,19 @@ const productHandler = action => async request => {
   }
 }
 
+// The address CloudFront saw, for the endpoints that have to stay public.
+// CloudFront-Viewer-Address is authoritative but only arrives once the origin request
+// policy forwards it. Otherwise the first X-Forwarded-For entry is CloudFront's own
+// record of the viewer: the policy does not forward the viewer's X-Forwarded-For, so a
+// client cannot prepend a value of its own.
+export function clientAddress(request) {
+  const viewer = request.headers.get('cloudfront-viewer-address')
+  if (viewer) return viewer.replace(/:\d+$/, '')
+  const forwarded = request.headers.get('x-forwarded-for') || ''
+  const first = forwarded.split(',')[0].trim()
+  return first || null
+}
+
 const route = (method, path, handle, { auth = 'none' } = {}) => {
   const names = []
   const pattern = new RegExp('^' + path.replace(/:[a-zA-Z]+/g, match => { names.push(match.slice(1)); return '([^/]+)' }) + '$')
@@ -87,7 +100,7 @@ export function createProductRouter({ product, auth = null }) {
     route('POST', '/api/v1/rooms/:id/access', async ({ params, body, identity }) => product.roomAccess({ roomId: params.id, accountId: identity?.accountId ?? body?.accountId })),
 
     /* claims */
-    route('POST', '/api/v1/claims/starter', async ({ body }) => product.claimStarter({ handle: body?.handle })),
+    route('POST', '/api/v1/claims/starter', async ({ body, request }) => product.claimStarter({ handle: body?.handle, ip: clientAddress(request), deviceId: body?.deviceId })),
     route('POST', '/api/v1/claims/prize', async ({ body }) => product.claimPrize({ handle: body?.handle, prizeId: body?.prizeId })),
 
     /* launches */

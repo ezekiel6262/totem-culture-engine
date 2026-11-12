@@ -7,6 +7,15 @@
 - Culture Pair model, anti-snapshot eligibility, contributions, access decisions, Arena economy planning, agent spending policy, and market listing preparation.
 - Token, NFT, agent, market, and launch contract source plus automated JavaScript tests.
 
+## Deployment account
+
+Testnet contracts deploy under **`totemtest.testnet`**.
+
+The `totemstart` stack still carries the earlier placeholder contract ids
+(`token.totem.testnet`, `nft.totem.testnet`, `agent.totem.testnet`,
+`market.totem.testnet`). They are stack parameters, so they can be repointed at the real
+sub-accounts without a code change once the naming is settled and the contracts exist.
+
 ## Waiting for funded NEAR testnet accounts
 
 1. Create and fund the factory, token, NFT, agent, market, treasury, quest, and liquidity accounts.
