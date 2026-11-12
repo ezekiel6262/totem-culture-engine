@@ -12,7 +12,8 @@
 // contract that is already deployed is reported rather than redeployed.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
 const args = process.argv.slice(2)
@@ -51,7 +52,9 @@ const near = (parameters, label) => {
   console.log('  near ' + parameters.join(' '))
   if (!execute) return console.log('  (plan only, pass --execute to run)')
   try {
-    console.log(execFileSync('near', parameters, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'pipe'] }))
+    // stdin is closed deliberately: near-cli-rs prompts when it cannot find a key, and a
+    // prompt with nothing to read would hang here forever, possibly with one account already made.
+    console.log(execFileSync('near', parameters, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180_000 }))
   } catch (error) {
     const detail = (error.stderr || error.stdout || '').toString()
     if (/already exists|AccountAlreadyExists/i.test(detail)) return console.log('  already exists, left alone')
@@ -59,16 +62,60 @@ const near = (parameters, label) => {
   }
 }
 
-async function viewAccount(account) {
-  const rpc = network === 'mainnet' ? 'https://rpc.mainnet.near.org' : 'https://rpc.testnet.near.org'
-  const response = await fetch(rpc, {
+async function query(request) {
+  const url = network === 'mainnet' ? 'https://rpc.mainnet.near.org' : 'https://rpc.testnet.near.org'
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: '1', method: 'query', params: { request_type: 'view_account', finality: 'final', account_id: account } })
+    body: JSON.stringify({ jsonrpc: '2.0', id: '1', method: 'query', params: Object.assign({ finality: 'final' }, request) })
   })
   const payload = await response.json()
   if (payload.error || !payload.result) return null
-  return { balance: Number(payload.result.amount) / 1e24 }
+  return payload.result
+}
+
+async function viewAccount(account) {
+  const result = await query({ request_type: 'view_account', account_id: account })
+  return result ? { balance: Number(result.amount) / 1e24 } : null
+}
+
+async function fullAccessKeys(account) {
+  const result = await query({ request_type: 'view_access_key_list', account_id: account })
+  if (!result) return []
+  return result.keys.filter(key => key.access_key.permission === 'FullAccess').map(key => key.public_key)
+}
+
+// near-cli-rs signs from its own key stores. Checking up front that one of them actually holds
+// a key for the parent turns a mid-launch hang into a clear refusal before anything is created.
+// Returns null when the store cannot be read here, which is not the same as holding no key.
+function localPublicKeys(account) {
+  const keys = new Set()
+  const suffix = `.near-${network}-${account}`
+  const directory = resolve(homedir(), '.near-credentials', network)
+  const readKey = path => {
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8'))
+      if (parsed.public_key) keys.add(parsed.public_key)
+    } catch (error) { /* absent or unreadable, which the caller treats as no key here */ }
+  }
+  readKey(resolve(directory, `${account}.json`))
+  try {
+    for (const file of readdirSync(resolve(directory, account))) if (file.endsWith('.json')) readKey(resolve(directory, account, file))
+  } catch (error) { /* no per account directory */ }
+
+  if (process.platform === 'win32') {
+    try {
+      const listed = execFileSync('cmdkey', ['/list'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+      for (const [, target] of listed.matchAll(/target=(\S+)/g)) {
+        if (!target.endsWith(suffix)) continue
+        const key = target.slice(target.indexOf(':') + 1, target.length - suffix.length)
+        if (key) keys.add(key)
+      }
+      return keys
+    } catch (error) { return keys.size ? keys : null }
+  }
+  // Other platforms keep keychain entries in stores this cannot read, so only a hit is conclusive.
+  return keys.size ? keys : null
 }
 
 try {
@@ -124,11 +171,25 @@ try {
     throw new Error(`${parent} does not exist on ${network}. Create it, then authorise it with: near account import-account using-seed-phrase --network-id ${network}`)
   }
   console.log(`  ${parent} holds ${summary.balance.toFixed(2)} NEAR`)
+  // Both checks run before anything is created, so a launch never stops half done with one
+  // sub-account made and the other not.
+  const blockers = []
   if (summary.balance < needed) {
     const short = (needed - summary.balance).toFixed(1)
-    const message = `${parent} holds ${summary.balance.toFixed(2)} NEAR but needs about ${needed.toFixed(1)}. Add roughly ${short} NEAR from https://near-faucet.io before launching.`
-    if (execute) throw new Error(message)
-    console.log(`\n  NOT ENOUGH: ${message}`)
+    blockers.push(`${parent} holds ${summary.balance.toFixed(2)} NEAR but needs about ${needed.toFixed(1)}. Add roughly ${short} NEAR from https://near-faucet.io.`)
+  }
+
+  const onChain = await fullAccessKeys(parent)
+  const available = localPublicKeys(parent)
+  if (!available) console.log('  signing key     on chain, but the key store here could not be read')
+  else if (!onChain.some(key => available.has(key))) {
+    blockers.push(`No signing key for ${parent} in near-cli-rs's key stores. Its full access key on chain is ${onChain.join(', ') || 'none'}. Authorise it with: near account import-account using-seed-phrase --network-id ${network}`)
+  } else console.log(`  signing key     found for ${parent}`)
+
+  if (blockers.length) {
+    for (const blocker of blockers) console.log(`
+  NOT READY: ${blocker}`)
+    if (execute) throw new Error(blockers.join(' '))
   }
 
   for (const [account, label] of [[tokenAccount, 'token'], [nftAccount, 'nft']]) {

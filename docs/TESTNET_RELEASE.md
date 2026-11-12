@@ -19,8 +19,15 @@ npm run launch:testnet -- --execute
 ```
 
 The script sizes each sub-account's funding from its artifact, because NEAR stakes
-1 NEAR per 100KB and a deployed contract stores its own code. It checks the parent's
-balance first and refuses with the exact shortfall rather than failing halfway.
+1 NEAR per 100KB and a deployed contract stores its own code.
+
+Two things are checked before anything is created, so a launch cannot stop half done with
+one sub-account made and the other not:
+
+- the parent's balance, refused with the exact shortfall;
+- that one of near-cli-rs's key stores holds a key matching a full access key the parent
+  actually has on chain. Without this, near-cli-rs prompts for the missing key and hangs,
+  because the script runs with no stdin to answer it.
 
 Signing goes through near-cli-rs and its existing key store, so the script never sees a
 key. Authorise the parent once:
