@@ -136,7 +136,7 @@ let rtab = 'rent';
 function keyCard(r){
   return '<div class="card ink" style="display:flex;flex-direction:column;gap:12px">' +
     '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:32px">You are driving ' + r.name + '</h2><span class="chip g">' + (r.term === 'race' ? 'For 1 race' : 'For 7 days') + '</span></div>' +
-    '<p class="muted">A limited key was added to <span style="font-family:var(--mono);font-size:13px">' + r.id + '.totem.near</span> for ' + (S.connected ? S.account : 'your session') + '.</p>' +
+    '<p class="muted">A limited key was added to <span style="font-family:var(--mono);font-size:13px">' + r.id + '.totemtest.testnet</span> for ' + (S.connected ? S.account : 'your session') + '.</p>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"><div class="door" style="flex-direction:column;align-items:flex-start;gap:6px"><strong>This key can</strong><span class="muted" style="font-size:14px">Race in Meme Kart, paint the island, enter the holder room</span></div>' +
     '<div class="door" style="flex-direction:column;align-items:flex-start;gap:6px;background:var(--ember-tint);border-color:transparent"><strong>This key can never</strong><span style="font-size:14px;color:var(--ember-ink)">Withdraw tokens, sell, transfer or change items</span></div></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn green" href="#play">Race with it</a><a class="btn ghost" href="#paint">Paint with it</a><button class="btn ghost" type="button" id="endRent">Return it now</button></div></div>';
@@ -179,7 +179,7 @@ T.setRentTab = (t) => { rtab = t; };
 
 /* =========================== CLAIM, GASLESS =========================== */
 let cStep = 0;
-function handle(){ const e = (S.email || 'player').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'player'; return e + '.totem.near'; }
+function handle(){ const e = (S.email || 'player').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'player'; return e + '.totemtest.testnet'; }
 function paintClaim(){
   const pending = S.pendingCoins || 0, prize = S.pendingPrize;
   const steps = [

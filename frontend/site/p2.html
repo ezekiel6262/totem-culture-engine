@@ -129,9 +129,31 @@
 <h2>Built on NEAR</h2>
 <div class="grid g4" id="infraGrid"></div>
 </div></div>
+<div class="sec"><div class="wrap" style="display:flex;flex-direction:column;gap:22px">
+<h2>Live on NEAR testnet</h2>
+<p class="muted" style="max-width:70ch;margin:0">Four contracts are deployed and exercised. Each on-chain code hash is the base58 of the sha256 of the artifact in the public repository, so the deployed bytes are checkable against the source.</p>
+<div class="grid g4">
+<div class="card"><span class="chip g">NEP-171</span><h3 style="font-size:22px;margin:10px 0 4px">Totem NFT</h3><span class="muted" style="font-family:var(--mono);font-size:12px;word-break:break-all">nft.totemtest.testnet</span><p class="muted" style="font-size:13px;margin:8px 0 0">10,000 collection, 5% creator and 2.5% treasury royalty. Totem #1 minted.</p></div>
+<div class="card"><span class="chip g">NEP-141</span><h3 style="font-size:22px;margin:10px 0 4px">$TOTEM</h3><span class="muted" style="font-family:var(--mono);font-size:12px;word-break:break-all">token.totemtest.testnet</span><p class="muted" style="font-size:13px;margin:8px 0 0">1,000,000,000 supply at 18 decimals, which is exactly one full collection locked.</p></div>
+<div class="card"><span class="chip g">Market</span><h3 style="font-size:22px;margin:10px 0 4px">Player owned market</h3><span class="muted" style="font-family:var(--mono);font-size:12px;word-break:break-all">market.totemtest.testnet</span><p class="muted" style="font-size:13px;margin:8px 0 0">250 bps fee. Totem #1 is listed at 1 NEAR right now.</p></div>
+<div class="card"><span class="chip g">Agent</span><h3 style="font-size:22px;margin:10px 0 4px">Culture Agent</h3><span class="muted" style="font-family:var(--mono);font-size:12px;word-break:break-all">agent.totemtest.testnet</span><p class="muted" style="font-size:13px;margin:8px 0 0">1 NEAR per payment, 5 NEAR daily, enforced in the contract.</p></div>
+</div>
+<div class="card ink" style="display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:24px;margin:0">Transactions that already happened</h3>
+<p class="muted" style="margin:0;font-size:14px">Not a plan. These are signed transactions on testnet.</p>
+<ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;font-size:14px">
+<li>Totem #1 minted behind an eligibility gate, NEP-171 <code>nft_mint</code> event &middot; <a href="https://explorer.testnet.near.org/transactions/EYvswUA3SLXRoPj17sXugimRt7JGLdRc1BcyT6NmttEc" rel="noreferrer noopener" target="_blank">view</a></li>
+<li>25,000 $TOTEM transferred, one piece-worth, NEP-141 <code>ft_transfer</code> event &middot; <a href="https://explorer.testnet.near.org/transactions/zLVnT2SxTWKSr5HgV9vgkm9BZ8GoN5xmvWLnqWbnZ8F" rel="noreferrer noopener" target="_blank">view</a></li>
+<li>Totem #1 listed on the market at 1 NEAR &middot; <a href="https://explorer.testnet.near.org/transactions/4Sh7itV2MjxcxGtFPygKgJjibRRPnnUDYHE3KZHDHfHF" rel="noreferrer noopener" target="_blank">view</a></li>
+<li>0.05 NEAR quest reward paid by the agent, inside its caps &middot; <a href="https://explorer.testnet.near.org/transactions/FejmQ8Zv3cJ4RdVck59bJgL6kEsisxfJAeDcMvybURYo" rel="noreferrer noopener" target="_blank">view</a></li>
+<li><strong>A 2 NEAR payment refused</strong> against the 1 NEAR cap. No receipt written, nothing transferred &middot; <a href="https://explorer.testnet.near.org/transactions/Gwue4hLvfNyobKPVxdYpNsporJes4nBptzB4G1ZUf9Kq" rel="noreferrer noopener" target="_blank">view</a></li>
+</ul>
+<p class="muted" style="margin:0;font-size:13px">Still simulated and labelled as such: Arena games, prize balances and the demo wallet. Piece locking is recorded by the Totem API rather than by an on-chain hook.</p>
+</div>
+</div></div>
 <footer class="site"><div class="wrap" style="display:flex;flex-direction:column;gap:20px">
 <nav aria-label="Site map" style="display:flex;flex-wrap:wrap;gap:8px 22px;font-size:15px"><a href="#explore">Explore</a><a href="#arenas">Arenas</a><a href="#market">Market</a><a href="#season">Season leaderboard</a><a href="#agents">Agent Bazaar</a><a href="#launch">Launch</a><a href="#build">Builders</a><a href="#claim">Claim free</a><a href="#rules">Rules and fairness</a><button type="button" class="btn small ghost" id="lowPowerBtn">Low-power mode</button></nav>
-<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between"><span>Totem on NEAR. NFTs that do something. Memecoins with mechanics.</span><span>Demo build. Balances and results are simulated.</span></div></div></footer>
+<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between"><span>Totem on NEAR. NFTs that do something. Memecoins with mechanics.</span><span>Contracts live on NEAR testnet. Arena games and balances are simulated.</span></div></div></footer>
 </section>
 
 <!-- EXPLORE -->
@@ -193,7 +215,7 @@
 <span class="muted">Collection size</span><span>2,222</span>
 <span class="muted">Full Totem holds</span><span id="lFull2">100,000</span>
 <span class="muted">Max locked</span><span class="mark" id="lPct">22.2% of supply</span>
-<span class="muted">Each Totem</span><span style="font-family:var(--mono);font-size:12px" id="lAcct">0001.totem.near</span>
+<span class="muted">Each Totem</span><span style="font-family:var(--mono);font-size:12px" id="lAcct">0001.totemtest.testnet</span>
 </div>
 </div>
 <button class="btn" type="button" id="deployBtn">Deploy collection on NEAR</button>
@@ -206,7 +228,7 @@
 <!-- LOCK -->
 <section class="page" data-route="lock" data-title="Lock and unlock">
 <div class="wrap" style="padding-bottom:64px">
-<div class="ph"><h1>Totem #0417</h1><span class="chip" style="font-family:var(--mono)">0417.totem.near</span></div>
+<div class="ph"><h1>Totem #0417</h1><span class="chip" style="font-family:var(--mono)">0417.totemtest.testnet</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
 <div class="card" style="flex:1 1 340px;display:flex;gap:28px;align-items:center;justify-content:center;background:var(--soft);min-height:340px" id="lockTotem"></div>
 <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
@@ -231,7 +253,7 @@
 <div class="card ink" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:14px">
 <div class="viewer"><canvas id="viewerCanvas" role="img" aria-label="Your Totem in 3D, drag to turn it"></canvas></div>
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem #0417</span><span class="chip g" id="acctPieces">3 of 4</span></div>
-<span class="muted" style="font-family:var(--mono);font-size:13px">0417.totem.near</span>
+<span class="muted" style="font-family:var(--mono);font-size:13px">0417.totemtest.testnet</span>
 <span class="muted" style="font-size:13px">Selling transfers the whole account: tokens, items, credentials and future royalties.</span>
 </div>
 <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
@@ -293,18 +315,18 @@
 <h2 style="font-size:36px">totem.game.json</h2>
 <pre><code>{
   <span class="s">"name"</span>: <span class="s">"Meme Kart"</span>,
-  <span class="s">"community"</span>: <span class="s">"totem.near"</span>,
+  <span class="s">"community"</span>: <span class="s">"totem"</span>,
   <span class="s">"venue"</span>: { <span class="s">"plot"</span>: <span class="s">"north-shore"</span>, <span class="s">"model"</span>: <span class="s">"circuit"</span> },
   <span class="s">"entry"</span>: { <span class="s">"minPieces"</span>: 0 },
   <span class="s">"character"</span>: { <span class="s">"from"</span>: <span class="s">"totem"</span>, <span class="s">"stats"</span>: [<span class="s">"pieces"</span>, <span class="s">"items"</span>] },
   <span class="s">"win"</span>: <span class="s">"first across the line, 3 laps"</span>,
   <span class="s">"prize"</span>: { <span class="s">"totem"</span>: <span class="s">"prefilled"</span>, <span class="s">"pieces"</span>: 1 },
-  <span class="s">"reporter"</span>: <span class="s">"kart-server.totem.near"</span>
+  <span class="s">"reporter"</span>: <span class="s">"kart-server.totemtest.testnet"</span>
 }</code></pre>
 <h2 style="font-size:36px;margin-top:10px">In your game</h2>
 <pre><code><span class="k">import</span> { Totem } <span class="k">from</span> <span class="s">"@totem/arena"</span>;
 
-<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"0417.totem.near"</span>);
+<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"0417.totemtest.testnet"</span>);
 <span class="c">// { pieces: 3, items: ["gold-wings"], credentials: [...] }</span>
 <span class="k">const</span> kart = buildKart(player.pieces, player.items);
 

@@ -36,15 +36,30 @@
 'use strict';
 const T = window.TOTEM; const { $, $$, S } = T;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const yocto = (n) => String(n) + '000000000000000000000000';
+// $TOTEM is an 18 decimal NEP-141, not NEAR. Appending NEAR 24 zeros to a token amount
+// overstated every piece in the call plans by a factor of a million, so the name now says
+// which scale this is and there is no NEAR sized sibling to confuse it with.
+const tokenUnits = (n) => String(n) + '000000000000000000';
 
 /* ======================= ONCHAIN DRAWER ======================= */
+// What is actually deployed on NEAR testnet, by contract and by method. A call plan that
+// names anything else is design that has not shipped, and the drawer labels it as such
+// rather than letting it read as live. Keep this in step with the deployed contracts.
+const LIVE = {
+  'nft.totemtest.testnet': ['mint', 'approve_eligibility', 'nft_approve', 'nft_transfer', 'nft_token', 'nft_total_supply'],
+  'token.totemtest.testnet': ['ft_transfer', 'ft_transfer_call', 'storage_deposit', 'ft_balance_of', 'ft_total_supply'],
+  'market.totemtest.testnet': ['list', 'buy', 'cancel', 'listings', 'get_listing'],
+  'agent.totemtest.testnet': ['pay_reward', 'get_policy', 'get_reward', 'available_budget']
+};
+const isLive = (receiver, method) => (LIVE[receiver] || []).indexOf(method) !== -1;
 const calls = [];
 function renderCalls(){
   $('#chainN').textContent = calls.length;
   $('#chainList').innerHTML = calls.length ? calls.map((c) => '<div class="call"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>' + esc(c.title) + '</strong><span class="muted" style="font-size:13px">' + c.when + '</span></div>' +
-    c.steps.map((s) => '<span class="muted" style="font-size:13px">' + esc(s.who || ('Signed by ' + (S.connected ? S.account : 'your wallet'))) + '</span><code>' + esc(s.receiver) + ' . ' + esc(s.method) + '(' + esc(JSON.stringify(s.args, null, 2)) + ')' + (s.deposit ? '\nattached deposit: ' + esc(s.deposit) : '') + '</code>').join('') + '</div>').join('')
-    : '<p class="muted" style="margin-top:14px">Do something on the site, like adding a piece or renting a Totem, and its NEAR call appears here.</p>';
+    c.steps.map((s) => '<span class="muted" style="font-size:13px">' + esc(s.who || ('Signed by ' + (S.connected ? S.account : 'your wallet'))) + '</span>' +
+      '<span class="chip' + (isLive(s.receiver, s.method) ? ' g' : '') + '" style="font-size:11px">' + (isLive(s.receiver, s.method) ? 'deployed on testnet' : 'not deployed yet') + '</span>' +
+      '<code>' + esc(s.receiver) + ' . ' + esc(s.method) + '(' + esc(JSON.stringify(s.args, null, 2)) + ')' + (s.deposit ? '\nattached deposit: ' + esc(s.deposit) : '') + '</code>').join('') + '</div>').join('')
+    : '<p class="muted" style="margin-top:14px">Do something on the site and its NEAR call appears here. Each step says whether it hits a contract deployed on testnet. Piece locking is recorded by the Totem API, not by an on-chain hook.</p>';
 }
 T.chain = function(title, steps, quiet){
   calls.unshift({ title, steps, when: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
@@ -53,19 +68,19 @@ T.chain = function(title, steps, quiet){
   const b = $('#chainBtn'); b.animate && !T.reduce && b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 380 });
 };
 T.calls = {
-  addPiece: () => T.chain('Lock a piece', [{ receiver: 'token.totem.near', method: 'ft_transfer_call', args: { receiver_id: '0417.totem.near', amount: yocto(25000), msg: '{"action":"add_piece"}' }, deposit: '1 yoctoNEAR' }]),
-  takePiece: () => T.chain('Take a piece out', [{ receiver: '0417.totem.near', method: 'withdraw_piece', args: { pieces: 1 }, deposit: '1 yoctoNEAR' }]),
-  rent: (id, term, price) => T.chain('Rent Totem #' + id, [{ receiver: 'rent.totem.near', method: 'rent', args: { token_id: id, term }, deposit: price + ' NEAR' }, { who: 'Then rent.totem.near adds a limited key', receiver: id + '.totem.near', method: 'add_renter_key', args: { renter: S.connected ? S.account : 'you.near', allowed_receiver: 'arena.totem.near', methods: ['play', 'enter_room'], expires: term === 'race' ? 'after 1 race' : '7 days' } }]),
-  lend: (on) => T.chain(on ? 'List Totem #0417 for rent' : 'Stop lending Totem #0417', [{ receiver: 'rent.totem.near', method: on ? 'list' : 'delist', args: { token_id: '0417' } }]),
-  claim: (h, prize) => T.chain('Gasless claim', [{ who: 'Relayer pays the fee (NEAR meta-transaction)', receiver: 'relayer.totem.near', method: 'relay_delegate_action', args: { sender: h, actions: ['create_account', 'claim_' + (prize ? 'prize' : 'starter')] } }, { who: 'Executed for ' + h, receiver: 'arena.totem.near', method: prize ? 'claim_prize' : 'claim_starter', args: { account: h } }]),
-  enter: () => T.chain('Enter Totem Arena', [{ who: 'Read only, no fee', receiver: 'arena.totem.near', method: 'check_entry', args: { account: S.connected ? S.account : 'you.near', rule: { min_pieces: S.entryPieces || 1 } } }]),
-  result: (game, place, coins) => T.chain(game + ' result', [{ who: 'Signed by the game server key', receiver: 'arena.totem.near', method: 'report_result', args: { game, player: S.connected ? S.account : 'you.near', place, coins: yocto(coins), proof: 'ed25519:...' } }, { who: 'After the 24 hour dispute window', receiver: 'arena.totem.near', method: 'settle', args: { game } }]),
-  operator: (method, args) => T.chain('Operator: ' + method.replace(/_/g, ' '), [{ who: 'Signed by the Totem Arena admin key', receiver: 'arena.totem.near', method, args }]),
-  deploy: (l) => T.chain('Launch ' + l.collection, [{ receiver: 'totem.near', method: 'create_collection', args: { token: l.token, collection: l.collection, tokens_per_piece: yocto(l.size), pieces: 4 }, deposit: 'Launch fee in $TOTEM' }, { receiver: 'totem.near', method: 'create_arena', args: { collection: l.collection, status: 'pending_review' } }]),
-  merge: (from) => T.chain('Merge Totem #' + from + ' into #0417', [{ receiver: 'totem.near', method: 'merge', args: { from_token_id: from, into_token_id: '0417' } }]),
-  split: (to) => T.chain('Gift a piece', [{ receiver: '0417.totem.near', method: 'split_piece', args: { receiver_id: to, pieces: 1 }, deposit: '0.01 NEAR for the new Totem account' }]),
-  buy: (id, price) => T.chain('Buy Totem #' + id, [{ receiver: 'market.totem.near', method: 'buy', args: { token_id: id }, deposit: price + ' NEAR' }, { who: 'Market transfers the whole Totem account', receiver: 'totem.near', method: 'nft_transfer', args: { token_id: id, receiver_id: S.connected ? S.account : 'you.near' } }]),
-  vote: (id, side) => T.chain('Treasury vote', [{ receiver: 'treasury.totem.near', method: 'vote', args: { proposal: id, vote: side, weight_from: '0417.totem.near pieces' } }])
+  addPiece: () => T.chain('Lock a piece', [{ receiver: 'token.totemtest.testnet', method: 'ft_transfer_call', args: { receiver_id: '0417.totemtest.testnet', amount: tokenUnits(25000), msg: '{"action":"add_piece"}' }, deposit: '1 yoctoNEAR' }]),
+  takePiece: () => T.chain('Take a piece out', [{ receiver: '0417.totemtest.testnet', method: 'withdraw_piece', args: { pieces: 1 }, deposit: '1 yoctoNEAR' }]),
+  rent: (id, term, price) => T.chain('Rent Totem #' + id, [{ receiver: 'rent.totemtest.testnet', method: 'rent', args: { token_id: id, term }, deposit: price + ' NEAR' }, { who: 'Then rent.totemtest.testnet adds a limited key', receiver: id + '.totemtest.testnet', method: 'add_renter_key', args: { renter: S.connected ? S.account : 'you.testnet', allowed_receiver: 'arena.totemtest.testnet', methods: ['play', 'enter_room'], expires: term === 'race' ? 'after 1 race' : '7 days' } }]),
+  lend: (on) => T.chain(on ? 'List Totem #0417 for rent' : 'Stop lending Totem #0417', [{ receiver: 'rent.totemtest.testnet', method: on ? 'list' : 'delist', args: { token_id: '0417' } }]),
+  claim: (h, prize) => T.chain('Gasless claim', [{ who: 'Relayer pays the fee (NEAR meta-transaction)', receiver: 'relayer.totemtest.testnet', method: 'relay_delegate_action', args: { sender: h, actions: ['create_account', 'claim_' + (prize ? 'prize' : 'starter')] } }, { who: 'Executed for ' + h, receiver: 'arena.totemtest.testnet', method: prize ? 'claim_prize' : 'claim_starter', args: { account: h } }]),
+  enter: () => T.chain('Enter Totem Arena', [{ who: 'Read only, no fee', receiver: 'arena.totemtest.testnet', method: 'check_entry', args: { account: S.connected ? S.account : 'you.testnet', rule: { min_pieces: S.entryPieces || 1 } } }]),
+  result: (game, place, coins) => T.chain(game + ' result', [{ who: 'Signed by the game server key', receiver: 'arena.totemtest.testnet', method: 'report_result', args: { game, player: S.connected ? S.account : 'you.testnet', place, coins: tokenUnits(coins), proof: 'ed25519:...' } }, { who: 'After the 24 hour dispute window', receiver: 'arena.totemtest.testnet', method: 'settle', args: { game } }]),
+  operator: (method, args) => T.chain('Operator: ' + method.replace(/_/g, ' '), [{ who: 'Signed by the Totem Arena admin key', receiver: 'arena.totemtest.testnet', method, args }]),
+  deploy: (l) => T.chain('Launch ' + l.collection, [{ receiver: 'nft.totemtest.testnet', method: 'create_collection', args: { token: l.token, collection: l.collection, tokens_per_piece: tokenUnits(l.size), pieces: 4 }, deposit: 'Launch fee in $TOTEM' }, { receiver: 'nft.totemtest.testnet', method: 'create_arena', args: { collection: l.collection, status: 'pending_review' } }]),
+  merge: (from) => T.chain('Merge Totem #' + from + ' into #0417', [{ receiver: 'nft.totemtest.testnet', method: 'merge', args: { from_token_id: from, into_token_id: '0417' } }]),
+  split: (to) => T.chain('Gift a piece', [{ receiver: '0417.totemtest.testnet', method: 'split_piece', args: { receiver_id: to, pieces: 1 }, deposit: '0.01 NEAR for the new Totem account' }]),
+  buy: (id, price) => T.chain('Buy Totem #' + id, [{ receiver: 'market.totemtest.testnet', method: 'buy', args: { token_id: id }, deposit: price + ' NEAR' }, { who: 'Market transfers the whole Totem account', receiver: 'nft.totemtest.testnet', method: 'nft_transfer', args: { token_id: id, receiver_id: S.connected ? S.account : 'you.testnet' } }]),
+  vote: (id, side) => T.chain('Treasury vote', [{ receiver: 'treasury.totemtest.testnet', method: 'vote', args: { proposal: id, vote: side, weight_from: '0417.totemtest.testnet pieces' } }])
 };
 $('#chainBtn').addEventListener('click', () => { const d = $('#chainDrawer'); const o = !d.classList.contains('open'); d.classList.toggle('open', o); $('#chainBtn').setAttribute('aria-expanded', o); });
 $('#chainClose').addEventListener('click', () => { $('#chainDrawer').classList.remove('open'); $('#chainBtn').setAttribute('aria-expanded', 'false'); });
@@ -85,7 +100,7 @@ document.addEventListener('click', (e) => {
   if (t.id === 'opSend') T.calls.operator('send_prizes', { count: Math.max(0, 3 - (S.delivered || 0)) });
   if (t.dataset && t.dataset.ap) T.calls.operator('approve_game', { index: +t.dataset.ap });
   if (t.dataset && t.dataset.v && t.dataset.p) T.calls.vote(t.dataset.p, t.dataset.v === 'y' ? 'yes' : 'no');
-  if (t.id === 'cClaim') T.calls.claim((S.email || 'player').split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() + '.totem.near', !!S.pendingPrize);
+  if (t.id === 'cClaim') T.calls.claim((S.email || 'player').split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() + '.totemtest.testnet', !!S.pendingPrize);
   if (t.id === 'deployBtn') setTimeout(() => { if (S.launches && S.launches[0]) T.calls.deploy(S.launches[0]); }, 50);
   T.sfx('tap');
 }, true);
@@ -183,7 +198,7 @@ $('#tourBack').addEventListener('click', () => { if (tStep > 0) { tStep--; tourS
 $('#tourExit').addEventListener('click', () => $('#tour').classList.remove('on'));
 $('#tourChain').addEventListener('click', () => {
   const k = TOUR[tStep][3];
-  if (k === 'claim') T.calls.claim('you.totem.near', true); else if (k === 'enter') T.calls.enter(); else if (k === 'rent') T.calls.rent('1201', 'race', 2); else if (k === 'result') T.calls.result('meme-kart', 1, 6000); else if (k === 'addPiece') T.calls.addPiece();
+  if (k === 'claim') T.calls.claim('you.totemtest.testnet', true); else if (k === 'enter') T.calls.enter(); else if (k === 'rent') T.calls.rent('1201', 'race', 2); else if (k === 'result') T.calls.result('meme-kart', 1, 6000); else if (k === 'addPiece') T.calls.addPiece();
   $('#chainDrawer').classList.add('open');
 });
 
@@ -209,7 +224,7 @@ T.modules.nft = { enter(){
   if (!f) { root.innerHTML = '<div class="ph"><h1>Totem #' + esc(id) + '</h1></div><div class="card">This Totem isn’t in the demo yet. <a href="#explore">Search Explore</a>.</div>'; return; }
   const mine = f.mine || f.owner === S.account;
   root.innerHTML = '<div class="ph"><div><span class="muted">Public page</span><h1>Totem #' + id + '</h1></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="nftShare">Share</button>' + (mine ? '<a class="btn" href="#lock">Manage</a>' : f.rent.indexOf('For rent') === 0 ? '<a class="btn" href="#rent">Rent it</a>' : '<a class="btn" href="#market">See the market</a>') + '</div></div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div class="card ink" style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">' + T.svgTotem(f.pieces, 150, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<span class="chip g">' + f.pieces + ' of 4 pieces</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + id + '.totem.near</span></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div class="card ink" style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">' + T.svgTotem(f.pieces, 150, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<span class="chip g">' + f.pieces + ' of 4 pieces</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + id + '.totemtest.testnet</span></div>' +
     '<div style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px"><div class="grid g4">' +
     [['Owner', esc(f.owner)], ['Holds', '<span class="mark">' + T.fmt(f.pieces * 25000) + ' $TOTEM</span>'], ['Best Meme Kart', f.race], ['Rental', f.rent]].map((s) => '<div class="card"><span class="muted" style="font-size:13px">' + s[0] + '</span><div style="font-size:20px;font-weight:600;margin-top:4px">' + s[1] + '</div></div>').join('') + '</div>' +
     '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Live Arenas</strong><br>' + (f.pieces >= (S.entryPieces || 1) ? 'Totem Arena, season 1' : 'None. Totem Arena needs ' + (S.entryPieces || 1) + ' pieces.') + '</span></div>' +
@@ -229,7 +244,7 @@ T.modules.market = { enter(){
       '<button class="btn" type="button" data-buy="' + m.id + '">Buy for ' + m.price + ' NEAR</button></div>'; }).join('') : '<div class="card">All demo listings are sold. Your purchases are in your Profile.</div>') + '</div>' +
     '<div class="card" style="margin-top:22px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><strong>Sell Totem #0417</strong><br><span class="muted" style="font-size:14px">The buyer gets its ' + T.fmt(S.pieces * 25000) + ' $TOTEM, Gold Wings, credentials and future royalties.</span></span><button class="btn ghost" type="button" id="sellMine">List Totem #0417</button></div>';
   $$('[data-buy]').forEach((b) => b.addEventListener('click', () => { const m = MARKET.find((x) => x.id === b.dataset.buy); const f = NFTS[m.id](); S.bought.push({ id: m.id, pieces: f.pieces }); T.log('Bought Totem #' + m.id, '-' + m.price + ' NEAR', 'e'); T.save(); T.calls.buy(m.id, m.price); T.sfx('win'); T.toast('Totem #' + m.id + ' is yours, with ' + T.fmt(f.pieces * 25000) + ' $TOTEM inside'); T.modules.market.enter(); }));
-  $('#sellMine').addEventListener('click', () => { T.chain('List Totem #0417 for sale', [{ receiver: 'market.totem.near', method: 'list', args: { token_id: '0417', price: '30 NEAR' } }]); T.toast('Listed in demo mode. Shown in the onchain log.'); });
+  $('#sellMine').addEventListener('click', () => { T.chain('List Totem #0417 for sale', [{ receiver: 'market.totemtest.testnet', method: 'list', args: { token_id: '0417', price: '30 NEAR' } }]); T.toast('Listed in demo mode. Shown in the onchain log.'); });
 } };
 
 /* ======================= SEASON LEADERBOARD ======================= */

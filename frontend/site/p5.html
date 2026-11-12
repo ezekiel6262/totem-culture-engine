@@ -43,7 +43,7 @@ function paintLaunch(){
   $('#lFull2').textContent = T.fmt(lSize * 4) + ' ' + tick;
   $('#lPct').textContent = (lSize * 4 * 2222 / 1e9 * 100).toFixed(1) + '% of supply';
   $('#lPrev').textContent = 'Your collection';
-  $('#lAcct').textContent = '0001.' + (tok ? 'yourtoken' : 'yourcollection') + '.totem.near';
+  $('#lAcct').textContent = '0001.' + (tok ? 'yourtoken' : 'yourcollection') + '.totemtest.testnet';
   $('#deployBtn').textContent = tok ? 'Deploy collection and Arena' : 'Turn my NFTs into Totem accounts';
 }
 $$('[data-mode]').forEach((b) => b.addEventListener('click', () => { lMode = b.dataset.mode; paintLaunch(); }));
