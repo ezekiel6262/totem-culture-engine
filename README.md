@@ -78,8 +78,15 @@ curl -s https://mytotem.buzz/api/v1/seasons/current/standings
 
 ```sh
 npm install
-npm test            # 114 tests
-npm run test:static # rebuilds the page and verifies every local reference
+npm run judge:verify   # the whole gate: tests, static audit, submission audit
+```
+
+Or each part on its own:
+
+```sh
+npm test               # 114 tests
+npm run test:static    # rebuilds the page and verifies every local reference
+npm run test:submission # checks the judge files and disclosures are present
 ```
 
 ## What is live, what is simulated, what is not deployed
@@ -125,8 +132,9 @@ mainnet with `dry: true` quotes. That is exactly what `backend/src/intents.js` d
 - **`security` AI Security & Defense** — the Culture Agent has a per-payment cap, a daily cap
   and an action allowlist enforced in the contract, not in a prompt.
 - **`agents` Agent Economy** — that agent pays quest rewards autonomously inside those bounds.
-- **`social` Social Money** — Arena rewards are prepared as bounded Sputnik DAO proposals; the
-  DAO stays custodian and approver.
+- **`social` Social Money** — Arena rewards are prepared as bounded Sputnik DAO or Trezu
+  proposals. `backend/src/social-treasury.js` always returns `DAO_APPROVAL_REQUIRED`: the DAO
+  stays custodian and approver, and Totem never executes a community treasury itself.
 - **`defi` Unstoppable DeFi** — NEAR Intents routes value from 222 assets across 12 chains
   into NEAR to fund a position.
 

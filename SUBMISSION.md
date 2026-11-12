@@ -12,6 +12,10 @@
 - [ ] Add the public repository and demo-post URLs below.
 - [ ] Re-read https://nearhackathon.com/HACKATHON.md.
 - [ ] Human confirms every submission field and the contact notice.
+- [x] README discloses the lead's independent second project, Scion.
+- [x] Judge guide provides reproducible `do X, see Y` verification.
+- [x] Track claims map to code and tests.
+- [x] MIT license and CI workflow are present.
 
 ## Evidence matrix
 
@@ -31,3 +35,11 @@
 - Repository: https://github.com/ezekiel6262/totem-culture-engine (private until approved for publication)
 - Demo post: pending
 - Testnet account: `totemtest.testnet`
+
+## Intended track ids
+
+`games`, `nfts`, `memecoins`, `social`
+
+## Two-project disclosure
+
+The same lead is submitting Totem and Scion. They are independent projects with separate repositories, products, codebases, demos, evidence, and submission requests. Each repository may be submitted only once.
