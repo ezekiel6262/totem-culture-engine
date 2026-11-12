@@ -16,7 +16,8 @@
     "build:site": "node scripts/build-site.js",
     "normalize": "node scripts/normalize-site.js",
     "deploy:frontend": "node scripts/build-site.js && node scripts/deploy-frontend.mjs",
-    "launch:testnet": "node scripts/launch-testnet.mjs"
+    "launch:testnet": "node scripts/launch-testnet.mjs",
+    "deploy:platform": "node scripts/deploy-platform.mjs"
   },
   "engines": {
     "node": ">=22"
