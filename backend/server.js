@@ -3,7 +3,7 @@ import {readFile,stat} from 'node:fs/promises'
 import {extname,join,normalize} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {TOTEM_CAMPAIGN} from './src/demo-campaign.js'
-import {CoordinationService,createProductRouter,createTotemApi,loadConfig,MemoryAuthRepository,MemoryCoordinationRepository,MemoryProductRepository,MemoryTotemRepository,NearRpcClient,PostgresAuthRepository,PostgresClient,PostgresCoordinationRepository,PostgresTotemRepository,seedProduct,TotemAuthService,TotemProductService,TotemService} from './src/index.js'
+import {CoordinationService,createProductRouter,createTotemApi,loadConfig,MemoryAuthRepository,MemoryCoordinationRepository,ensurePlatform,MemoryProductRepository,MemoryTotemRepository,NearRpcClient,PostgresAuthRepository,PostgresClient,PostgresCoordinationRepository,PostgresTotemRepository,seedProduct,TotemAuthService,TotemProductService,TotemService} from './src/index.js'
 const root=fileURLToPath(new URL('../dist/',import.meta.url))
 const config=loadConfig(),db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
 const repository=db?new PostgresTotemRepository(db):new MemoryTotemRepository(),service=new TotemService(repository)
@@ -13,6 +13,7 @@ const auth=new TotemAuthService({repository:authRepository,recipient:config.auth
 const coordinationRepository=db?new PostgresCoordinationRepository(db):new MemoryCoordinationRepository()
 const api=createTotemApi({repository,service,auth,coordination:new CoordinationService(coordinationRepository)})
 const productRepository=new MemoryProductRepository()
+await ensurePlatform(productRepository)
 if(config.seedDemo)await seedProduct(productRepository)
 const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository}),auth})
 const routes=new Map([['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])

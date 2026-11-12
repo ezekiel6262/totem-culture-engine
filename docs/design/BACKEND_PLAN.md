@@ -96,18 +96,28 @@ CloudFormation stack outputs, so it needs an AWS session with access to that sta
 Live stack: `totemstart` in us-east-1, bucket `totemstart-frontendbucket-agixkeoemiyu`,
 distribution `E2TGHXC8NZF4AV`, serving mytotem.buzz.
 
-## 7. Before the product API goes live
+## 7. The product API in production
 
-The routes in section 3 are mounted in `backend/server.js` only. They are deliberately
-not mounted in the Lambda yet, because `MemoryProductRepository` holds state in the
-process: on Lambda it would be empty on every cold start and inconsistent between
-concurrent instances, so writes would appear to succeed and then vanish.
+The routes in section 3 are live on the same infrastructure as the rest of Totem:
+the `totemstart` Lambda, backed by `DynamoProductRepository` on the single
+`TOTEM_DYNAMODB_TABLE`. No infrastructure change was needed, because `DynamoDBCrudPolicy`
+already covers the table and the HTTP API already proxies every `/api` path.
 
-The frontend does not call these routes yet, so nothing is broken by the gap. Before the
-API goes live:
+Seeding is split in two:
 
-1. Add a DynamoDB implementation of the product repository, alongside the existing
-   `DynamoTotemRepository`, using the single `TOTEM_DYNAMODB_TABLE`.
-2. Select it in `application-runtime.js` the way the other repositories are selected, and
-   mount `createProductRouter` in the Lambda route table.
-3. Only then point the frontend screens at the API.
+- `ensurePlatform` creates the Arena, its rooms and the running season. These are
+  configuration, not sample data, and are ensured in every environment.
+- `seedProduct` adds the example Totems the frontend shows by default. It runs only where
+  demo seeding is enabled, never in production.
+
+Platform setup runs on cold start, so a failure there is logged and swallowed; the product
+routes then answer `ARENA_NOT_FOUND` until it succeeds rather than taking the API down.
+
+Publishing the backend: `npm run build:lambda`, then update the function code. There is no
+`samconfig.toml` and the SAM CLI is not installed locally, so the bundle is built with
+esbuild in the same CJS shape the template's build method produces, and shipped with a
+`package.json` marking the bundle as CommonJS, since the repository itself is ESM.
+
+Remaining: the frontend screens still read and write `localStorage`. Pointing them at
+these routes is the next step, and the only decision left there is whether the offline
+demo path stays as a fallback when the API is unreachable.

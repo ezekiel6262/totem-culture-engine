@@ -176,19 +176,30 @@ export class MemoryProductRepository {
   }
 }
 
-/* ---------- seed ---------- */
-// The first culture on the platform, matching what the new frontend shows by default.
-// Clearly labelled as seed data so the UI can mark it.
+/* ---------- platform configuration ---------- */
+// The Arena, its rooms and the running season are platform configuration, not sample
+// data: without them nothing can be entered or played. This runs in every environment
+// and is safe to repeat.
+
+export async function ensurePlatform(repository, { now = Date.now(), operator = 'ada.near', resultSigner = 'games.totem.near' } = {}) {
+  if (!(await repository.getArena('totem'))) {
+    await repository.saveArena({ id: 'totem', name: 'Totem Arena', collection: 'Totem', token: '$TOTEM', entryPieces: 1, paused: false, operator, resultSigner })
+  }
+  if (!(await repository.getRoom('holders'))) await repository.saveRoom({ id: 'holders', name: 'Holder room', minPieces: 1, requiresCredential: [] })
+  if (!(await repository.getRoom('treasury'))) await repository.saveRoom({ id: 'treasury', name: 'Treasury room', minPieces: 3, requiresCredential: [] })
+  if (!(await repository.getCurrentSeason())) {
+    await repository.saveSeason({ id: 'season-1', name: 'Season 1', startedAt: now, status: 'running' }, { current: true })
+  }
+  return repository
+}
+
+/* ---------- sample data ---------- */
+// The example Totems the new frontend shows by default. Labelled as seed so the UI can
+// mark them, and only loaded where demo seeding is enabled, never in production.
 
 export async function seedProduct(repository, { now = Date.now() } = {}) {
-  await repository.createTotem({ id: '417', owner: 'ada.near', pieces: 3, items: ['Gold Wings'], origin: 'seed', createdAt: now })
-  await repository.createTotem({ id: '1201', owner: 'kofi.near', pieces: 4, items: ['Gold Ear'], origin: 'seed', createdAt: now })
-
-  await repository.saveArena({ id: 'totem', name: 'Totem Arena', collection: 'Totem', token: '$TOTEM', entryPieces: 1, paused: false, operator: 'ada.near', resultSigner: 'games.totem.near', seed: true })
-
-  await repository.saveRoom({ id: 'holders', name: 'Holder room', minPieces: 1, requiresCredential: [], seed: true })
-  await repository.saveRoom({ id: 'treasury', name: 'Treasury room', minPieces: 3, requiresCredential: [], seed: true })
-
-  await repository.saveSeason({ id: 'season-1', name: 'Season 1', startedAt: now, status: 'running', seed: true }, { current: true })
+  await ensurePlatform(repository, { now })
+  if (!(await repository.getTotem('417'))) await repository.createTotem({ id: '417', owner: 'ada.near', pieces: 3, items: ['Gold Wings'], origin: 'seed', createdAt: now })
+  if (!(await repository.getTotem('1201'))) await repository.createTotem({ id: '1201', owner: 'kofi.near', pieces: 4, items: ['Gold Ear'], origin: 'seed', createdAt: now })
   return repository
 }

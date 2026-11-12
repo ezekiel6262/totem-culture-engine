@@ -14,6 +14,10 @@ import {LaunchQuoteService} from './launch-quotes.js'
 import {RheaLaunchPlanner} from './rhea-launch.js'
 import {ArenaEconomyService} from './arena-economy.js'
 import {SocialTreasuryService} from './social-treasury.js'
+import {MemoryProductRepository,ensurePlatform,seedProduct} from './totem-product-repository.js'
+import {DynamoProductRepository} from './dynamo-product-repository.js'
+import {TotemProductService} from './totem-product.js'
+import {createProductRouter} from './totem-product-api.js'
 export async function createApplicationRuntime(config){
   const db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
   const dynamo=config.dynamoTable?createDynamoDocumentClient():null
@@ -30,5 +34,11 @@ export async function createApplicationRuntime(config){
   const socialTreasury=new SocialTreasuryService({network:config.nearNetwork})
   const api=createTotemApi({repository,service,auth,coordination:new CoordinationService(coordinationRepository),deployment,launchQuotes,rheaLaunch,arenaEconomy,socialTreasury})
   const routes=new Map([['GET /api/v1/health',api.health],['GET /api/v1/readiness',api.readiness],['GET /api/v1/deployment/config',api.deploymentConfig],['POST /api/v1/launch/quote',api.launchQuote],['POST /api/v1/launch/rhea-plan',api.rheaPlan],['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['GET /api/v1/campaigns',api.listCampaigns],['POST /api/v1/campaigns',api.createCampaign],['GET /api/v1/culture-account',api.getCultureAccount],['POST /api/v1/access/decide',api.decideAccess],['POST /api/v1/contributions',api.submitContribution],['GET /api/v1/contributions/review',api.listContributions],['POST /api/v1/contributions/review',api.reviewContribution],['POST /api/v1/contributions/finalize',api.finalizeContribution],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote],['POST /api/v1/arena/seasons/evolve',api.evolveArenaSeason],['POST /api/v1/arena/agents/rewards/prepare',api.prepareAgentReward],['POST /api/v1/arena/market/listings/prepare',api.prepareMarketListing],['POST /api/v1/treasury/proposals/prepare',api.prepareTreasuryProposal],['POST /api/v1/treasury/receipts/finalize',api.finalizeTreasuryReceipt]])
-  return{db,dynamo,api,routes}
+  const productRepository=dynamo?new DynamoProductRepository(dynamo,config.dynamoTable):new MemoryProductRepository()
+  // Platform setup touches the table on cold start. A transient failure must not take the
+  // whole API down with it: the product routes then answer ARENA_NOT_FOUND until it succeeds.
+  try{await ensurePlatform(productRepository);if(config.seedDemo)await seedProduct(productRepository)}
+  catch(error){console.error(JSON.stringify({event:'platform_setup_failed',message:error?.message??String(error)}))}
+  const product=createProductRouter({product:new TotemProductService({repository:productRepository}),auth})
+  return{db,dynamo,api,routes,product}
 }
