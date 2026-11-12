@@ -1,69 +1,182 @@
-# Totem: the culture engine on NEAR
+# Totem: NFTs that hold the meme
 
-Totem lets a community launch a Token, NFT collection, or Twin Culture Pair, then make that culture playable through evolving identity, access, quests, treasury rules, Arena seasons, autonomous Culture Agents, and player-owned markets. `$TOTEM` is an example community, not a platform access token.
+Totem is a culture platform on NEAR where an NFT is an account that holds money. A Totem is a
+NEAR sub-account that locks `$TOTEM` inside itself, piece by piece, and that locked value is
+what gives it standing: entry to Arena rooms, a price on the player-owned market, and a
+rental income when someone else plays it.
 
-Live product: https://mytotem.buzz
+Live product: **https://mytotem.buzz**
 
 ## The problem
 
-Memecoins launch quickly but struggle to sustain coordinated culture. NFT communities own art but rarely own useful behavior. Totem connects both sides: Forge creates the economy, Culture Accounts represent membership and progression, Arena makes the culture playable, Agents automate bounded activity, and the Market keeps earned assets player-owned.
+A memecoin holder has a balance and nothing to do with it. An NFT holder owns a picture that
+does nothing. Totem joins the two: locking tokens into a Totem is what makes the NFT useful,
+and the only way to get the tokens back out is to take the Totem apart. Ownership with a
+cost, and with behaviour.
+
+## How the mechanism works
+
+- A Totem holds up to **4 pieces**. Each piece is **25,000 `$TOTEM`** locked inside it, so a
+  full Totem holds 100,000.
+- Each Totem lives at its own NEAR sub-account, `<id>.totemtest.testnet`, so it can own
+  assets rather than merely be owned.
+- **Arena rooms gate entry on pieces**, not on a balance you could borrow for a block. A room
+  that wants 2 pieces is asking you to have locked 50,000 `$TOTEM` and left it locked.
+- **Merging** two Totems combines their pieces, capped at 4, and burns the weaker identity.
+- **Renting** lends a Totem's standing for a fixed term without transferring custody.
+- A **Culture Agent** pays out quest rewards under published caps: a per-payment maximum, a
+  daily cap, and an allowlist of actions. It can spend, but it cannot run away with the
+  treasury.
 
 ## Judge walkthrough
 
-1. Open https://mytotem.buzz/Forge-Origin.dc.html. See exactly three launch paths: Token, NFT, and Twin.
-2. Open https://mytotem.buzz/Arena.dc.html. Explore the world map and inspect the deterministic game loop, quests, treasury consequences, and Culture Account progression.
-3. Open https://mytotem.buzz/Traits.dc.html. Inspect the player-owned trait-market design.
-4. Open https://mytotem.buzz/Treasury.dc.html. Prepare a bounded Sputnik or Trezu treasury proposal and inspect the DAO-approval boundary.
-5. Run `npm test`. See deterministic eligibility, agent policy, market, launch, Arena-economy, and treasury tests pass.
-6. Run `npm run test:static`. See every local page and asset reference verified.
+Every step below was verified against the live deployment. Nothing here needs a wallet except
+step 4.
 
-The public UI labels sample data and incomplete integrations. Contract deployment remains gated until the funded testnet accounts are ready.
+**1. The product.** Open https://mytotem.buzz. It is one page with hash routes: `#market`,
+`#claim`, `#profile`, `#arenas`, `#season`, `#rules`, `#nft-0417`.
+
+**2. Real cross-chain pricing (NEAR Intents).** Open https://mytotem.buzz/#market and find
+"Bring funds from another chain". The asset list is the live solver inventory, not a fixture:
+
+```sh
+curl -s https://mytotem.buzz/api/v1/intents/routes | head -c 400
+```
+
+See **222 origin assets** across eth, sol, base, bsc, aptos, arb, op, avax and more, each with
+a price and a `priceUpdatedAt` timestamp from minutes ago, all routed to `wNEAR`.
+
+Press "Get a price" for a live quote from the 1Click solver network. Quotes are requested with
+`dry: true` and come back `executable: false` — see "NEAR Intents, honestly" below for why
+that is the correct behaviour rather than a gap. If the solver network is not answering, the
+page says so plainly instead of inventing a number.
+
+**3. Claiming requires a real NEAR account.** There is no anonymous write path:
+
+```sh
+curl -s -X POST https://mytotem.buzz/api/v1/claims/starter -H 'content-type: application/json' -d '{}'
+```
+
+See `AUTH_REQUIRED` — "Connect a wallet to do that". A starter Totem belongs to an account,
+and creating that account is the wallet's job, not ours.
+
+**4. Wallet sign-in (NEP-413).** Open https://mytotem.buzz/#profile and press "Connect NEAR
+wallet". Signing is a gas-free NEP-413 message, not a transaction: it proves the account is
+yours without moving anything. The server then registers the account and writes a ledger
+entry. With a session, the lock and unlock buttons on that page are authenticated writes
+against DynamoDB.
+
+**5. The read API.** All of these are live:
+
+```sh
+curl -s https://mytotem.buzz/api/v1/health
+curl -s https://mytotem.buzz/api/v1/arenas
+curl -s https://mytotem.buzz/api/v1/seasons/current/standings
+```
+
+**6. The tests.**
+
+```sh
+npm install
+npm test            # 114 tests
+npm run test:static # rebuilds the page and verifies every local reference
+```
+
+## What is live, what is simulated, what is not deployed
+
+Stated plainly, because the UI labels it and a judge should not have to guess.
+
+| Part | State |
+| --- | --- |
+| Product, API, DynamoDB persistence, CloudFront + Lambda | **Live** at mytotem.buzz |
+| NEP-413 wallet sign-in and account registration | **Live** |
+| Authenticated writes: claim a starter, lock and unlock pieces | **Live** |
+| NEAR Intents funding routes and quotes | **Live**, mainnet-priced and dry (see below) |
+| Rate limiting on the public claim path | **Live**, hashed identifiers only |
+| Arena games, prizes, balances, the demo wallet | **Simulated in the browser**, labelled as such |
+| Token, NFT, market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
+
+The contracts are real Rust against `near-sdk 5.30.1` with tests, and they build
+reproducibly — `totem_token.wasm` and `totem_nft.wasm` hash to the values pinned in
+`infrastructure/template.yaml`. They are not deployed to testnet yet: deployment needs a
+funded parent account, and `docs/TESTNET_RELEASE.md` records the exact cost of each one and
+the command that deploys it. Launch quoting fails closed in the meantime, in
+`backend/src/launch-quotes.js`, rather than pretending a factory exists.
+
+## NEAR Intents, honestly
+
+`HACKATHON.md` Q-007 says there is no Intents testnet and none planned, and prescribes
+mainnet with `dry: true` quotes. That is exactly what `backend/src/intents.js` does:
+
+- Every quote sets `dry: true`, so the solver prices a route and never issues a deposit
+  address. No code path in this repository can move funds through Intents.
+- The response carries `executable: false` and `network: 'mainnet'`, and the UI repeats both,
+  so a mainnet price is never passed off as a testnet action.
+- No 1Click JWT, so the public 0.2% fee applies (Q-006). No partner credentials in the repo.
 
 ## Track fit
 
-- NFTs That Do Something: Culture Accounts carry inventory, credentials, memberships, access rights, royalties, and evolution.
-- Memecoins With Mechanics: Arena turns a token community into rule-bound rituals, bagwork, treasury challenges, and evolving seasons.
-- Games With Real Economies: Culture Agents have constrained budgets, players own market assets, and season parameters evolve from finalized data.
-- Social Money: Totem converts verified work into policy-checked Sputnik DAO transfer or bounty proposals. Communities can operate those proposals through Trezu; the DAO remains custodian and approver while Culture Agents stay inside published caps and allowlists.
-- Open Innovation: reciprocal Token/NFT economies and culture-owned game systems.
+- **`nfts` NFTs That Do Something** — a Totem is a NEAR sub-account that holds `$TOTEM`
+  inside itself and earns rent. NEP-171, sub-accounts, dynamic state.
+- **`memecoins` Memecoins With Mechanics** — `$TOTEM` is only useful once locked, 25,000 at a
+  time, and unlocking costs you the Totem's standing. NEP-141.
+- **`games` Games With Real Economies** — Arena entry is gated on locked pieces, and the
+  market keeps what players earn in their own hands.
+- **`security` AI Security & Defense** — the Culture Agent has a per-payment cap, a daily cap
+  and an action allowlist enforced in the contract, not in a prompt.
+- **`agents` Agent Economy** — that agent pays quest rewards autonomously inside those bounds.
+- **`social` Social Money** — Arena rewards are prepared as bounded Sputnik DAO proposals; the
+  DAO stays custodian and approver.
+- **`defi` Unstoppable DeFi** — NEAR Intents routes value from 222 assets across 12 chains
+  into NEAR to fund a position.
 
-## Current release state
+## Run locally
 
-- The product and API are live at [mytotem.buzz](https://mytotem.buzz).
-- The release targets NEAR testnet and fails closed while factory contracts are not audited and deployed.
-- Forge supports three clear launch paths: Token, NFT, and Twin. Rituals and events are Arena mechanics attached to an existing Culture Pair.
-- Arena, Explore, Council, and Trait Market clearly label sample data when the API has no published campaigns.
-- NEAR Intents and Totem onchain names are planned integrations, not live features.
-- Contract source exists for tokens, NFTs, Culture Agents, the player market, and launch infrastructure. Funded testnet accounts are still required for deployment.
-
-## Run and verify
-
-```powershell
+```sh
+npm install
 npm test
 npm run test:static
 npm start
 ```
 
-Node.js 22 or newer is required. The local product runs at `http://127.0.0.1:4210`.
+Node.js 22 or newer. The local product runs at `http://127.0.0.1:4210`. Health and readiness
+are at `/api/v1/health` and `/api/v1/readiness`. No secrets are needed to run the tests or the
+local server.
 
 ## Repository structure
 
-- `contracts/`: NEAR token, NFT, factory, Culture Agent, and market contracts.
-- `backend/`: authenticated API, deterministic domain services, Lambda adapter, and tests.
-- `dist/`: deployable product, Forge, Arena, markets, and wallet integration.
-- `infrastructure/`: AWS SAM infrastructure for Lambda, DynamoDB, S3, and CloudFront.
-- `docs/`: architecture, product specification, and testnet release checklist.
+- `contracts/` — NEAR contracts in Rust: `totem-token` (NEP-141), `totem-nft` (NEP-171),
+  `totem-factory` (launchpad), `totem-agent` (bounded spending), `totem-market`.
+- `backend/` — the API, the domain model, the Lambda adapter and 114 tests.
+- `frontend/site/` — the page, built from ordered parts into `dist/index.html`.
+- `scripts/` — site build, static audit, frontend deploy, testnet deploy and launch.
+- `infrastructure/` — AWS SAM: Lambda, DynamoDB, S3, CloudFront.
+- `docs/` — architecture, product spec, backend plan, and the testnet release checklist.
 
 ## Hackathon disclosure
 
-Totem was developed during the NEAR HACKATHON window with AI-assisted coding and design iteration. It uses open-source dependencies listed in `package.json`, AWS managed infrastructure, Three.js for Arena visuals, and NEAR wallet-selector packages. The repository contains no committed wallet keys or provider secrets.
+Built for NEAR HACKATHON. The repository's first commit is 2026-11-06, inside the window that
+opened with the announcement on 2026-10-19, so the whole repository is hackathon work with no
+pre-hackathon baseline to separate.
 
-Health and readiness are exposed at `/api/v1/health` and `/api/v1/readiness`.
+Written with AI-assisted coding. Dependencies are listed in `package.json` and
+`contracts/Cargo.toml`: `near-sdk` and `near-contract-standards` for the contracts,
+`@near-wallet-selector` for sign-in, Three.js for the Arena visuals, the AWS SDK for
+persistence. No wallet keys or provider secrets are committed, and the deployment scripts sign
+through near-cli-rs's own key store rather than reading keys themselves.
 
-See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/TESTNET_RELEASE.md](docs/TESTNET_RELEASE.md).
+`npm run test:contracts` does not run on Windows: `near-sdk`'s `unit-testing` feature pulls in
+`aws-lc-sys`, which needs NASM for the host build. The wasm build is unaffected and CI runs
+those tests on Ubuntu.
 
 ## Other hackathon project
 
-The same solo builder is also submitting **Scion** as a separate, independent project. Scion is a non-custodial strategy network for private strategies, public proof, verifiable fork lineage, wallet-approved NEAR Intents execution, and bounded user-owned agents. Totem and Scion have separate products, repositories, demos, descriptions, and judging evidence.
+The same solo builder is also submitting **Scion** as a separate, independent project: a
+non-custodial strategy network with verifiable fork lineage and wallet-approved NEAR Intents
+execution. Totem and Scion have separate products, repositories, demos and judging evidence.
 
 [Scion live site](https://scionhub.xyz) · [Scion repository](https://github.com/ezekiel6262/scion)
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).

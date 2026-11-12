@@ -68,6 +68,14 @@ export class IntentsService {
     invariant(/^[0-9]+$/.test(String(amount ?? '')), 'AMOUNT_INVALID', 'amount must be a whole number in the asset’s smallest unit')
     invariant(recipient, 'RECIPIENT_REQUIRED', 'recipient is required')
 
+    // A refund goes back the way the deposit came. With INTENTS that is the NEAR side, so the
+    // recipient is a sound default; with ORIGIN_CHAIN it is an address on the origin chain,
+    // which a NEAR account is not. Defaulting it there made the solver reject every quote with
+    // "refundTo is not valid", so it has to be given explicitly.
+    const refundType = depositType === 'INTENTS' ? 'INTENTS' : 'ORIGIN_CHAIN'
+    const refundAddress = refundTo ?? (refundType === 'INTENTS' ? recipient : null)
+    invariant(refundAddress, 'REFUND_TO_REQUIRED', 'refundTo must be an address on the origin chain when the deposit comes from that chain')
+
     const body = {
       dry: true, // never commits, never returns a deposit address
       swapType: 'EXACT_INPUT',
@@ -76,8 +84,8 @@ export class IntentsService {
       depositType,
       destinationAsset,
       amount: String(amount),
-      refundTo: refundTo ?? recipient,
-      refundType: depositType === 'INTENTS' ? 'INTENTS' : 'ORIGIN_CHAIN',
+      refundTo: refundAddress,
+      refundType,
       recipient,
       recipientType: 'DESTINATION_CHAIN',
       deadline: new Date(this.#now() + deadlineMs).toISOString()

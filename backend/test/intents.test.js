@@ -51,7 +51,7 @@ test('the token list is cached, so a screen does not hammer the solver network',
 test('a quote is always dry, so it prices a route and never moves funds', async () => {
   const { fetchImpl, calls } = stub((url) => ok(url.endsWith('/v0/quote') ? quoteBody : tokens))
   const intents = new IntentsService({ fetchImpl, now: () => 1_700_000_000_000 })
-  const quote = await intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '10000000', recipient: 'ada.near' })
+  const quote = await intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '10000000', recipient: 'ada.near', depositType: 'INTENTS' })
 
   assert.equal(calls[0].body.dry, true)
   assert.equal(calls[0].body.swapType, 'EXACT_INPUT')
@@ -83,7 +83,31 @@ test('a route with no solver is a clear refusal', async () => {
   const { fetchImpl } = stub(() => ok({}))
   const intents = new IntentsService({ fetchImpl })
   await assert.rejects(
-    () => intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '100', recipient: 'ada.near' }),
+    () => intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '100', recipient: 'ada.near', depositType: 'INTENTS' }),
     error => error.code === 'INTENTS_NO_ROUTE'
   )
 })
+
+test('a refund address is only assumed when the refund goes back to the NEAR side', async () => {
+  // The solver rejects a NEAR account as refundTo when the deposit comes from another chain,
+  // so an origin chain quote has to be given one rather than inheriting the recipient.
+  const { fetchImpl, calls } = stub(() => ok(quoteBody))
+  const intents = new IntentsService({ fetchImpl })
+
+  await intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '10000000', recipient: 'ada.near', depositType: 'INTENTS' })
+  const intentsCall = calls.at(-1).body
+  assert.equal(intentsCall.refundType, 'INTENTS')
+  assert.equal(intentsCall.refundTo, 'ada.near')
+
+  await assert.rejects(
+    () => intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '10000000', recipient: 'ada.near' }),
+    (error) => error.code === 'REFUND_TO_REQUIRED'
+  )
+
+  await intents.quote({ originAsset: 'nep141:eth.bridge.near', amount: '10000000', recipient: 'ada.near', refundTo: '0x1111111111111111111111111111111111111111' })
+  const originCall = calls.at(-1).body
+  assert.equal(originCall.refundType, 'ORIGIN_CHAIN')
+  assert.equal(originCall.refundTo, '0x1111111111111111111111111111111111111111')
+  assert.equal(originCall.dry, true)
+})
+
