@@ -80,17 +80,18 @@ export async function fullAccessKeys(network, account) {
   return result.keys.filter(key => key.access_key.permission === 'FullAccess').map(key => key.public_key)
 }
 
-// near-cli-rs signs from its own key stores. Checking up front that one of them actually holds
-// a key for the parent turns a mid-run hang into a clear refusal before anything is created.
-// Returns null when the store cannot be read here, which is not the same as holding no key.
-export function localPublicKeys(network, account) {
-  const keys = new Set()
-  const suffix = `.near-${network}-${account}`
+// near-cli-rs keeps keys in two separate stores and never looks in the other one:
+// "keychain" is the operating system credential store, and "legacy keychain" is
+// ~/.near-credentials, the layout the old JS CLI used. Which store holds the key decides the
+// signer flag, so this reports the store rather than only whether some key exists.
+// A null store means it could not be read here, which is not the same as holding no key.
+export function keyStores(network, account) {
+  const legacy = new Set()
   const directory = resolve(homedir(), '.near-credentials', network)
   const readKey = path => {
     try {
       const parsed = JSON.parse(readFileSync(path, 'utf8'))
-      if (parsed.public_key) keys.add(parsed.public_key)
+      if (parsed.public_key) legacy.add(parsed.public_key)
     } catch (error) { /* absent or unreadable, which the caller treats as no key here */ }
   }
   readKey(resolve(directory, `${account}.json`))
@@ -98,23 +99,35 @@ export function localPublicKeys(network, account) {
     for (const file of readdirSync(resolve(directory, account))) if (file.endsWith('.json')) readKey(resolve(directory, account, file))
   } catch (error) { /* no per account directory */ }
 
+  // Only Windows exposes the operating system store to a plain read. Elsewhere an absent
+  // entry is not evidence of an absent key, so that store stays unknown rather than empty.
+  let keychain = null
   if (process.platform === 'win32') {
+    const suffix = `.near-${network}-${account}`
+    keychain = new Set()
     try {
       const listed = execFileSync('cmdkey', ['/list'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
       for (const [, target] of listed.matchAll(/target=(\S+)/g)) {
         if (!target.endsWith(suffix)) continue
         const key = target.slice(target.indexOf(':') + 1, target.length - suffix.length)
-        if (key) keys.add(key)
+        if (key) keychain.add(key)
       }
-      return keys
-    } catch (error) { return keys.size ? keys : null }
+    } catch (error) { keychain = null }
   }
-  // Other platforms keep keychain entries in stores this cannot read, so only a hit is conclusive.
-  return keys.size ? keys : null
+  return { legacy, keychain }
 }
 
-// Both checks run before anything is created, so a run never stops half done.
-export async function preflight({ network, parent, needed, execute }) {
+// A new sub-account key belongs in the same store the parent signs from, so that one
+// command authorises every account this run creates.
+export const storeFlags = signer => ({
+  signer,
+  saveTo: signer === 'sign-with-legacy-keychain' ? 'save-to-legacy-keychain' : 'save-to-keychain'
+})
+
+// Balance and signing key are both checked before anything is created, so a run never stops
+// half done. The signer is returned rather than assumed, because naming the store that does
+// not hold the key fails at signing time, once accounts have been created and funded.
+export async function preflight({ network, parent, needed, execute, signer }) {
   const summary = await viewAccount(network, parent)
   if (!summary) {
     throw new Error(`${parent} does not exist on ${network}. Create it, then authorise it with: near account import-account using-seed-phrase --network-id ${network}`)
@@ -128,15 +141,23 @@ export async function preflight({ network, parent, needed, execute }) {
   }
 
   const onChain = await fullAccessKeys(network, parent)
-  const available = localPublicKeys(network, parent)
-  if (!available) console.log('  signing key     on chain, but the key store here could not be read')
-  else if (!onChain.some(key => available.has(key))) {
-    blockers.push(`No signing key for ${parent} in the near-cli-rs key stores. Its full access key on chain is ${onChain.join(', ') || 'none'}. Authorise it with: near account import-account using-seed-phrase --network-id ${network}`)
-  } else console.log(`  signing key     found for ${parent}`)
+  const stores = keyStores(network, parent)
+  const holding = onChain.some(key => stores.keychain?.has(key))
+    ? 'sign-with-keychain'
+    : onChain.some(key => stores.legacy.has(key)) ? 'sign-with-legacy-keychain' : null
+  const chosen = signer ?? holding ?? 'sign-with-keychain'
+  const named = flag => flag.slice('sign-with-'.length)
+
+  if (signer) console.log(`  signing key     using the ${named(chosen)} as asked`)
+  else if (holding) console.log(`  signing key     found for ${parent} in the ${named(holding)}`)
+  else if (!stores.keychain) console.log(`  signing key     on chain, but no key store here could be read, so trying the ${named(chosen)}`)
+  else {
+    blockers.push(`No signing key for ${parent} in either near-cli-rs key store. Its full access key on chain is ${onChain.join(', ') || 'none'}. Authorise it with: near account import-account using-seed-phrase --network-id ${network}`)
+  }
 
   if (blockers.length) {
     for (const blocker of blockers) console.log(`\n  NOT READY: ${blocker}`)
     if (execute) throw new Error(blockers.join(' '))
   }
-  return summary
+  return { ...summary, ...storeFlags(chosen) }
 }

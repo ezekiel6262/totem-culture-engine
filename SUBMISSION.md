@@ -11,10 +11,11 @@ development phase; outside it the API answers 403.
 - [x] README discloses the lead's independent second project, Scion.
 - [x] README walkthrough verified against the live deployment, with no dead links.
 - [x] Repository made public.
-- [ ] Verify a clean clone: `git clone`, `npm ci`, `npm run judge:verify`.
+- [x] Verify a clean clone: `git clone`, `npm ci`, `npm run judge:verify` (114 tests, both audits).
 - [ ] Authorise `totemtest.testnet` for near-cli-rs: `near account import-account using-seed-phrase --network-id testnet`.
+- [ ] Deploy the NFT, which the current 5.40 NEAR covers: `npm run launch:testnet -- --only nft --execute` (needs 4.6).
 - [ ] Top up `totemtest.testnet` from https://near-faucet.io (testnet NEAR is free, Q-008).
-- [ ] Deploy the Totem token and NFT: `npm run launch:testnet -- --execute`.
+- [ ] Deploy the token: `npm run launch:testnet -- --only token --execute` (needs 3.1).
 - [ ] Record the deployed contract ids and transaction hashes here.
 - [ ] Repoint the stack parameters at the deployed contracts.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).

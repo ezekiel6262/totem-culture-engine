@@ -93,9 +93,22 @@ These come last, after the platform is up and the supply figures are decided. Th
 in the script are placeholders.
 
 ```
-npm run launch:testnet           # prints the plan, changes nothing
+npm run launch:testnet                     # prints the plan, changes nothing
 npm run launch:testnet -- --execute --supply <n> --max-supply <n>
+npm run launch:testnet -- --only nft --execute --max-supply <n>
 ```
+
+Both together need about 7.2 NEAR on the parent. `--only` launches one at a time, which is
+what a single faucet grant covers, and the other follows after a top up:
+
+| Selection | Needed on the parent |
+| --- | --- |
+| `--only token` | 3.1 NEAR |
+| `--only nft` | 4.6 NEAR |
+| both, default headroom | 7.2 NEAR |
+
+Re-running is safe: an account that already carries a contract is skipped, and an account
+that exists without one is deployed to as is.
 
 Both scripts size each sub-account's funding from its artifact, because NEAR stakes
 1 NEAR per 100KB and a deployed contract stores its own code.
@@ -107,6 +120,13 @@ one sub-account made and the other not:
 - that one of near-cli-rs's key stores holds a key matching a full access key the parent
   actually has on chain. Without this, near-cli-rs prompts for the missing key and hangs,
   because the script runs with no stdin to answer it.
+
+near-cli-rs keeps keys in two stores and never looks in the other one: `keychain` is the
+operating system credential store, and `legacy-keychain` is `~/.near-credentials`, the
+layout the old JS CLI used. `near account import-account` writes to the legacy store, so
+the preflight reports which store holds the key and signs with that one. Naming the wrong
+store fails at signing time, after sub-accounts have already been created and funded.
+Override it with `--signer sign-with-keychain` or `--signer sign-with-legacy-keychain`.
 
 Signing goes through near-cli-rs and its existing key store, so the script never sees a
 key. Authorise the parent once:

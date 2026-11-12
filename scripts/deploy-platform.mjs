@@ -37,8 +37,11 @@ const everything = {
   market: resolve(WASM, 'totem_market.wasm'),
   agent: resolve(WASM, 'totem_agent.wasm')
 }
+// This runs before the try block, so it reports itself rather than throwing a stack trace.
 for (const name of only) {
-  if (!everything[name]) throw new Error(`Unknown contract "${name}". Choose from: ${Object.keys(everything).join(', ')}`)
+  if (everything[name]) continue
+  console.error(`Unknown contract "${name}". Choose from: ${Object.keys(everything).join(', ')}`)
+  process.exit(1)
 }
 const artifacts = only.length ? Object.fromEntries(only.map(name => [name, everything[name]])) : everything
 // Referenced by the factory, not deployed here.
@@ -108,7 +111,9 @@ try {
   for (const [label, account] of Object.entries(accounts)) console.log(`  ${account.padEnd(26)} ${funding[label]} NEAR`)
   console.log(`  needed on ${parent}: about ${needed.toFixed(1)} NEAR`)
 
-  await preflight({ network, parent, needed, execute })
+  // Which key store holds the key decides the signer, so it comes from the preflight
+  // rather than being assumed. --signer overrides it.
+  const { signer, saveTo } = await preflight({ network, parent, needed, execute, signer: flag('signer') })
 
   // Say plainly what the launchpad can and cannot do once this lands, because the cost of
   // enabling it is large, burnt, and easy to be surprised by.
@@ -130,8 +135,8 @@ try {
     }
     if (!existing) {
       run(['account', 'create-account', 'fund-myself', account, `${funding[label]} NEAR`,
-        'autogenerate-new-keypair', 'save-to-keychain',
-        'sign-as', parent, 'network-config', network, 'sign-with-keychain', 'send'],
+        'autogenerate-new-keypair', saveTo,
+        'sign-as', parent, 'network-config', network, signer, 'send'],
         `Create the ${label} account ${account}`)
     } else {
       console.log(`\n${account} exists with ${existing.balance.toFixed(2)} NEAR and no contract, so it is used as is`)
@@ -139,7 +144,7 @@ try {
     run(['contract', 'deploy', account, 'use-file', artifacts[label],
       'with-init-call', 'new', 'json-args', JSON.stringify(initArgs[label]),
       'prepaid-gas', '100.0 Tgas', 'attached-deposit', '0 NEAR',
-      'network-config', network, 'sign-with-keychain', 'send'],
+      'network-config', network, signer, 'send'],
       `Deploy the ${label} to ${account}`)
   }
 
