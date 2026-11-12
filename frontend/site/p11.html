@@ -1,0 +1,326 @@
+<style>
+.dpad{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(3,60px);gap:6px}
+.dpad button{border-radius:16px;border:1.5px solid #000;background:rgba(255,255,255,.92);font-weight:600;font-size:18px;color:#000;touch-action:none}
+.timing{position:relative;height:28px;border:1.5px solid #000;border-radius:999px;background:#F6F6F2;overflow:hidden}
+.timing .zone{position:absolute;top:0;bottom:0;background:#00B97F}
+.timing .mk{position:absolute;top:-2px;bottom:-2px;width:6px;background:#000;border-radius:3px}
+.meme{aspect-ratio:1;max-width:340px;width:100%;border:1.5px solid #000;border-radius:16px;background:#fff;position:relative;overflow:hidden}
+.meme .t{position:absolute;left:8px;right:8px;text-align:center;font-family:var(--sans);font-weight:700;font-size:clamp(16px,4.6vw,22px);line-height:1.15;text-transform:none}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal span{aspect-ratio:1;border:1.5px solid #000;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+</style>
+<script>
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const gate = () => T.requireArena();
+const sec = (n) => Math.floor(n / 1000);
+
+/* ======================= MEME CLASH ======================= */
+const TEMPLATES = [
+  { id: 'says', name: 'Totem says', top: 'Me after locking', bottom: 'my last 25,000 $TOTEM' },
+  { id: 'before', name: 'Before and after', top: 'Wallet', bottom: 'Totem' },
+  { id: 'houses', name: 'House versus house', top: 'Moss house', bottom: 'Ember house' }
+];
+let tpl = 'says', clashPhase = 'make', myVote = null, clashTop = '', clashBottom = '';
+function memeArt(id, top, bottom){
+  const svg = id === 'says' ? T.svgTotem(4, 120, 'wings') : id === 'before' ? '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(0, 80) + T.svgTotem(4, 80) + '</div>' : '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(4, 80) + T.svgTotem(4, 80).replace(/#00B97F/g, '#FF5A1F') + '</div>';
+  return '<div class="meme"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:' + (id === 'houses' ? '#FFFBE0' : '#F6F6F2') + '">' + svg + '</div><div class="t" style="top:10px">' + esc(top) + '</div><div class="t" style="bottom:10px">' + esc(bottom) + '</div></div>';
+}
+const ENTRIES = [['kofi.near', 'says', 'POV: the chart is red', 'my Totem is still full', 241], ['weaver.near', 'houses', 'Moss house painting', 'Ember house sleeping', 198], ['tunde.near', 'before', 'Holding tokens', 'Holding a whole account', 164], ['moremi.near', 'says', 'They said sell', 'I said add a piece', 122]];
+function paintClash(){
+  const root = $('#clashRoot');
+  const head = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Meme Clash</h1></div><div class="seg" role="group" aria-label="Stage">' + [['make', '1 Make'], ['vote', '2 Vote'], ['results', '3 Results']].map((p) => '<button type="button" data-cp="' + p[0] + '" aria-pressed="' + (p[0] === clashPhase) + '">' + p[1] + '</button>').join('') + '</div></div>';
+  let body = '';
+  if (clashPhase === 'make') {
+    const t = TEMPLATES.find((x) => x.id === tpl);
+    body = '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div style="flex:1 1 300px;max-width:360px" id="clashPrev">' + memeArt(tpl, clashTop || t.top, clashBottom || t.bottom) + '</div>' +
+      '<div class="card" style="flex:1 1 340px;display:flex;flex-direction:column;gap:12px"><span class="muted">Template</span><div class="seg" role="group" aria-label="Template">' + TEMPLATES.map((x) => '<button type="button" data-tpl="' + x.id + '" aria-pressed="' + (x.id === tpl) + '">' + x.name + '</button>').join('') + '</div>' +
+      '<label class="f">Top text<input type="text" id="mTop" maxlength="60" value="' + esc(clashTop || t.top) + '"></label><label class="f">Bottom text<input type="text" id="mBot" maxlength="60" value="' + esc(clashBottom || t.bottom) + '"></label>' +
+      (S.clashEntry ? '<p class="muted">You already entered this round. Submitting again replaces your entry.</p>' : '') + '<button class="btn" type="button" id="mSubmit">Submit my meme</button><span class="muted" style="font-size:13px">Top 3 by holder vote win a Relic item. Votes are weighted by pieces.</span></div></div>';
+  } else if (clashPhase === 'vote') {
+    const list = ENTRIES.map((e) => ({ who: e[0], tpl: e[1], top: e[2], bot: e[3], votes: e[4] + (myVote === e[0] ? S.pieces : 0) }));
+    if (S.clashEntry) list.push({ who: S.account + ' (you)', tpl: S.clashEntry.tpl, top: S.clashEntry.top, bot: S.clashEntry.bot, votes: S.clashEntry.votes, me: true });
+    body = '<p style="color:var(--body);margin-bottom:16px">Vote for one entry. Your Totem has ' + S.pieces + ' pieces, so your vote counts ' + S.pieces + ' times. You can’t vote for yourself.</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">' + list.map((e) => '<div class="card" style="display:flex;flex-direction:column;gap:10px;padding:14px">' + memeArt(e.tpl, e.top, e.bot) + '<div style="display:flex;justify-content:space-between;font-size:14px"><span>' + esc(e.who) + '</span><strong>' + e.votes + ' votes</strong></div>' + (e.me ? '<span class="chip">Your entry</span>' : '<button class="btn small ' + (myVote === e.who ? 'green' : 'ghost') + '" type="button" data-mv="' + esc(e.who) + '">' + (myVote === e.who ? 'Voted with ' + S.pieces : 'Vote') + '</button>') + '</div>').join('') + '</div>' +
+      '<button class="btn" type="button" id="mClose" style="margin-top:20px">Close the round (demo)</button>';
+  } else {
+    const list = ENTRIES.map((e) => ({ who: e[0], votes: e[4] + (myVote === e[0] ? S.pieces : 0) }));
+    if (S.clashEntry) list.push({ who: S.account + ' (you)', votes: S.clashEntry.votes, me: true });
+    list.sort((a, b) => b.votes - a.votes);
+    const rank = list.findIndex((x) => x.me) + 1;
+    body = '<div class="tbl lb" style="max-width:640px"><table><thead><tr><th>#</th><th>Entry</th><th style="text-align:right">Votes</th></tr></thead><tbody>' + list.map((x, i) => '<tr' + (x.me ? ' style="background:#FFFBE0"' : '') + '><td>' + (i + 1) + '</td><td>' + esc(x.who) + '</td><td style="text-align:right">' + x.votes + '</td></tr>').join('') + '</tbody></table></div>' +
+      (S.clashEntry ? '<div class="card ink" style="margin-top:18px;max-width:640px;display:flex;flex-direction:column;gap:10px"><h2 style="font-size:34px">' + (rank <= 3 ? 'You placed ' + rank + '. Relic won.' : 'You placed ' + rank + '.') + '</h2><p class="muted">' + (rank <= 3 ? 'The Clash Relic is now in your Totem’s inventory.' : 'Top 3 win a Relic. A new round starts every day.') + '</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="mShare">Share my meme result</button><button class="btn ghost" type="button" id="mNew">Start a new round</button></div></div>' : '<p class="muted" style="margin-top:14px">You didn’t enter this round. <button class="btn small ghost" type="button" id="mNew">Make a meme</button></p>');
+    if (S.clashEntry && rank <= 3 && !S.items.includes('Clash Relic')) { S.items.push('Clash Relic'); T.save(); T.sfx('win'); }
+  }
+  root.innerHTML = head + body;
+  $$('[data-cp]').forEach((b) => b.addEventListener('click', () => { clashPhase = b.dataset.cp; paintClash(); }));
+  $$('[data-tpl]').forEach((b) => b.addEventListener('click', () => { tpl = b.dataset.tpl; clashTop = ''; clashBottom = ''; paintClash(); }));
+  const upd = () => { clashTop = $('#mTop').value; clashBottom = $('#mBot').value; $('#clashPrev').innerHTML = memeArt(tpl, clashTop, clashBottom); };
+  if ($('#mTop')) { $('#mTop').addEventListener('input', upd); $('#mBot').addEventListener('input', upd); }
+  const sb = $('#mSubmit'); if (sb) sb.addEventListener('click', () => { const tp = $('#mTop').value.trim(), bt = $('#mBot').value.trim(); if (!tp && !bt) { T.toast('Add some text first'); return; } S.clashEntry = { tpl, top: tp, bot: bt, votes: 150 + Math.floor(Math.random() * 120) }; T.save(); T.chain('Meme Clash entry', [{ receiver: 'arena.totem.near', method: 'submit_entry', args: { game: 'meme-clash', template: tpl, content_hash: 'sha256:...' } }]); T.sfx('piece'); T.toast('Submitted. Now vote on the others.'); clashPhase = 'vote'; paintClash(); });
+  $$('[data-mv]').forEach((b) => b.addEventListener('click', () => { myVote = myVote === b.dataset.mv ? null : b.dataset.mv; T.chain('Meme Clash vote', [{ receiver: 'arena.totem.near', method: 'vote_entry', args: { entry_by: b.dataset.mv, weight: S.pieces } }]); paintClash(); }));
+  const cl = $('#mClose'); if (cl) cl.addEventListener('click', () => { clashPhase = 'results'; paintClash(); });
+  const nw = $('#mNew'); if (nw) nw.addEventListener('click', () => { S.clashEntry = null; myVote = null; T.save(); clashPhase = 'make'; paintClash(); });
+  const sh = $('#mShare'); if (sh) sh.addEventListener('click', () => T.share({ title: 'My meme placed in Meme Clash', stat: S.clashEntry.top.slice(0, 26), line: 'Totem Arena, season 1' }));
+}
+T.modules.clash = { enter(){ if (gate()) paintClash(); } };
+
+/* ======================= RITUAL RAID ======================= */
+const SQUAD = [{ n: 'kofi.near', relic: true }, { n: 'weaver.near', relic: true }, { n: 'sol:4kQ..9z', relic: false, bridge: true }, { n: 'tunde.near', relic: false }];
+let raid = null, raidTimer = 0;
+function raidReset(){ raid = { joined: false, step: 0, left: 120, done: false, fail: false, picks: [] }; }
+function raidStep(){
+  const s = raid.step;
+  if (s === 0) return { t: 'Burn 1,000 $TOTEM at the altar', d: 'Press and hold until the altar lights up.', ui: '<button class="btn green" type="button" id="rHold" style="min-height:64px;touch-action:none">Press and hold</button>' };
+  if (s === 1) return { t: 'Three must hold the relic', d: 'Pick the three squad members carrying the Red Moon relic.', ui: '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">' + SQUAD.concat([{ n: S.account + ' (you)', relic: true, me: true }]).map((m, i) => '<button type="button" class="btn small ' + (raid.picks.includes(i) ? 'green' : 'ghost') + '" data-rp="' + i + '">' + esc(m.n) + '</button>').join('') + '</div><button class="btn" type="button" id="rConfirm" style="margin-top:10px">Confirm three</button><p class="muted" style="font-size:13px">Hint: check the squad list. Relic holders are marked.</p>' };
+  if (s === 2) return { t: 'One must arrive from across the water', d: 'Who brings tokens from another chain through NEAR Intents?', ui: '<div style="display:flex;gap:8px;flex-wrap:wrap">' + SQUAD.map((m, i) => '<button type="button" class="btn small ghost" data-rb="' + i + '">' + esc(m.n) + '</button>').join('') + '</div>' };
+  if (s === 3) return { t: 'Speak the phrase', d: 'I hold the meme but I am not a wallet. Sell my tokens and I lose a piece. What am I?', ui: '<div style="display:flex;gap:8px;flex-wrap:wrap">' + ['A bridge', 'A Totem', 'A treasury', 'A key'].map((a) => '<button type="button" class="btn small ghost" data-ra="' + a + '">' + a + '</button>').join('') + '</div>' };
+  return { t: 'Five hands, one heartbeat', d: 'Press Sign when the black marker is inside the green zone. Everyone signs in the same block.', ui: '<div class="timing" id="rTiming"><div class="zone" style="left:44%;width:14%"></div><div class="mk" id="rMk" style="left:0"></div></div><button class="btn green" type="button" id="rSign" style="margin-top:10px">Sign</button>' };
+}
+let mkRaf = 0;
+function paintRaid(){
+  cancelAnimationFrame(mkRaf);
+  const root = $('#raidRoot'); const r = raid;
+  const squadHtml = '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">' + SQUAD.map((m) => '<div class="door"><span style="font-size:14px">' + esc(m.n) + '</span>' + (m.relic ? '<span class="chip g">Relic</span>' : m.bridge ? '<span class="chip">Bridger</span>' : '') + '</div>').join('') +
+    '<div class="door" style="' + (r.joined ? '' : 'border-style:dashed') + '"><span style="font-size:14px">' + (r.joined ? esc(S.account) + ' (you)' : 'Open slot') + '</span>' + (r.joined ? '<span class="chip g">Relic</span>' : '') + '</div></div>';
+  let main = '';
+  if (!r.joined) main = '<div class="card ink" style="display:flex;flex-direction:column;gap:12px"><h2 style="font-size:34px">Squad Kente needs a fifth</h2><p class="muted">Five onchain steps, 2 minutes. If the squad finishes, everyone gets a piece from the Totem treasury, or a Raid credential if their Totem is already full.</p><button class="btn green" type="button" id="rJoin" style="align-self:flex-start">Take the fifth slot</button></div>';
+  else if (r.done) main = '<div class="card ink" style="display:flex;flex-direction:column;gap:12px"><h2 style="font-size:38px">The Red Moon Totem is awake.</h2><p>' + (r.reward || '') + '</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="rShare">Share</button><button class="btn ghost" type="button" id="rAgain">Raid again</button></div></div>';
+  else if (r.fail) main = '<div class="card ink" style="display:flex;flex-direction:column;gap:12px"><h2 style="font-size:38px">The ritual faded.</h2><p class="muted">Time ran out. The squad keeps the steps learned. Try again.</p><button class="btn" type="button" id="rAgain" style="align-self:flex-start">Try again</button></div>';
+  else { const st = raidStep(); main = '<div class="card ink" style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="chip">Step ' + (r.step + 1) + ' of 5</span><span class="chip e" id="rLeft">' + r.left + ' s left</span></div><h2 style="font-size:34px;line-height:1.1">' + st.t + '</h2><p style="color:var(--body)">' + st.d + '</p>' + st.ui + '</div>'; }
+  const altars = '<div style="display:flex;gap:10px;margin:14px 0">' + [0, 1, 2, 3, 4].map((i) => '<span style="flex:1;height:14px;border-radius:999px;border:1.5px solid #000;background:' + (i < r.step || r.done ? '#00B97F' : '#fff') + '"></span>').join('') + '</div>';
+  root.innerHTML = '<div class="ph"><div><span class="muted">Totem Arena, co-op</span><h1>Ritual Raid</h1></div></div>' + altars + '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start"><div style="flex:999 1 420px;min-width:0">' + main + '</div><div style="flex:1 1 280px"><h2 style="font-size:26px;margin-bottom:10px">Squad Kente</h2>' + squadHtml + '</div></div>';
+  const on = (id, ev, fn) => { const el = $('#' + id); if (el) el.addEventListener(ev, fn); };
+  on('rJoin', 'click', () => { r.joined = true; r.left = 120; clearInterval(raidTimer); raidTimer = setInterval(() => { if (!r.joined || r.done || r.fail) return; r.left--; const el = $('#rLeft'); if (el) el.textContent = r.left + ' s left'; if (r.left <= 0) { r.fail = true; T.sfx('lose'); paintRaid(); } }, 1000); paintRaid(); });
+  on('rAgain', 'click', () => { clearInterval(raidTimer); raidReset(); paintRaid(); });
+  const next = () => { T.sfx('piece'); T.chain('Raid step ' + (r.step + 1), [{ receiver: 'arena.totem.near', method: 'raid_step', args: { squad: 'kente', step: r.step + 1 } }]); r.step++; if (r.step >= 5) win(); paintRaid(); };
+  const miss = (m) => { T.sfx('lose'); r.left = Math.max(0, r.left - 10); T.toast(m + ' Ten seconds lost.'); paintRaid(); };
+  const win = () => { r.done = true; clearInterval(raidTimer); if (S.pieces < 4) { S.pieces++; r.reward = 'A piece from the Totem treasury was added to Totem #0417. It now holds ' + T.fmt(S.pieces * 25000) + ' $TOTEM.'; T.log('Ritual Raid reward', '+1 piece', 'g'); } else { if (!S.prizes.includes('Raid credential')) S.prizes.push('Raid credential'); r.reward = 'Your Totem is full, so it gets the Raid credential instead.'; } T.save(); T.sfx('win'); };
+  const hold = $('#rHold'); if (hold) { let ht = 0; hold.addEventListener('pointerdown', (e) => { hold.setPointerCapture(e.pointerId); hold.textContent = 'Keep holding'; ht = setTimeout(() => { ht = 0; next(); }, 1200); }); ['pointerup', 'pointercancel'].forEach((ev) => hold.addEventListener(ev, () => { if (ht) { clearTimeout(ht); ht = 0; hold.textContent = 'Press and hold'; } })); }
+  $$('[data-rp]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.rp; r.picks = r.picks.includes(i) ? r.picks.filter((x) => x !== i) : r.picks.concat(i).slice(-3); paintRaid(); }));
+  on('rConfirm', 'click', () => { const ok = r.picks.length === 3 && [0, 1, 4].every((i) => r.picks.includes(i)); if (ok) next(); else { r.picks = []; miss('Those three don’t all carry the relic.'); } });
+  $$('[data-rb]').forEach((b) => b.addEventListener('click', () => { if (SQUAD[+b.dataset.rb].bridge) next(); else miss('That member is already on NEAR.'); }));
+  $$('[data-ra]').forEach((b) => b.addEventListener('click', () => { if (b.dataset.ra === 'A Totem') next(); else miss('The altar stays dark.'); }));
+  const mk = $('#rMk'); if (mk) { const t0 = performance.now(); const loop = (now) => { const p = (Math.sin((now - t0) / 380) + 1) / 2; mk.style.left = (p * 96) + '%'; mk.dataset.p = p; mkRaf = requestAnimationFrame(loop); }; mkRaf = requestAnimationFrame(loop);
+    on('rSign', 'click', () => { const p = +mk.dataset.p * 96; if (p >= 43 && p <= 57) next(); else miss('Out of sync.'); }); }
+  on('rShare', 'click', () => T.share({ title: 'We woke the Red Moon Totem', stat: 'Ritual Raid cleared', line: 'Squad Kente, Totem Arena' }));
+}
+T.modules.raid = { enter(){ if (!gate()) return; if (!raid) raidReset(); paintRaid(); }, leave(){ cancelAnimationFrame(mkRaf); } };
+
+/* ======================= BAGWORK ======================= */
+function paintBag(){
+  const b = S.bag || (S.bag = { streak: 0, today: [] });
+  const tasks = [['post', 'Post about $TOTEM on X', 'Opens X with a ready post'], ['remix', 'Remix a meme in Meme Clash', 'Make or vote on a meme'], ['recruit', 'Recruit a real holder', 'Their NEAR account, checked for a real Totem']];
+  const done = (k) => b.today.includes(k);
+  const all = tasks.every((t) => done(t[0]));
+  $('#bagRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena, daily</span><h1>Bagwork</h1></div><span class="chip g">Streak: ' + b.streak + ' of 14 days</span></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div style="flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:10px">' +
+    tasks.map((t) => '<div class="door" style="' + (done(t[0]) ? 'background:var(--green-tint);border-color:transparent' : '') + '"><span><strong>' + t[1] + '</strong><br><span class="muted" style="font-size:13px">' + t[2] + '</span></span>' + (done(t[0]) ? '<span class="chip g">Done</span>' : t[0] === 'recruit' ? '<span style="display:flex;gap:6px"><label><span class="sr">Their account</span><input type="text" id="bagFriend" placeholder="friend.near" style="min-height:40px;width:140px"></label><button class="btn small" type="button" data-bag="recruit">Check</button></span>' : '<button class="btn small" type="button" data-bag="' + t[0] + '">' + (t[0] === 'post' ? 'Post' : 'Open Meme Clash') + '</button>') + '</div>').join('') +
+    (all ? '<div class="card ink"><strong>Today is done.</strong> Come back tomorrow to keep the streak.</div>' : '') +
+    (b.streak >= 14 ? '<div class="card ink" style="display:flex;flex-direction:column;gap:10px"><h2 style="font-size:32px">14 days. You earned a Totem shell.</h2>' + (b.claimed ? '<p class="muted">Claimed. It’s in your Profile, ready to fill.</p>' : '<button class="btn green" type="button" id="bagClaim" style="align-self:flex-start">Claim my Totem shell</button>') + '</div>' : '') +
+    '<button class="btn small ghost" type="button" id="bagNext" style="align-self:flex-start">Skip to tomorrow (demo)</button></div>' +
+    '<div class="card" style="flex:1 1 300px"><span class="muted">14-day streak</span><div class="cal" style="margin-top:10px">' + Array.from({ length: 14 }, (_, i) => '<span style="background:' + (i < b.streak ? '#00B97F' : '#fff') + '">' + (i + 1) + '</span>').join('') + '</div><p class="muted" style="font-size:13px;margin-top:10px">Miss a day and the streak resets. Points also count on the season leaderboard.</p></div></div>';
+  $$('[data-bag]').forEach((x) => x.addEventListener('click', () => {
+    const k = x.dataset.bag;
+    if (k === 'post') window.open('https://x.com/intent/post?text=' + encodeURIComponent('Doing my bagwork in Totem Arena. NFTs that hold the meme, on NEAR. $TOTEM'), '_blank', 'noopener');
+    if (k === 'remix') { location.hash = '#clash'; }
+    if (k === 'recruit') { const v = ($('#bagFriend').value || '').trim(); if (!/^[a-z0-9._-]+\.near$/.test(v)) { T.toast('Enter their NEAR account, like friend.near'); return; } }
+    b.today.push(k); if (tasks.every((t) => b.today.includes(t[0]))) { b.streak = Math.min(14, b.streak + 1); T.sfx('win'); T.chain('Bagwork day ' + b.streak, [{ receiver: 'arena.totem.near', method: 'record_streak', args: { day: b.streak } }]); } else T.sfx('piece');
+    T.save(); if (k !== 'remix') paintBag();
+  }));
+  const nx = $('#bagNext'); nx.addEventListener('click', () => { if (!tasks.every((t) => b.today.includes(t[0]))) { b.streak = 0; T.toast('Streak reset. Finish all three tasks each day.'); } b.today = []; T.save(); paintBag(); });
+  const cl = $('#bagClaim'); if (cl) cl.addEventListener('click', () => { b.claimed = true; S.bought.push({ id: '3' + String(Date.now()).slice(-3), pieces: 0 }); T.save(); T.chain('Claim Bagwork Totem shell', [{ receiver: 'arena.totem.near', method: 'claim_streak_reward', args: { streak: 14 } }]); T.sfx('win'); paintBag(); });
+}
+T.modules.bagwork = { enter(){ if (gate()) paintBag(); } };
+
+/* ======================= FISHING PIER ======================= */
+let fish = { phase: 'idle', raf: 0, p: 0, zone: [0.4, 0.55], last: null };
+const CATCH = [['500 $TOTEM', 500, 'common'], ['1,500 $TOTEM', 1500, 'common'], ['3,000 $TOTEM', 3000, 'rare'], ['Harbor hat', 0, 'rare'], ['5,000 $TOTEM', 5000, 'legend']];
+function today(){ return new Date().toDateString(); }
+function paintFish(){
+  cancelAnimationFrame(fish.raf);
+  if (S.fishDay !== today()) { S.fishDay = today(); S.fishCasts = 3; T.save(); }
+  const casts = S.fishCasts;
+  $('#fishRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena, daily</span><h1>Fishing Pier</h1></div><span class="chip g">' + casts + ' casts left today</span></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div class="card" style="flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:14px;background:#E3F1F4">' +
+    '<svg viewBox="0 0 600 220" width="100%" role="img" aria-label="A Totem fishing from a pier"><rect x="0" y="150" width="600" height="70" fill="#BCDBE2"/><path d="M0 150 q30 -8 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0 t60 0" fill="none" stroke="#000" stroke-width="2"/><rect x="40" y="128" width="220" height="16" fill="#fff" stroke="#000" stroke-width="2.5"/><rect x="60" y="144" width="10" height="60" fill="#000"/><rect x="230" y="144" width="10" height="60" fill="#000"/>' +
+    '<g transform="translate(150 60)"><rect x="0" y="40" width="40" height="22" rx="5" fill="#00B97F" stroke="#000" stroke-width="2"/><rect x="0" y="14" width="40" height="24" rx="5" fill="#00B97F" stroke="#000" stroke-width="2"/><circle cx="12" cy="26" r="3"/><circle cx="28" cy="26" r="3"/></g><path d="M190 90 L330 40" stroke="#000" stroke-width="3"/><path d="M330 40 Q360 100 380 ' + (fish.phase === 'reel' ? '150' : '160') + '" fill="none" stroke="#000" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="380" cy="' + (fish.phase === 'reel' ? '152' : '160') + '" r="6" fill="#FF5A1F" stroke="#000" stroke-width="2"/></svg>' +
+    (fish.phase === 'reel' ? '<p><strong>Something bit.</strong> Press Reel when the marker is in the green.</p><div class="timing"><div class="zone" style="left:' + fish.zone[0] * 100 + '%;width:' + (fish.zone[1] - fish.zone[0]) * 100 + '%"></div><div class="mk" id="fMk"></div></div><button class="btn green" type="button" id="fReel">Reel</button>'
+      : '<button class="btn" type="button" id="fCast"' + (casts ? '' : ' aria-disabled="true"') + ' style="align-self:flex-start">' + (casts ? 'Cast' : 'No casts left today') + '</button>') +
+    (fish.last ? '<div class="door" style="background:#fff">' + fish.last + '</div>' : '') +
+    (casts ? '' : '<button class="btn small ghost" type="button" id="fReset" style="align-self:flex-start">Refill casts (demo)</button>') + '</div>' +
+    '<div class="card" style="flex:1 1 280px"><span class="muted">What bites</span>' + CATCH.map((c) => '<div class="door" style="margin-top:8px"><span>' + c[0] + '</span><span class="chip ' + (c[2] === 'legend' ? 'e' : c[2] === 'rare' ? 'g' : '') + '">' + c[2] + '</span></div>').join('') + '<p class="muted" style="font-size:13px;margin-top:10px">Full Totems get a wider green zone.</p></div></div>';
+  const cast = $('#fCast'); if (cast) cast.addEventListener('click', () => { if (!S.fishCasts) return; S.fishCasts--; T.save(); const w = S.pieces >= 4 ? 0.2 : 0.12, s = 0.15 + Math.random() * (0.85 - w - 0.15); fish.zone = [s, s + w]; T.sfx('tap'); fish.phase = 'wait'; paintFish(); $('#fishRoot .door') ; setTimeout(() => { fish.phase = 'reel'; paintFish(); }, 900 + Math.random() * 1200); });
+  const mk = $('#fMk'); if (mk) { const t0 = performance.now(); const loop = (now) => { fish.p = (Math.sin((now - t0) / 300) + 1) / 2; mk.style.left = (fish.p * 98) + '%'; fish.raf = requestAnimationFrame(loop); }; fish.raf = requestAnimationFrame(loop);
+    $('#fReel').addEventListener('click', () => { cancelAnimationFrame(fish.raf); const hit = fish.p >= fish.zone[0] - 0.01 && fish.p <= fish.zone[1] + 0.01; fish.phase = 'idle';
+      if (hit) { const r = Math.random(), c = r > 0.94 ? CATCH[4] : r > 0.8 ? CATCH[3] : r > 0.6 ? CATCH[2] : r > 0.3 ? CATCH[1] : CATCH[0]; if (c[1]) S.wallet += c[1]; else if (!S.items.includes(c[0])) S.items.push(c[0]); T.log('Fishing catch', c[1] ? '+' + T.fmt(c[1]) + ' $TOTEM' : c[0], 'g'); T.save(); T.sfx('coin'); fish.last = '<span>You caught <strong>' + c[0] + '</strong></span><span class="chip ' + (c[2] === 'common' ? '' : 'g') + '">' + c[2] + '</span>'; T.chain('Fishing catch', [{ receiver: 'arena.totem.near', method: 'claim_catch', args: { catch: c[0] } }]); }
+      else { T.sfx('lose'); fish.last = '<span>It got away.</span>'; }
+      paintFish(); }); }
+  const rs = $('#fReset'); if (rs) rs.addEventListener('click', () => { S.fishCasts = 3; T.save(); paintFish(); });
+}
+T.modules.fish = { enter(){ if (gate()) { fish.phase = 'idle'; paintFish(); } }, leave(){ cancelAnimationFrame(fish.raf); } };
+
+/* ======================= AGENT BAZAAR ======================= */
+const SHOP = [['Speed decal', 1500, 'Adds speed in Meme Kart'], ['Ember Crown', 5000, 'A crown for any house'], ['Harbor hat', 2000, 'Wear it to the pier']];
+let chat = [{ who: 'Ife', t: 'Hi, I’m Ife, the guide agent. Ask me how anything on Totem works.' }], chatBusy = false;
+function fallback(q){ q = q.toLowerCase();
+  if (/piece|lock|withdraw/.test(q)) return 'Every 25,000 $TOTEM you lock adds a piece. Four make a full Totem. Take tokens out and the top piece comes off.';
+  if (/rent/.test(q)) return 'Renting gives you a limited NEAR key on someone else’s Totem. It can play and enter rooms, but can never withdraw, sell or transfer.';
+  if (/arena/.test(q)) return 'Each community gets its own Arena with its own entry rule. Totem Arena is the first and the only live one right now.';
+  if (/free|claim|gas/.test(q)) return 'Claim a free starter with an email or passkey. A relayer pays the NEAR fee for you.';
+  if (/totem|token/.test(q)) return '$TOTEM is the flagship memecoin and the platform’s governance token. Totem NFTs hold it inside.';
+  return 'Good question. Try Explore to search, or the Arenas page to see what’s live. I can explain pieces, rentals, Arenas or free claims.'; }
+function paintAgents(){
+  $('#agentsRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Agent Bazaar</h1></div></div><p style="font-size:18px;color:var(--body);max-width:760px;margin-bottom:22px">These island characters are AI agents with their own NEAR accounts. They hold inventory, trade with players and check results.</p>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">' +
+    '<div class="card ink" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Ife, the guide</span><span class="muted" style="font-family:var(--mono);font-size:12px">guide.agents.totem.near</span><div id="chatLog" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto">' + chat.map((m) => '<div style="padding:10px 12px;border-radius:14px;max-width:90%;' + (m.who === 'You' ? 'align-self:flex-end;background:#000;color:#fff' : 'background:#F6F6F2') + '">' + esc(m.t) + '</div>').join('') + '</div><label style="display:flex;gap:8px"><span class="sr">Ask Ife</span><input type="text" id="chatIn" placeholder="How do pieces work?"><button class="btn" type="button" id="chatSend"' + (chatBusy ? ' aria-disabled="true"' : '') + '>' + (chatBusy ? 'Thinking' : 'Ask') + '</button></label></div>' +
+    '<div class="card" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Moss, the merchant</span><span class="muted" style="font-family:var(--mono);font-size:12px">merchant.agents.totem.near</span>' + SHOP.map((s) => '<div class="door"><span><strong>' + s[0] + '</strong><br><span class="muted" style="font-size:13px">' + s[2] + '</span></span>' + (S.items.includes(s[0]) ? '<span class="chip g">Owned</span>' : '<button class="btn small" type="button" data-buy-item="' + s[0] + '">' + T.fmt(s[1]) + ' $TOTEM</button>') + '</div>').join('') + '<span class="muted" style="font-size:13px">Paid from your wallet. Items go into Totem #0417.</span></div>' +
+    '<div class="card" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Ade, the referee</span><span class="muted" style="font-family:var(--mono);font-size:12px">referee.agents.totem.near</span><p class="muted">Checks game results before prizes settle. Runs in verifiable hardware so nobody can tamper with it.</p><button class="btn ghost" type="button" id="refCheck">Check my last Meme Kart result</button><div id="refOut"></div></div></div>';
+  const send = async () => {
+    const inp = $('#chatIn'); const q = inp.value.trim(); if (!q || chatBusy) return;
+    chat.push({ who: 'You', t: q }); chatBusy = true; paintAgents();
+    let ans = null;
+    try { const sample = window.claude && window.claude.use ? await window.claude.use('sample') : null;
+      if (sample) { const r = await sample('You are Ife, a friendly guide NPC in Totem Arena, a NEAR app where token communities launch NFTs that hold their tokens. Facts: 25,000 $TOTEM locked adds one piece, 4 pieces make a full Totem, taking tokens out removes the top piece, each Totem is its own NEAR account that holds tokens, prizes, royalties, items and credentials. Each community gets its own Arena with its own entry rule; Totem Arena is the only live one. Games: Meme Kart, Paint the Island, Meme Clash, Ritual Raid, Bagwork, Fishing Pier, Stack Attack, Red Day Run, Vault Heist. Rentals use limited NEAR keys that can play but never withdraw, sell or transfer. Free starters are claimed with email, gas paid by a relayer. $TOTEM is the flagship memecoin and governance token; rewards are utility and votes, not yield. Answer in at most 3 short sentences, plain words, only plain hyphens. Question: ' + q, { modelTier: 'quick' }); ans = (r && r.text || '').trim(); } } catch (e) { ans = null; }
+    chat.push({ who: 'Ife', t: ans || fallback(q) }); chatBusy = false; paintAgents(); const log = $('#chatLog'); if (log) log.scrollTop = log.scrollHeight;
+  };
+  $('#chatSend').addEventListener('click', send); $('#chatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+  $$('[data-buy-item]').forEach((b) => b.addEventListener('click', () => { const s = SHOP.find((x) => x[0] === b.dataset.buyItem); if (S.wallet < s[1]) { T.toast('Not enough $TOTEM in your wallet'); return; } S.wallet -= s[1]; S.items.push(s[0]); T.log('Bought ' + s[0] + ' from Moss', '-' + T.fmt(s[1]) + ' $TOTEM', 'e'); T.save(); T.chain('Buy from an agent', [{ receiver: 'token.totem.near', method: 'ft_transfer_call', args: { receiver_id: 'merchant.agents.totem.near', amount: s[1] + '000000000000000000000000', msg: '{"buy":"' + s[0] + '","deliver_to":"0417.totem.near"}' }, deposit: '1 yoctoNEAR' }]); T.sfx('coin'); paintAgents(); }));
+  $('#refCheck').addEventListener('click', () => { $('#refOut').innerHTML = S.ghostT ? '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span>Signature from kart-server.totem.near: valid</span><span>Lap times within human range: yes</span><span>Best run ' + (Math.floor(S.ghostT / 60000)) + ':' + ((S.ghostT / 1000) % 60).toFixed(1).padStart(4, '0') + ': approved</span></div>' : '<p class="muted">No race found yet. Race in Meme Kart first.</p>'; });
+}
+T.modules.agents = { enter(){ if (gate()) paintAgents(); } };
+
+/* ======================= CANVAS GAME HELPERS ======================= */
+function cg(prefix){ const cv = $('#' + prefix + 'Canvas'), ctx = cv.getContext('2d'); const fit = () => { const b = $('#' + prefix + 'Game'), dpr = Math.min(devicePixelRatio || 1, 2); cv.width = b.clientWidth * dpr; cv.height = b.clientHeight * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return { W: b.clientWidth, H: b.clientHeight }; }; return { cv, ctx, fit }; }
+function rr(x, X, Y, W, H, R){ x.beginPath(); x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R); x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath(); }
+function over(prefix, html){ const o = $('#' + prefix + 'Over'); o.style.display = html ? 'flex' : 'none'; o.innerHTML = html || ''; }
+function hud(prefix, items){ $('#' + prefix + 'Hud').innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap">' + items.map((i) => '<div class="gbox"><small>' + i[0] + '</small><b>' + i[1] + '</b></div>').join('') + '</div><a class="btn small ghost" href="#arena" style="background:#fff;pointer-events:auto">Back to island</a>'; }
+
+/* ======================= STACK ATTACK ======================= */
+const ST = { on: false, raf: 0 }; let stG;
+function stStart(){ const { W } = stG.fit(); const w0 = Math.min(220, W * 0.5); ST.blocks = [{ x: W / 2 - w0 / 2, w: w0 }]; ST.cur = { x: 0, w: w0, dir: 1 }; ST.speed = 3.2; ST.state = 'play'; ST.cam = 0; ST.perfect = 0; over('st', ''); }
+function stDrop(){
+  if (ST.state !== 'play') return;
+  const top = ST.blocks[ST.blocks.length - 1], c = ST.cur;
+  const l = Math.max(c.x, top.x), r = Math.min(c.x + c.w, top.x + top.w), w = r - l;
+  if (w <= 2) { ST.state = 'over'; T.sfx('lose'); stEnd(); return; }
+  if (Math.abs(c.x - top.x) < 5) { ST.blocks.push({ x: top.x, w: top.w }); ST.perfect++; T.sfx('coin'); } else { ST.blocks.push({ x: l, w }); T.sfx('drop'); }
+  const nw = ST.blocks[ST.blocks.length - 1].w; ST.cur = { x: ST.blocks.length % 2 ? -nw : stG.fit().W, w: nw, dir: ST.blocks.length % 2 ? 1 : -1 }; ST.speed = Math.min(9, ST.speed + 0.18);
+}
+function stEnd(){ const h = ST.blocks.length - 1; const best = Math.max(S.best.stack || 0, h); const nb = h > (S.best.stack || 0); S.best.stack = best; if (h >= 15 && !S.prizes.includes('Stack master')) S.prizes.push('Stack master'); T.save(); T.calls.result('stack-attack', h, 0);
+  over('st', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:44px;line-height:1">Height ' + h + '</h2><p class="muted">' + (nb ? 'New best. ' : 'Best: ' + best + '. ') + 'Reach 15 for the Stack master credential.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn green" type="button" id="stAgain">Play again</button><button class="btn ghost" type="button" id="stShare">Share</button><a class="btn ghost" href="#arena">Back to island</a></div></div>');
+  $('#stAgain').addEventListener('click', stStart); $('#stShare').addEventListener('click', () => T.share({ title: 'I stacked a Totem ' + h + ' high', stat: 'Stack Attack best ' + best, line: 'Totem Arena on NEAR' })); }
+function stLoop(){
+  if (!ST.on) return; ST.raf = requestAnimationFrame(stLoop);
+  const { W, H } = stG.fit(), x = stG.ctx, bh = 30, base = H - 60;
+  if (ST.state === 'play') { const c = ST.cur; c.x += c.dir * ST.speed; if (c.x > W - c.w * 0.2) c.dir = -1; if (c.x < -c.w * 0.8) c.dir = 1; }
+  const want = Math.max(0, (ST.blocks.length - (H - 220) / bh) * bh); ST.cam += (want - ST.cam) * 0.1;
+  x.fillStyle = '#F6F6F2'; x.fillRect(0, 0, W, H); x.strokeStyle = '#E6E6E0'; x.lineWidth = 1; for (let gy = (ST.cam % 40); gy < H; gy += 40) { x.beginPath(); x.moveTo(0, gy); x.lineTo(W, gy); x.stroke(); }
+  const draw = (b, i) => { const y = base - i * bh + ST.cam; if (y < -bh || y > H) return; rr(x, b.x, y, b.w, bh - 3, 8); x.fillStyle = i % 4 === 3 ? '#FFFFFF' : i % 7 === 6 ? '#FF5A1F' : '#00B97F'; x.fill(); x.lineWidth = 2.5; x.strokeStyle = '#000'; x.stroke(); if (i % 4 === 2 && b.w > 40) { x.fillStyle = '#000'; x.beginPath(); x.arc(b.x + b.w * 0.35, y + 13, 3.5, 0, 7); x.arc(b.x + b.w * 0.65, y + 13, 3.5, 0, 7); x.fill(); } };
+  ST.blocks.forEach(draw); if (ST.state === 'play') draw(ST.cur, ST.blocks.length);
+  hud('st', [['Height', ST.blocks.length - 1], ['Perfect', ST.perfect], ['Best', S.best.stack || 0]]);
+}
+T.modules.stack = { enter(){ if (!gate()) return; if (!stG) { stG = cg('st'); stG.cv.addEventListener('pointerdown', stDrop); } ST.on = true; ST.state = 'intro'; ST.blocks = []; ST.cur = { x: 0, w: 0, dir: 1 }; ST.cam = 0; ST.perfect = 0;
+  over('st', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:52px;line-height:1">Stack Attack</h2><p>Drop each moving piece onto the tower. Anything hanging over the edge is cut off. Land it exactly for a perfect drop.</p><p class="muted">Tap the screen or press space.</p><button class="btn green" type="button" id="stGo" style="align-self:flex-start">Start</button></div>');
+  $('#stGo').addEventListener('click', stStart); ST.raf = requestAnimationFrame(stLoop); }, leave(){ ST.on = false; cancelAnimationFrame(ST.raf); } };
+
+/* ======================= RED DAY RUN ======================= */
+const RN = { on: false, raf: 0 }; let rnG;
+function rnStart(){ RN.state = 'play'; RN.y = 0; RN.vy = 0; RN.obs = []; RN.coins = []; RN.dist = 0; RN.got = 0; RN.speed = 6; RN.next = 60; RN.t = 0; over('rn', ''); }
+function rnJump(){ if (RN.state !== 'play') return; if (RN.y <= 0.5) { RN.vy = 13.5; T.sfx('tap'); } }
+function rnEnd(){ RN.state = 'over'; T.sfx('lose'); const mult = S.pieces >= 4 ? 2 : 1, score = Math.floor(RN.dist / 10) + RN.got * 25 * mult, nb = score > (S.best.run || 0); S.best.run = Math.max(S.best.run || 0, score); const earned = RN.got * 100 * mult; S.wallet += earned; if (earned) T.log('Red Day Run', '+' + T.fmt(earned) + ' $TOTEM', 'g'); T.save(); T.calls.result('red-day-run', score, earned);
+  over('rn', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:44px;line-height:1">Score ' + T.fmt(score) + '</h2><p class="muted">' + (nb ? 'New best. ' : 'Best: ' + T.fmt(S.best.run) + '. ') + 'You collected ' + RN.got + ' coins worth ' + T.fmt(earned) + ' $TOTEM' + (mult > 1 ? ', doubled for a full Totem' : '') + '.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn green" type="button" id="rnAgain">Run again</button><button class="btn ghost" type="button" id="rnShare">Share</button><a class="btn ghost" href="#arena">Back to island</a></div></div>');
+  $('#rnAgain').addEventListener('click', rnStart); $('#rnShare').addEventListener('click', () => T.share({ title: 'I survived the red day', stat: 'Score ' + T.fmt(score), line: 'Red Day Run, Totem Arena' })); }
+function rnLoop(){
+  if (!RN.on) return; RN.raf = requestAnimationFrame(rnLoop);
+  const { W, H } = rnG.fit(), x = rnG.ctx, ground = H - 90, px = Math.max(60, W * 0.18);
+  if (RN.state === 'play') {
+    RN.t++; RN.dist += RN.speed; RN.speed = Math.min(15, 6 + RN.dist / 2500);
+    RN.vy -= 0.75; RN.y = Math.max(0, RN.y + RN.vy); if (RN.y === 0) RN.vy = 0;
+    if (--RN.next <= 0) { const h = 30 + Math.random() * 50; RN.obs.push({ x: W + 20, w: 22 + Math.random() * 14, h }); if (Math.random() < 0.6) RN.coins.push({ x: W + 140, y: 60 + Math.random() * 90 }); RN.next = 45 + Math.random() * 50 - RN.speed * 1.5; }
+    RN.obs.forEach((o) => { o.x -= RN.speed; }); RN.coins.forEach((c) => { c.x -= RN.speed; });
+    RN.obs = RN.obs.filter((o) => o.x > -60); RN.coins = RN.coins.filter((c) => c.x > -40 && !c.got);
+    const py = ground - 64 - RN.y;
+    RN.obs.forEach((o) => { if (px + 34 > o.x + 3 && px + 6 < o.x + o.w - 3 && py + 62 > ground - o.h) rnEnd(); });
+    RN.coins.forEach((c) => { if (Math.abs(c.x - (px + 20)) < 28 && Math.abs((ground - c.y) - (py + 30)) < 40) { c.got = true; RN.got++; T.sfx('coin'); } });
+  }
+  x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#FFE7DC'; x.lineWidth = 4; x.beginPath(); for (let i = 0; i <= W; i += 20) { const yy = 120 + ((i + RN.dist * 0.3) % 400) * 0.25 + Math.sin((i + RN.dist) / 60) * 14; i ? x.lineTo(i, yy) : x.moveTo(i, yy); } x.stroke();
+  x.fillStyle = '#F6F6F2'; x.fillRect(0, ground, W, H - ground); x.strokeStyle = '#000'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, ground); x.lineTo(W, ground); x.stroke();
+  RN.obs.forEach((o) => { x.fillStyle = '#FF5A1F'; x.fillRect(o.x, ground - o.h, o.w, o.h); x.strokeRect(o.x, ground - o.h, o.w, o.h); x.beginPath(); x.moveTo(o.x + o.w / 2, ground - o.h - 14); x.lineTo(o.x + o.w / 2, ground - o.h); x.stroke(); });
+  RN.coins.forEach((c) => { x.fillStyle = '#FFD23F'; x.beginPath(); x.arc(c.x, ground - c.y, 11, 0, 7); x.fill(); x.stroke(); });
+  const py = ground - 64 - RN.y, G = '#00B97F';
+  [[0, 1], [1, 2], [2, 3]].forEach(([i, k]) => { rr(x, px, py + 44 - i * 21, 40, 19, 5); x.fillStyle = S.pieces >= k ? G : '#fff'; x.fill(); x.lineWidth = 2; x.strokeStyle = '#000'; x.stroke(); });
+  x.fillStyle = '#000'; x.beginPath(); x.arc(px + 13, py + 12, 2.6, 0, 7); x.arc(px + 27, py + 12, 2.6, 0, 7); x.fill();
+  x.beginPath(); x.moveTo(px + 2, py + 1); x.lineTo(px + 10, py - 12); x.lineTo(px + 20, py - 4); x.lineTo(px + 30, py - 12); x.lineTo(px + 38, py + 1); x.closePath(); x.fillStyle = S.pieces >= 4 ? G : '#fff'; x.fill(); x.stroke();
+  x.fillStyle = '#A63A0B'; x.font = '600 14px Geist, system-ui, sans-serif'; x.fillText('Red day. Hold on.', 16, H - 30);
+  hud('rn', [['Score', T.fmt(Math.floor((RN.dist || 0) / 10) + (RN.got || 0) * 25 * (S.pieces >= 4 ? 2 : 1))], ['Coins', RN.got || 0], ['Best', T.fmt(S.best.run || 0)]]);
+}
+T.modules.run = { enter(){ if (!gate()) return; if (!rnG) { rnG = cg('rn'); rnG.cv.addEventListener('pointerdown', rnJump); } RN.on = true; RN.state = 'intro'; RN.obs = []; RN.coins = []; RN.y = 0; RN.dist = 0; RN.got = 0;
+  over('rn', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:52px;line-height:1">Red Day Run</h2><p>The chart is falling. Jump the red candles and grab coins. Each coin is 100 $TOTEM, doubled if your Totem is full.</p><p class="muted">Tap the screen or press space to jump.</p><button class="btn green" type="button" id="rnGo" style="align-self:flex-start">Run</button></div>');
+  $('#rnGo').addEventListener('click', rnStart); RN.raf = requestAnimationFrame(rnLoop); }, leave(){ RN.on = false; cancelAnimationFrame(RN.raf); } };
+
+/* ======================= VAULT HEIST ======================= */
+const MAP = [
+  '#############',
+  '#S..#...L...#',
+  '#.#.#.###.#.#',
+  '#.#...#L..#.#',
+  '#.###.#.###.#',
+  '#L....D....L#',
+  '#.###.#.###.#',
+  '#....L#....E#',
+  '#############'];
+const HZ = { on: false, raf: 0 }; let hzG;
+function hzStart(){
+  HZ.grid = MAP.map((r) => r.split('')); HZ.loot = 0; HZ.total = 0; HZ.state = 'play'; HZ.t = 0; HZ.moves = 0;
+  HZ.grid.forEach((r, y) => r.forEach((c, x) => { if (c === 'S') { HZ.p = { x, y }; r[x] = '.'; } if (c === 'L') HZ.total++; }));
+  HZ.guards = [{ x: 9, y: 3, dx: -1, minx: 7, maxx: 9 }, { x: 2, y: 7, dx: 1, minx: 1, maxx: 4 }, { x: 6, y: 1, dx: 1, minx: 5, maxx: 7 }];
+  over('hz', '');
+}
+function hzMove(dx, dy){
+  if (HZ.state !== 'play') return; const nx = HZ.p.x + dx, ny = HZ.p.y + dy, c = HZ.grid[ny][nx];
+  if (c === '#') return; if (c === 'D' && !S.items.concat(['Vault key']).includes('Vault key')) { T.toast('You need a Vault key'); return; }
+  HZ.p = { x: nx, y: ny }; HZ.moves++; T.sfx('tap');
+  if (c === 'L') { HZ.grid[ny][nx] = '.'; HZ.loot++; T.sfx('coin'); }
+  if (c === 'E') { if (HZ.loot >= HZ.total) hzEnd(true); else T.toast('Grab all ' + HZ.total + ' bags first'); }
+  hzCatch();
+}
+function hzCatch(){ if (HZ.guards.some((g) => g.x === HZ.p.x && g.y === HZ.p.y)) hzEnd(false); }
+function hzEnd(win){ HZ.state = 'over'; T.sfx(win ? 'win' : 'lose'); let msg;
+  if (win) { const earned = HZ.loot * 1000; S.wallet += earned; if (!S.prizes.includes('Heist crew')) S.prizes.push('Heist crew'); T.log('Vault Heist loot', '+' + T.fmt(earned) + ' $TOTEM', 'g'); T.save(); T.calls.result('vault-heist', 1, earned); msg = 'You escaped with ' + HZ.loot + ' bags, worth ' + T.fmt(earned) + ' $TOTEM, and the Heist crew credential.'; }
+  else msg = 'A guard caught you. Watch their paths and time your moves.';
+  over('hz', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:44px;line-height:1">' + (win ? 'Clean escape.' : 'Caught.') + '</h2><p class="muted">' + msg + '</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn green" type="button" id="hzAgain">' + (win ? 'Run it again' : 'Try again') + '</button>' + (win ? '<button class="btn ghost" type="button" id="hzShare">Share</button>' : '') + '<a class="btn ghost" href="#arena">Back to island</a></div></div>');
+  $('#hzAgain').addEventListener('click', hzStart); const sh = $('#hzShare'); if (sh) sh.addEventListener('click', () => T.share({ title: 'We cracked the vault', stat: HZ.loot + ' bags out', line: 'Vault Heist, Totem Arena' })); }
+function hzLoop(now){
+  if (!HZ.on) return; HZ.raf = requestAnimationFrame(hzLoop);
+  const { W, H } = hzG.fit(), x = hzG.ctx, cols = 13, rows = 9, top = 90, padB = innerWidth < 760 ? 230 : 30;
+  const top2 = innerWidth < 760 ? 140 : top; const s = Math.floor(Math.min((W - 24) / cols, (H - top2 - padB) / rows)), ox = (W - s * cols) / 2, oy = top2;
+  if (HZ.state === 'play') { HZ.t += 16; if (HZ.t > 520) { HZ.t = 0; HZ.guards.forEach((g) => { let nx = g.x + g.dx; if (nx < g.minx || nx > g.maxx || HZ.grid[g.y][nx] === '#') { g.dx *= -1; nx = g.x + g.dx; } g.x = nx; }); hzCatch(); } }
+  x.fillStyle = '#F6F6F2'; x.fillRect(0, 0, W, H);
+  if (!HZ.grid) return;
+  HZ.grid.forEach((r, y) => r.forEach((c, gx) => { const X = ox + gx * s, Y = oy + y * s;
+    if (c === '#') { x.fillStyle = '#000'; x.fillRect(X, Y, s, s); return; }
+    x.fillStyle = '#fff'; x.fillRect(X, Y, s, s); x.strokeStyle = '#E6E6E0'; x.lineWidth = 1; x.strokeRect(X, Y, s, s);
+    if (c === 'L') { x.fillStyle = '#FFD23F'; x.beginPath(); x.arc(X + s / 2, Y + s / 2, s * 0.25, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke(); }
+    if (c === 'D') { x.fillStyle = '#FFF09A'; x.fillRect(X + 3, Y + 3, s - 6, s - 6); x.strokeStyle = '#000'; x.lineWidth = 2; x.strokeRect(X + 3, Y + 3, s - 6, s - 6); }
+    if (c === 'E') { x.fillStyle = '#DCF6EC'; x.fillRect(X + 2, Y + 2, s - 4, s - 4); x.fillStyle = '#00664A'; x.font = '600 ' + Math.round(s * 0.28) + 'px Geist, sans-serif'; x.textAlign = 'center'; x.fillText('Exit', X + s / 2, Y + s * 0.6); } }));
+  (HZ.guards || []).forEach((g) => { const X = ox + g.x * s, Y = oy + g.y * s; x.fillStyle = 'rgba(255,90,31,.18)'; x.fillRect(X + g.dx * s, Y, s, s); x.fillStyle = '#FF5A1F'; rr(x, X + s * 0.2, Y + s * 0.15, s * 0.6, s * 0.7, s * 0.2); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke(); });
+  const P = HZ.p, X = ox + P.x * s, Y = oy + P.y * s; x.fillStyle = '#00B97F'; rr(x, X + s * 0.18, Y + s * 0.15, s * 0.64, s * 0.7, s * 0.14); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 2; x.stroke(); x.fillStyle = '#000'; x.beginPath(); x.arc(X + s * 0.38, Y + s * 0.38, s * 0.06, 0, 7); x.arc(X + s * 0.62, Y + s * 0.38, s * 0.06, 0, 7); x.fill();
+  hud('hz', [['Loot', HZ.loot + '/' + HZ.total], ['Moves', HZ.moves], ['Key', 'Vault key']]);
+}
+const hzKeys = { ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0] };
+window.addEventListener('keydown', (e) => {
+  if (ST.on && e.code === 'Space') { e.preventDefault(); stDrop(); }
+  if (RN.on && (e.code === 'Space' || e.code === 'ArrowUp')) { e.preventDefault(); rnJump(); }
+  if (HZ.on && hzKeys[e.code]) { e.preventDefault(); hzMove(...hzKeys[e.code]); }
+});
+T.modules.heist = { enter(){ if (!gate()) return; if (!hzG) { hzG = cg('hz'); const pad = document.createElement('div'); pad.className = 'dpad'; pad.innerHTML = '<span></span><button type="button" aria-label="Up" data-d="0,-1">↑</button><span></span><button type="button" aria-label="Left" data-d="-1,0">←</button><span></span><button type="button" aria-label="Right" data-d="1,0">→</button><span></span><button type="button" aria-label="Down" data-d="0,1">↓</button><span></span>'; $('#hzGame').appendChild(pad); $$('button', pad).forEach((b) => b.addEventListener('pointerdown', (e) => { e.preventDefault(); const d = b.dataset.d.split(',').map(Number); hzMove(d[0], d[1]); })); }
+  HZ.on = true; HZ.grid = null;
+  over('hz', '<div class="card ink" style="max-width:540px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:52px;line-height:1">Vault Heist</h2><p>Grab every gold bag and reach the exit. Guards patrol back and forth, and the shaded tile shows where they step next. Your Totem’s Vault key opens the gold door.</p><p class="muted">Arrow keys or WASD, or the pad on screen. Each bag is 1,000 $TOTEM.</p><button class="btn green" type="button" id="hzGo" style="align-self:flex-start">Start the heist</button></div>');
+  $('#hzGo').addEventListener('click', hzStart); HZ.raf = requestAnimationFrame(hzLoop); }, leave(){ HZ.on = false; cancelAnimationFrame(HZ.raf); } };
+})();
+</script>
+</body>
+</html>

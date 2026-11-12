@@ -1,0 +1,134 @@
+<script>
+(function(){
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isTouch = window.matchMedia('(hover: none)').matches;
+const fmt = (n) => Math.round(n).toLocaleString('en-US');
+const G = '#00B97F', W = '#FFFFFF', K = '#000000', E = '#FF5A1F', Y = '#FFF09A', GOLD = '#FFD23F';
+
+/* ---------- demo state ---------- */
+const KEY = 'totem-demo-state-1';
+const defaults = { pieces: 3, wallet: 45000, connected: false, account: 'ada.near', prizes: [], games: [], races: 0, rented: null, launches: [], bought: [], items: [], mute: false, lowPower: false, best: {}, fishDay: 0, bag: { streak: 0, today: [] }, clashEntry: null, operator: false, delivered: 0, ghost: null, ghostT: 0, email: '', listing: null,
+  ledger: [
+    { w: 'Yesterday', t: 'Meme Clash prize, round 1', a: '+40 NEAR', c: 'g' },
+    { w: '3 days ago', t: 'Locked a piece', a: '+25,000 $TOTEM', c: 'g' },
+    { w: '1 week ago', t: 'Took a piece out', a: '-25,000 $TOTEM', c: 'e' },
+    { w: 'Season 1', t: 'Minted with 2 pieces', a: '+50,000 $TOTEM', c: 'g' } ] };
+let S;
+try { S = Object.assign({}, defaults, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { S = Object.assign({}, defaults); }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function log(t, a, c){ S.ledger.unshift({ w: 'Just now', t, a, c }); S.ledger = S.ledger.slice(0, 8); save(); }
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2800); }
+
+/* ---------- svg totem ---------- */
+function svgTotem(n, w, extra){
+  const f = (k) => n >= k ? G : W, d = (k) => n >= k ? '' : ' stroke-dasharray="6 5"';
+  return '<svg class="totem-svg" viewBox="-14 0 148 200" width="' + w + '" height="' + Math.round(w * 200 / 148) + '" role="img" aria-label="Totem with ' + n + ' of 4 pieces filled">' +
+    '<path d="M14 44 L30 8 L48 30 L60 2 L72 30 L90 8 L106 44 Z" fill="' + f(4) + '" stroke="#000" stroke-width="2.5" stroke-linejoin="round"' + d(4) + '/>' +
+    '<rect x="10" y="50" width="100" height="44" rx="12" fill="' + f(3) + '" stroke="#000" stroke-width="2.5"' + d(3) + '/>' +
+    '<circle cx="40" cy="72" r="7" fill="' + (n >= 3 ? K : '#B5B5AD') + '"/><circle cx="80" cy="72" r="7" fill="' + (n >= 3 ? K : '#B5B5AD') + '"/>' +
+    (extra === 'wings' ? '<path d="M10 106 L-8 122 L10 136 Z M110 106 L128 122 L110 136 Z" fill="' + GOLD + '" stroke="#000" stroke-width="2"/>' : '') +
+    '<rect x="10" y="100" width="100" height="44" rx="12" fill="' + f(2) + '" stroke="#000" stroke-width="2.5"' + d(2) + '/>' +
+    '<rect x="10" y="150" width="100" height="44" rx="12" fill="' + f(1) + '" stroke="#000" stroke-width="2.5"' + d(1) + '/></svg>';
+}
+
+/* ---------- three helpers ---------- */
+const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(window.THREE && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } })();
+function makeRenderer(canvas){
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+  r.setPixelRatio(S.lowPower ? 0.75 : Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2));
+  r.setClearColor(0xffffff, 1);
+  return r;
+}
+function fitRenderer(r, cam, el){
+  const w = el.clientWidth || 1, h = el.clientHeight || 1;
+  if (r._w === w && r._h === h) return;
+  r._w = w; r._h = h; r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+}
+const lineMat = () => new THREE.LineBasicMaterial({ color: 0x000000 });
+function ink(mesh, threshold){
+  const e = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, threshold || 30), lineMat());
+  mesh.add(e); return mesh;
+}
+function mat(hex){ return new THREE.MeshLambertMaterial({ color: hex }); }
+function lights(scene){
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xdedad0, 0.95));
+  const d = new THREE.DirectionalLight(0xffffff, 0.55); d.position.set(6, 12, 8); scene.add(d);
+}
+/* a 3D Totem: base, body, head (with eyes), crown. pieces fill green from the bottom */
+function makeTotem3D(opts){
+  opts = opts || {};
+  const g = new THREE.Group();
+  const fill = new THREE.Color(opts.fill || G), empty = new THREE.Color(opts.empty || '#FFFFFF');
+  const parts = [];
+  const box = new THREE.BoxGeometry(1, 0.42, 1);
+  for (let i = 0; i < 3; i++) {
+    const m = ink(new THREE.Mesh(box, mat(empty.clone())));
+    m.position.y = 0.21 + i * 0.47; g.add(m); parts.push(m);
+  }
+  const eyeG = new THREE.SphereGeometry(0.075, 10, 8), eyeM = mat(0x000000);
+  [-0.22, 0.22].forEach((x) => { const e = new THREE.Mesh(eyeG, eyeM); e.position.set(x, 0.05, 0.51); parts[2].add(e); });
+  const crown = ink(new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.5, 5), mat(empty.clone())));
+  crown.position.y = 1.36 + 0.06; crown.rotation.y = Math.PI / 5; g.add(crown); parts.push(crown);
+  if (opts.wings) {
+    const wg = new THREE.ConeGeometry(0.18, 0.5, 3);
+    [-1, 1].forEach((s) => { const w = ink(new THREE.Mesh(wg, mat(GOLD))); w.rotation.z = s * Math.PI / 2; w.position.set(s * 0.72, 0.68, 0); g.add(w); });
+  }
+  g.userData.parts = parts;
+  g.userData.set = (n) => parts.forEach((p, i) => p.material.color.copy(i < n ? fill : empty));
+  g.userData.set(opts.pieces == null ? 4 : opts.pieces);
+  return g;
+}
+
+/* ---------- curtain + router ---------- */
+const routes = ['home', 'explore', 'arenas', 'profile', 'nft', 'market', 'season', 'rules', 'clash', 'raid', 'bagwork', 'fish', 'agents', 'stack', 'run', 'heist', 'launch', 'lock', 'totem', 'rooms', 'arena', 'play', 'build', 'paint', 'rent', 'claim'];
+const modules = {};
+let current = null, busy = false;
+function routeFromHash(){ const h = (location.hash || '').replace('#', ''); const m = /^nft-(\d{3,4})$/.exec(h); if (m) { T_param.nft = m[1]; return 'nft'; } return routes.includes(h) && h !== 'nft' ? h : 'home'; }
+const T_param = {};
+function show(route){
+  if (current && modules[current] && modules[current].leave) modules[current].leave();
+  $$('.page').forEach((p) => p.classList.toggle('on', p.dataset.route === route));
+  $$('.links a, .sheet a').forEach((a) => { if (a.getAttribute('href') === '#' + route) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const pg = $('.page[data-route="' + route + '"]');
+  document.title = (pg && pg.dataset.title && route !== 'home' ? pg.dataset.title + ' - ' : '') + 'Totem';
+  window.scrollTo(0, 0);
+  current = route;
+  if (modules[route] && modules[route].enter) modules[route].enter();
+}
+function go(route, first){
+  if (route === current) { if (route === 'nft' && modules.nft) { modules.nft.enter(); window.scrollTo(0, 0); } return; }
+  if (first || reduce) { show(route); return; }
+  if (busy) { show(route); return; }
+  busy = true;
+  const c = $('#curtain'), pg = $('.page[data-route="' + route + '"]');
+  $('#curtainLbl').textContent = pg ? pg.dataset.title : 'Totem';
+  c.className = ''; void c.offsetWidth; c.className = 'cover';
+  setTimeout(() => {
+    show(route);
+    c.className = ''; void c.offsetWidth; c.className = 'reveal';
+    setTimeout(() => { c.className = ''; busy = false; }, 720);
+  }, 640);
+}
+window.addEventListener('hashchange', () => { closeSheet(); go(routeFromHash()); });
+
+/* ---------- nav, sheet, connect ---------- */
+function closeSheet(){ $('#sheet').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); }
+$('#menuBtn').addEventListener('click', () => { $('#sheet').classList.add('open'); $('#menuBtn').setAttribute('aria-expanded', 'true'); $('#closeSheet').focus(); });
+$('#closeSheet').addEventListener('click', closeSheet);
+function paintConnect(){ $('#connectBtn').textContent = S.connected ? S.account : 'Connect'; }
+$('#connectBtn').addEventListener('click', () => {
+  if (S.connected) { S.connected = false; save(); paintConnect(); toast('Disconnected'); return; }
+  S.connected = true; save(); paintConnect(); toast('Connected as ada.near (demo wallet)');
+});
+paintConnect();
+
+window.TOTEM = { param: T_param, $, $$, S, save, log, toast, svgTotem, fmt, hasGL, makeRenderer, fitRenderer, ink, mat, lights, makeTotem3D, modules, go, reduce, isTouch, G, W, K, E, Y, GOLD };
+window.addEventListener('DOMContentLoaded', () => go(routeFromHash(), true));
+})();
+</script>

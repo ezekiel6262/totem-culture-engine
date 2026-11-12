@@ -1,0 +1,225 @@
+<script>
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+
+/* =========================== PAINT THE ISLAND =========================== */
+const COLS = 26, ROWS = 16;
+const FAC = [null, { n: 'Moss house', c: '#00B97F', you: true }, { n: 'Ember house', c: '#FF5A1F' }, { n: 'Gold house', c: '#FFD23F' }];
+const LANDMARKS = [[7, 4, 'Kart'], [13, 8, 'Vault'], [18, 4, 'Clash'], [10, 12, 'Tower'], [19, 11, 'Fort']];
+let pc, ctx, grid, land, paint, timeLeft, pState = 'intro', pRaf = 0, pOn = false, pLast = 0, aiT = 0, hover = null, pops = [], layout = { s: 30, ox: 0, oy: 0 }, rival = { 2: 26, 3: 26 };
+function seeded(i){ const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
+function newGrid(){
+  grid = []; land = [];
+  for (let r = 0; r < ROWS; r++) { grid.push([]); land.push([]); for (let c = 0; c < COLS; c++) {
+    const dx = (c - (COLS - 1) / 2) / (COLS / 2), dy = (r - (ROWS - 1) / 2) / (ROWS / 2);
+    const inside = dx * dx + dy * dy < 0.92 + seeded(r * 31 + c) * 0.16;
+    grid[r].push(inside ? 0 : -1); land[r].push(0); } }
+  LANDMARKS.forEach((l) => { if (grid[l[1]][l[0]] === 0) land[l[1]][l[0]] = 1; });
+  const seed = (f, c0, r0) => { for (let r = r0 - 1; r <= r0 + 1; r++) for (let c = c0 - 1; c <= c0 + 1; c++) if (grid[r] && grid[r][c] === 0) grid[r][c] = f; };
+  seed(1, 4, 8); seed(2, 22, 7); seed(3, 14, 13);
+}
+const nbr = (c, r) => [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]].filter(([x, y]) => grid[y] && grid[y][x] !== undefined && grid[y][x] !== -1);
+const owns = (f, c, r) => nbr(c, r).some(([x, y]) => grid[y][x] === f);
+const cost = (c, r) => (grid[r][c] > 1 ? 2 : 1) + (land[r][c] ? 1 : 0);
+function score(){ const s = [0, 0, 0, 0]; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const f = grid[r][c]; if (f > 0) s[f] += 1 + land[r][c] * 2; } return s; }
+function myPaint(){ const n = S.rented ? Math.max(S.pieces, S.rented.pieces) : S.pieces; return 2 + n * 4; }
+function pResize(){
+  const box = $('#paintGame'), w = box.clientWidth, h = box.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  pc.width = w * dpr; pc.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const top = window.innerWidth < 760 ? 150 : 110;
+  const tr = h > w * 1.1, gc = tr ? ROWS : COLS, gr = tr ? COLS : ROWS;
+  const s = Math.floor(Math.min((w - 16) / gc, (h - top - 16) / gr));
+  layout = { s, tr, ox: Math.round((w - s * gc) / 2), oy: Math.round(top + (h - top - s * gr) / 2), w, h };
+}
+function xy(c, r){ return layout.tr ? [layout.ox + r * layout.s, layout.oy + c * layout.s] : [layout.ox + c * layout.s, layout.oy + r * layout.s]; }
+function tileAt(x, y){ let c = Math.floor((x - layout.ox) / layout.s), r = Math.floor((y - layout.oy) / layout.s); if (layout.tr) { const t = c; c = r; r = t; } return grid[r] && grid[r][c] !== undefined && grid[r][c] !== -1 ? [c, r] : null; }
+function canPaint(c, r){ return pState === 'play' && grid[r][c] !== 1 && owns(1, c, r) && paint >= cost(c, r); }
+function pDraw(now){
+  const { s, ox, oy, w, h } = layout;
+  ctx.fillStyle = '#E3F1F4'; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = '#BCDBE2'; ctx.lineWidth = 2;
+  for (let i = 0; i < 26; i++) { const x = (seeded(i) * w + now * 0.01 * (i % 3 + 1)) % (w + 60) - 30, y = seeded(i + 50) * h; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 10, y - 4, x + 20, y); ctx.quadraticCurveTo(x + 30, y + 4, x + 40, y); ctx.stroke(); }
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const f = grid[r][c]; if (f === -1) continue;
+    const [x, y] = xy(c, r), g = Math.max(2, s * 0.08);
+    let sc = 1; pops.forEach((p) => { if (p.c === c && p.r === r) sc = 1 + Math.max(0, 1 - (now - p.t) / 260) * 0.35; });
+    const cx = x + s / 2, cy = y + s / 2, hs = (s - g * 2) / 2 * sc;
+    ctx.fillStyle = '#000'; roundRect(cx - hs + 2, cy - hs + 3, hs * 2, hs * 2, s * 0.18); ctx.fill();
+    ctx.fillStyle = f > 0 ? FAC[f].c : '#FFFFFF'; roundRect(cx - hs, cy - hs, hs * 2, hs * 2, s * 0.18); ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = '#000'; ctx.stroke();
+    if (land[r][c]) { ctx.fillStyle = '#000'; const k = hs * 0.5; ctx.beginPath(); ctx.moveTo(cx - k, cy + k * 0.6); ctx.lineTo(cx - k * 0.6, cy - k * 0.5); ctx.lineTo(cx - k * 0.2, cy); ctx.lineTo(cx, cy - k * 0.8); ctx.lineTo(cx + k * 0.2, cy); ctx.lineTo(cx + k * 0.6, cy - k * 0.5); ctx.lineTo(cx + k, cy + k * 0.6); ctx.closePath(); ctx.fill(); }
+    if (pState === 'play' && canPaint(c, r)) { ctx.strokeStyle = '#00B97F'; ctx.lineWidth = (hover && hover[0] === c && hover[1] === r) ? 4 : 2; ctx.setLineDash([4, 3]); roundRect(cx - hs + 3, cy - hs + 3, hs * 2 - 6, hs * 2 - 6, s * 0.14); ctx.stroke(); ctx.setLineDash([]); }
+  }
+  pops = pops.filter((p) => now - p.t < 300);
+  LANDMARKS.forEach((l) => { if (grid[l[1]][l[0]] === -1) return; ctx.fillStyle = '#000'; ctx.font = '600 ' + Math.max(10, Math.round(s * 0.34)) + 'px Geist, system-ui, sans-serif'; ctx.textAlign = 'center'; const q = xy(l[0], l[1]); ctx.fillText(l[2], q[0] + s / 2, q[1] - 4); });
+}
+function roundRect(x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function pHud(){
+  const sc = score(), tot = sc[1] + sc[2] + sc[3] || 1;
+  $('#pPaint').textContent = paint; $('#pTime').textContent = Math.max(0, Math.ceil(timeLeft));
+  $('#pBar').innerHTML = [1, 2, 3].map((f) => '<div style="flex:' + sc[f] + ';background:' + FAC[f].c + '"></div>').join('');
+  $('#pLegend').innerHTML = [1, 2, 3].map((f) => '<span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid #000;background:' + FAC[f].c + ';vertical-align:-1px"></i> ' + FAC[f].n + ' ' + Math.round(sc[f] / tot * 100) + '%</span>').join('');
+}
+function aiMove(f){
+  if (rival[f] <= 0) return;
+  const opts = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (grid[r][c] !== -1 && grid[r][c] !== f && owns(f, c, r)) opts.push([c, r, (land[r][c] ? 6 : 0) + (grid[r][c] === 0 ? 2 : 0) + (grid[r][c] === 1 ? 1 : 0) + Math.random() * 2]);
+  if (!opts.length) return; opts.sort((a, b) => b[2] - a[2]);
+  const [c, r] = opts[0]; const k = cost(c, r); if (rival[f] < k) { rival[f] = 0; return; }
+  rival[f] -= k; grid[r][c] = f; pops.push({ c, r, t: performance.now() });
+}
+function pLoop(now){
+  if (!pOn) return; pRaf = requestAnimationFrame(pLoop);
+  const dt = Math.min(0.1, (now - (pLast || now)) / 1000); pLast = now;
+  if (pState === 'play') {
+    timeLeft -= dt; aiT += dt;
+    if (aiT > 0.8) { aiT = 0; aiMove(2); aiMove(3); }
+    if (timeLeft <= 0) { while (rival[2] > 0 || rival[3] > 0) { const a = rival[2], b = rival[3]; aiMove(2); aiMove(3); if (a === rival[2] && b === rival[3]) break; } pEnd(); }
+    pHud();
+  }
+  pDraw(now);
+}
+function pIntro(){
+  pState = 'intro'; newGrid(); paint = myPaint(); timeLeft = 60; rival = { 2: 26, 3: 26 }; pHud();
+  const n = S.rented ? Math.max(S.pieces, S.rented.pieces) : S.pieces;
+  $('#pOverlay').style.display = 'flex';
+  $('#pOverlay').innerHTML = '<div class="card ink" style="display:flex;flex-direction:column;gap:14px;max-width:620px">' +
+    '<h2 style="font-size:clamp(42px,8vw,64px);line-height:1">Paint the Island</h2>' +
+    '<p style="color:#34342F">Every season, Totem holders split into three houses. Three houses, one island, 60 seconds. You are in Moss house. Paint tiles next to your green. Landmarks count triple. The house holding the most of the island wins this round’s prize from the Totem treasury.</p>' +
+    '<div class="door" style="background:#F6F6F2;border-color:#F6F6F2"><span>Your paint</span><strong>' + paint + ' tiles of paint</strong></div>' +
+    '<p class="muted" style="font-size:14px">Every piece in your Totem gives 4 paint. ' + (S.rented ? 'You are playing with ' + S.rented.name + ' (' + S.rented.pieces + ' pieces).' : 'Your Totem has ' + n + ' pieces.') + ' Empty tiles cost 1, rival tiles cost 2, landmarks cost 1 more.</p>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="pStart">Start painting</button>' + (n < 4 ? '<a class="btn ghost" href="#rent">Rent a full Totem for more paint</a>' : '') + '</div></div>';
+  $('#pStart').addEventListener('click', () => { $('#pOverlay').style.display = 'none'; pState = 'play'; });
+}
+function pEnd(){
+  pState = 'done'; pHud();
+  const sc = score(), order = [1, 2, 3].sort((a, b) => sc[b] - sc[a]), win = order[0] === 1, tot = sc[1] + sc[2] + sc[3];
+  if (win) { if (!S.prizes.includes('Island flag')) S.prizes.push('Island flag'); T.log('Paint the Island, won the round', '+ Island flag', 'g'); T.save(); }
+  T.sfx(win ? 'win' : 'lose'); T.calls.result('paint-the-island', win ? 1 : 2, 0);
+  $('#pOverlay').style.display = 'flex';
+  $('#pOverlay').innerHTML = '<div class="card ink" style="display:flex;flex-direction:column;gap:14px;max-width:620px"><span class="muted">Round over</span>' +
+    '<h2 style="font-size:clamp(40px,8vw,60px);line-height:1">' + (win ? 'Moss house holds the island.' : FAC[order[0]].n + ' holds the island.') + '</h2>' +
+    order.map((f, i) => '<div class="door"><span>' + (i + 1) + '. ' + FAC[f].n + '</span><strong>' + Math.round(sc[f] / tot * 100) + '%</strong></div>').join('') +
+    '<p class="muted" style="font-size:14px">' + (win ? 'The round prize, 400 NEAR from the Totem treasury, is split across Moss house Totems by pieces. Your Totem also gets the Island flag item.' : 'Your paint refills tomorrow. Fuller Totems get more paint.') + ' Demo result.</p>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="pAgain">Play again</button><button class="btn ghost" type="button" id="pShare">Share</button><a class="btn ghost" href="#arena">Back to the island</a></div></div>';
+  $('#pAgain').addEventListener('click', pIntro);
+  $('#pShare').addEventListener('click', () => T.share({ title: win ? 'Moss house took the island' : 'We fought for the island', stat: 'Moss house ' + Math.round(sc[1] / tot * 100) + '%', line: 'Paint the Island, Totem Arena' }));
+}
+function pBuild(){
+  pc = $('#paintCanvas'); ctx = pc.getContext('2d');
+  const at = (e) => { const b = pc.getBoundingClientRect(); return tileAt(e.clientX - b.left, e.clientY - b.top); };
+  pc.addEventListener('pointermove', (e) => { hover = at(e); pc.style.cursor = hover && canPaint(hover[0], hover[1]) ? 'pointer' : 'default'; });
+  pc.addEventListener('pointerdown', (e) => {
+    const t = at(e); if (!t || pState !== 'play') return; const [c, r] = t;
+    if (grid[r][c] === 1) return;
+    if (!owns(1, c, r)) { T.toast('Paint next to your green tiles'); return; }
+    const k = cost(c, r); if (paint < k) { T.toast('Not enough paint for that tile'); return; }
+    paint -= k; grid[r][c] = 1; pops.push({ c, r, t: performance.now() }); pHud(); T.sfx('paint');
+    if (paint <= 0) T.toast('Out of paint. Hold your ground until the timer ends.');
+  });
+  window.addEventListener('resize', () => { if (pOn) pResize(); });
+}
+T.modules.paint = {
+  enter(){ if (!T.requireArena()) return; if (!pc) pBuild(); pResize(); pIntro(); pOn = true; pLast = 0; pRaf = requestAnimationFrame(pLoop); },
+  leave(){ pOn = false; cancelAnimationFrame(pRaf); }
+};
+
+/* =========================== RENT =========================== */
+const listings = [
+  { id: '1201', owner: 'kofi.near', pieces: 4, items: 'Gold Wings, Ember Crown', race: 2, week: 9, fill: '#00B97F' },
+  { id: '0088', owner: 'weaver.near', pieces: 4, items: 'Kente Wings', race: 1.5, week: 7, fill: '#00B97F' },
+  { id: '0533', owner: 'tunde.near', pieces: 3, items: 'Vault key', race: 1, week: 5, fill: '#00B97F' },
+  { id: '2140', owner: 'sol:4kQ..9z', pieces: 4, items: 'Island flag', race: 2.5, week: 11, fill: '#00B97F' }
+];
+let rtab = 'rent';
+function keyCard(r){
+  return '<div class="card ink" style="display:flex;flex-direction:column;gap:12px">' +
+    '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:32px">You are driving ' + r.name + '</h2><span class="chip g">' + (r.term === 'race' ? 'For 1 race' : 'For 7 days') + '</span></div>' +
+    '<p class="muted">A limited key was added to <span style="font-family:var(--mono);font-size:13px">' + r.id + '.totem.near</span> for ' + (S.connected ? S.account : 'your session') + '.</p>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"><div class="door" style="flex-direction:column;align-items:flex-start;gap:6px"><strong>This key can</strong><span class="muted" style="font-size:14px">Race in Meme Kart, paint the island, enter the holder room</span></div>' +
+    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:6px;background:var(--ember-tint);border-color:transparent"><strong>This key can never</strong><span style="font-size:14px;color:var(--ember-ink)">Withdraw tokens, sell, transfer or change items</span></div></div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn green" href="#play">Race with it</a><a class="btn ghost" href="#paint">Paint with it</a><button class="btn ghost" type="button" id="endRent">Return it now</button></div></div>';
+}
+function paintRent(){
+  $$('[data-rt]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.rt === rtab));
+  const body = $('#rentBody');
+  if (rtab === 'rent') {
+    body.innerHTML = (S.rented ? keyCard(S.rented) + '<h2 style="font-size:32px;margin:32px 0 14px">Other Totems for rent</h2>' : '') +
+      '<div class="grid g4">' + listings.filter((l) => !S.rented || S.rented.id !== l.id).map((l) => '<div class="card" style="display:flex;flex-direction:column;gap:12px">' +
+        '<div style="display:flex;gap:14px;align-items:center">' + T.svgTotem(l.pieces, 56, 'wings') + '<div><a href="#nft-' + l.id + '" style="font-family:var(--serif);font-size:26px;line-height:1;text-decoration:none">Totem #' + l.id + '</a><br><span class="muted" style="font-size:13px">' + l.owner + '</span></div></div>' +
+        '<span style="font-size:14px">' + l.pieces + ' pieces, ' + l.items + '</span>' +
+        '<div class="grid" style="grid-template-columns:1fr 1fr;gap:8px"><button class="btn small" type="button" data-rent="' + l.id + '" data-term="race">1 race, ' + l.race + ' NEAR</button><button class="btn small ghost" type="button" data-rent="' + l.id + '" data-term="week">7 days, ' + l.week + ' NEAR</button></div></div>').join('') + '</div>' +
+      '<p class="muted" style="font-size:13px;margin-top:16px">Demo. On NEAR this is a function-call key on the Totem’s own account, limited to game and room methods, with an allowance and an expiry.</p>';
+    $$('[data-rent]').forEach((b) => b.addEventListener('click', () => {
+      const l = listings.find((x) => x.id === b.dataset.rent);
+      S.rented = { id: l.id, name: 'Totem #' + l.id, owner: l.owner, pieces: l.pieces, term: b.dataset.term };
+      T.log('Rented Totem #' + l.id + ' (' + (b.dataset.term === 'race' ? '1 race' : '7 days') + ')', '-' + (b.dataset.term === 'race' ? l.race : l.week) + ' NEAR', 'e'); T.save(); paintRent();
+      T.toast('Totem #' + l.id + ' is yours to drive'); window.scrollTo({ top: 0, behavior: T.reduce ? 'auto' : 'smooth' });
+    }));
+    const e = $('#endRent'); if (e) e.addEventListener('click', () => { S.rented = null; T.save(); paintRent(); T.toast('Rental ended. The key was removed.'); });
+  } else {
+    const L = S.listing;
+    body.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">' +
+      '<div class="card ink" style="flex:1 1 320px;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">' + T.svgTotem(S.pieces, 90, 'wings') + '<span style="font-family:var(--serif);font-size:32px;line-height:1">Totem #0417</span><span class="muted">' + S.pieces + ' pieces, Gold Wings</span>' + (L ? '<span class="chip g">Listed for rent</span>' : '<span class="chip">Not listed</span>') + '</div>' +
+      '<div class="card" style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">' +
+      '<label class="f">Price per race<select id="lpRace"><option>1 NEAR</option><option selected>2 NEAR</option><option>3 NEAR</option></select></label>' +
+      '<label class="f">Price for 7 days<select id="lpWeek"><option>6 NEAR</option><option selected>9 NEAR</option><option>12 NEAR</option></select></label>' +
+      '<fieldset style="border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px"><legend class="muted" style="font-size:14px;padding:0 6px">Renters can</legend>' +
+      ['Race in Meme Kart', 'Paint the Island', 'Enter the holder room'].map((x) => '<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#00B97F">' + x + '</label>').join('') +
+      '<span class="muted" style="font-size:13px">Withdrawing, selling and transferring are always blocked for renters.</span></fieldset>' +
+      '<button class="btn" type="button" id="listBtn">' + (L ? 'Stop lending' : 'List for rent') + '</button>' +
+      '<p class="muted" style="font-size:14px">' + (L ? 'Listed. Rent is paid into Totem #0417’s own account, next to its tokens.' : 'Rent is paid into the Totem’s own account, so whoever owns it later keeps the earnings history.') + '</p></div></div>';
+    $('#listBtn').addEventListener('click', () => { S.listing = S.listing ? null : { race: $('#lpRace').value, week: $('#lpWeek').value }; T.save(); paintRent(); T.toast(S.listing ? 'Totem #0417 is listed for rent' : 'Listing removed'); });
+  }
+}
+$$('[data-rt]').forEach((b) => b.addEventListener('click', () => { rtab = b.dataset.rt; paintRent(); }));
+T.modules.rent = { enter: paintRent };
+T.setRentTab = (t) => { rtab = t; };
+
+/* =========================== CLAIM, GASLESS =========================== */
+let cStep = 0;
+function handle(){ const e = (S.email || 'player').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'player'; return e + '.totem.near'; }
+function paintClaim(){
+  const pending = S.pendingCoins || 0, prize = S.pendingPrize;
+  const steps = [
+    { t: 'Sign in', body: '<label class="f">Email<input type="text" id="cEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" value="' + (S.email || '') + '"></label><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="cEmailBtn">Continue with email</button><button class="btn ghost" type="button" id="cPass">Use a passkey</button></div>' },
+    { t: 'Create your account', body: '<p>Your NEAR account will be <strong style="font-family:var(--mono);font-size:15px">' + handle() + '</strong>.</p><div class="door"><span>Network fee</span><strong>Paid by the Totem relayer</strong></div><button class="btn" type="button" id="cCreate">Create account</button>' },
+    { t: 'Claim your prize', body: '<div class="door" style="background:#FFFBE0;border-color:#000"><span>' + (prize ? 'Prize' : 'Starter') + '</span><strong>' + (prize ? 'A Totem with 25,000 $TOTEM inside' : 'An empty Totem shell to fill') + '</strong></div>' + (pending ? '<div class="door"><span>Coins from your race</span><strong>' + T.fmt(pending) + ' $TOTEM</strong></div>' : '') + '<button class="btn green" type="button" id="cClaim">Claim to my account</button>' },
+    { t: 'You own a Totem', body: '<p>It lives at its own account. Tokens, items and future prizes go inside it.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#totem">See my Totem</a><a class="btn ghost" href="#arena">Back to the island</a></div>' }
+  ];
+  $('#claimSteps').innerHTML = steps.map((s, i) => {
+    const st = i < cStep ? 'done' : i === cStep ? 'now' : 'next';
+    return '<li class="card' + (st === 'now' ? ' ink' : '') + '" style="display:flex;flex-direction:column;gap:12px;' + (st === 'next' ? 'opacity:.55' : '') + '"><div style="display:flex;gap:12px;align-items:center"><span style="width:34px;height:34px;flex-shrink:0;border-radius:999px;border:1.5px solid #000;display:flex;align-items:center;justify-content:center;font-weight:600;background:' + (st === 'done' ? '#00B97F' : st === 'now' ? '#000' : '#fff') + ';color:' + (st === 'now' ? '#fff' : '#000') + '">' + (st === 'done' ? '✓' : i + 1) + '</span><h2 style="font-size:28px;line-height:1.1">' + s.t + '</h2></div>' + (st === 'now' ? s.body : '') + '</li>';
+  }).join('');
+  const on = (id, fn) => { const el = $('#' + id); if (el) el.addEventListener('click', fn); };
+  on('cEmailBtn', () => { const v = $('#cEmail').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { T.toast('Enter an email like you@example.com'); return; } S.email = v; T.save(); cStep = 1; paintClaim(); });
+  on('cPass', () => { S.email = S.email || 'player@passkey'; T.save(); cStep = 1; paintClaim(); });
+  on('cCreate', () => { cStep = 2; paintClaim(); T.toast('Account created. You paid 0 NEAR.'); });
+  on('cClaim', () => {
+    S.connected = true; S.account = handle();
+    if (S.pendingPrize) S.prizes.push('Prize Totem #P' + (100 + S.prizes.length));
+    if (S.pendingCoins) { S.wallet += S.pendingCoins; T.log('Meme Kart coins', '+' + T.fmt(S.pendingCoins) + ' $TOTEM', 'g'); }
+    T.log('Claimed with no gas', S.pendingPrize ? 'Prize Totem' : 'Totem shell', 'g');
+    S.pendingCoins = 0; S.pendingPrize = false; T.save(); cStep = 3; paintClaim();
+    const b = $('#connectBtn'); if (b) b.textContent = S.account;
+  });
+}
+T.modules.claim = { enter(){ cStep = S.connected && !S.pendingPrize && !S.pendingCoins ? 3 : 0; paintClaim(); } };
+
+/* =========================== MULTICHAIN CARD ON TOTEM ACCOUNT =========================== */
+const baseTotem = T.modules.totem;
+T.modules.totem = {
+  enter(){
+    baseTotem.enter();
+    let card = $('#chainsCard');
+    if (!card) { card = document.createElement('div'); card.id = 'chainsCard'; card.className = 'card'; $('#acctStats').insertAdjacentElement('afterend', card); }
+    const rows = [['Solana', '7xKp…9fQe', '3 SOL'], ['Base', '0x4a1…c09E', '0.08 ETH'], ['Bitcoin', 'bc1q…8m2t', '0.0021 BTC']];
+    card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><span style="font-family:var(--serif);font-size:26px">Also holds, on other chains</span><span class="chip">Chain Signatures, planned</span></div>' +
+      rows.map((r) => '<div class="door" style="margin-bottom:8px"><span><strong>' + r[0] + '</strong><br><span class="muted" style="font-family:var(--mono);font-size:12px">' + r[1] + '</span></span><span style="text-align:right">' + r[2] + '</span></div>').join('') +
+      '<p class="muted" style="font-size:13px">These addresses are controlled by the Totem’s NEAR account, so they move with the NFT when it sells. Example data.</p>';
+  },
+  leave(){ baseTotem.leave(); }
+};
+})();
+</script>

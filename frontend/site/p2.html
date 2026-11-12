@@ -1,0 +1,423 @@
+<body>
+<a class="sr" href="#main">Skip to content</a>
+<nav class="nav" aria-label="Main">
+<div class="wrap">
+<a class="logo" href="#home" aria-label="Totem home">
+<svg width="22" height="32" viewBox="0 0 22 32" aria-hidden="true"><path d="M2 8 L6 2 L11 6 L16 2 L20 8 Z" fill="#00B97F" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/><rect x="2" y="10" width="18" height="9" rx="3" fill="#00B97F" stroke="#000" stroke-width="1.6"/><rect x="2" y="21" width="18" height="9" rx="3" fill="#fff" stroke="#000" stroke-width="1.6"/></svg>
+<span>Totem</span></a>
+<div class="links">
+<a href="#explore">Explore</a><a href="#arenas">Arenas</a><a href="#launch">Launch</a><a href="#build">Builders</a>
+</div>
+<div class="navr">
+<a class="btn small ghost" href="#profile" id="acctBtn">Profile</a>
+<button class="btn small ghost" id="soundBtn" type="button" aria-pressed="true" aria-label="Sound on" style="padding:0 12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="soundWave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></button>
+<button class="btn small" id="connectBtn" type="button">Connect</button>
+<button class="btn small ghost menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sheet" aria-label="Open menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</div>
+</div>
+</nav>
+<div class="sheet" id="sheet" role="dialog" aria-label="Menu">
+<button class="btn small ghost" id="closeSheet" type="button" style="align-self:flex-end">Close</button>
+<a href="#home">Home</a><a href="#explore">Explore</a><a href="#arenas">Arenas</a><a href="#profile">Profile</a><a href="#claim">Claim free</a><a href="#launch">Launch</a><a href="#lock">Lock and unlock</a><a href="#rooms">Rooms</a><a href="#totem">My Totem</a><a href="#build">Builders</a>
+</div>
+<div id="curtain" aria-hidden="true"><i></i><i></i><i></i><i></i><div class="lbl" id="curtainLbl">Totem</div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<main id="main">
+
+<!-- HOME -->
+<section class="page" data-route="home" data-title="Totem">
+<div class="film" id="film">
+<div class="stage">
+<canvas id="homeCanvas" aria-label="Animated 3D Totems that change formation as you scroll" role="img"></canvas>
+<div class="beats">
+<div class="beat on" data-beat="0"><div class="wrap"><div class="txt">
+<h1>NFTs that hold the meme.</h1>
+<p>Lock memecoins inside an NFT. It becomes an account that holds the tokens, earns, carries items and opens private rooms.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#arenas">Enter the Arena</a><a class="btn ghost" href="#launch">Launch a collection</a></div>
+<button type="button" class="btn green" data-tour style="align-self:flex-start">Take the 3-minute tour</button>
+</div></div></div>
+<div class="beat" data-beat="1"><div class="wrap"><div class="txt">
+<h2>Lock tokens in. The Totem fills up.</h2>
+<p>Every 25,000 $TOTEM adds a piece. Four pieces make a full Totem. Take tokens out and the top piece comes off.</p>
+</div></div></div>
+<div class="beat" data-beat="2"><div class="wrap"><div class="txt">
+<h2>The NFT is the account.</h2>
+<p>Each Totem gets its own NEAR account. Tokens, prizes, royalties, items and credentials live inside, and move with it when it sells.</p>
+</div></div></div>
+<div class="beat" data-beat="3"><div class="wrap"><div class="txt">
+<h2>Pieces open doors.</h2>
+<p>One piece gets you into the holder room. Three open the treasury. A full Totem gets you into the finals.</p>
+</div></div></div>
+<div class="beat" data-beat="4"><div class="wrap"><div class="txt">
+<h2>Win your first one in the Arena.</h2>
+<p>Race karts, run raids and make memes. Prizes are real Totems with tokens already inside.</p>
+<div><a class="btn green" href="#play">Play Meme Kart</a></div>
+</div></div></div>
+</div>
+<div class="progress" id="beatDots" aria-label="Story steps"></div>
+<div class="scrollhint" id="scrollHint">Scroll<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+</div>
+</div>
+
+<div class="sec" style="background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+<div class="wrap" style="display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:end">
+<h2 style="max-width:620px">Take tokens out, lose a piece</h2>
+<p class="muted" style="max-width:420px">Try it. The art always matches what is inside, so a Totem can never be worth less than the tokens it holds.</p>
+</div>
+<div class="card" style="display:flex;flex-wrap:wrap;gap:28px;align-items:center;justify-content:space-between">
+<div id="homeTotem" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap"></div>
+<div style="display:flex;flex-direction:column;gap:10px;min-width:240px;flex:1;max-width:360px">
+<input type="range" min="0" max="4" step="1" value="3" id="homeRange" aria-label="Pieces filled" style="accent-color:#00B97F;height:36px">
+<div style="display:flex;justify-content:space-between;font-size:13px" class="muted"><span>Empty</span><span>Full</span></div>
+<a class="btn ghost" href="#lock">Open lock and unlock</a>
+</div>
+</div>
+</div>
+</div>
+
+<div class="sec"><div class="wrap grid g3">
+<a class="card ink" href="#launch" style="text-decoration:none;display:flex;flex-direction:column;gap:12px">
+<span class="muted">For token teams</span><h3 style="font-size:40px;line-height:1.05">Have a memecoin? Give it a collection.</h3>
+<p class="muted">Holders lock tokens to mint. Supply leaves circulation and lives inside the art.</p></a>
+<a class="card ink" href="#launch" style="text-decoration:none;display:flex;flex-direction:column;gap:12px;background:var(--soft)">
+<span class="muted">For NFT communities</span><h3 style="font-size:40px;line-height:1.05">Have a collection? Give it a token.</h3>
+<p class="muted">The new token drops into every NFT, not into wallets. Each NFT becomes an account.</p></a>
+<a class="card ink" href="#build" style="text-decoration:none;display:flex;flex-direction:column;gap:12px">
+<span class="muted">For game builders</span><h3 style="font-size:40px;line-height:1.05">Have a game? Plug it into the Arena.</h3>
+<p class="muted">Use Totems as characters, report results, and pay winners straight into their Totem.</p></a>
+</div></div>
+
+<div class="sec" style="background:#000;color:#fff">
+<div class="wrap" style="display:flex;flex-wrap:wrap;gap:40px;align-items:center">
+<div style="flex:1 1 420px;display:flex;flex-direction:column;gap:18px">
+<span style="color:#B5B5AD">Totem Arena</span>
+<h2 style="color:#fff">Every community gets its own Arena.</h2>
+<p style="color:#D8D8D2;font-size:18px;max-width:520px">Each Arena is a 3D island where every venue is a game, with entry rules set by that community. Totem Arena is live now. Race in Meme Kart with your Totem as the driver, raid temples in squads of five, and hold the line through red days.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#arenas" style="background:#fff;color:#000;border-color:#fff">Pick an Arena</a><a class="btn green" href="#play">Race now</a></div>
+<p style="color:#B5B5AD;font-size:15px">No Totem yet? <a href="#rent" style="color:#fff">Rent a full one</a>, or win one and <a href="#claim" style="color:#fff">claim it with just an email</a>.</p>
+</div>
+<div style="flex:1 1 380px" class="grid">
+<div style="border:1px solid #2E2E2A;border-radius:18px;padding:18px;display:flex;justify-content:space-between;gap:12px"><span><span style="font-family:var(--serif);font-size:26px">Meme Kart</span><br><span style="color:#B5B5AD;font-size:14px">3 laps. Collect $TOTEM. Winner gets a prize Totem.</span></span><span style="color:#6EE7B7;font-size:14px">Playable</span></div>
+<div style="border:1px solid #2E2E2A;border-radius:18px;padding:18px;display:flex;justify-content:space-between;gap:12px"><span><span style="font-family:var(--serif);font-size:26px">Paint the Island</span><br><span style="color:#B5B5AD;font-size:14px">Your pieces become paint. Take the island for your community.</span></span><span style="color:#6EE7B7;font-size:14px">Playable</span></div>
+<div style="border:1px solid #2E2E2A;border-radius:18px;padding:18px;display:flex;justify-content:space-between;gap:12px"><span><span style="font-family:var(--serif);font-size:26px">Ritual Raid</span><br><span style="color:#B5B5AD;font-size:14px">Five players, five onchain steps, one shared prize.</span></span><span style="color:#B5B5AD;font-size:14px">Season 2</span></div>
+<div style="border:1px solid #2E2E2A;border-radius:18px;padding:18px;display:flex;justify-content:space-between;gap:12px"><span><span style="font-family:var(--serif);font-size:26px">Hold the Line</span><br><span style="color:#B5B5AD;font-size:14px">Keep your Totem full for 7 days.</span></span><span style="color:#FFB08F;font-size:14px">Ends in 4 days</span></div>
+</div>
+</div>
+</div>
+
+<div class="sec" style="padding-bottom:0"><div class="wrap">
+<div class="card ink" style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start;padding:clamp(22px,4vw,40px)">
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
+<span class="muted">The first culture on the platform</span>
+<h2>$TOTEM</h2>
+<p style="font-size:18px;color:var(--body)">$TOTEM is the flagship memecoin and NFT collection on Totem, and the governance token for the platform. Every other community that launches here builds on the path Totem took first.</p>
+<a class="btn" href="#arenas" style="align-self:flex-start">Enter Totem Arena</a>
+</div>
+<div style="flex:1 1 360px" class="grid">
+<div class="door"><span>Pay launch and Arena hosting fees</span></div>
+<div class="door"><span>Fund and enter multi-community tournaments</span></div>
+<div class="door"><span>Vote on which games become official</span></div>
+<div class="door"><span>Lock to claim a builder plot for a game</span></div>
+<p class="muted" style="font-size:13px">Utility and votes, not yield.</p>
+</div>
+</div>
+</div></div>
+
+<div class="sec"><div class="wrap" style="display:flex;flex-direction:column;gap:28px">
+<h2>Built on NEAR</h2>
+<div class="grid g4" id="infraGrid"></div>
+</div></div>
+<footer class="site"><div class="wrap" style="display:flex;flex-direction:column;gap:20px">
+<nav aria-label="Site map" style="display:flex;flex-wrap:wrap;gap:8px 22px;font-size:15px"><a href="#explore">Explore</a><a href="#arenas">Arenas</a><a href="#market">Market</a><a href="#season">Season leaderboard</a><a href="#agents">Agent Bazaar</a><a href="#launch">Launch</a><a href="#build">Builders</a><a href="#claim">Claim free</a><a href="#rules">Rules and fairness</a><button type="button" class="btn small ghost" id="lowPowerBtn">Low-power mode</button></nav>
+<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between"><span>Totem on NEAR. NFTs that do something. Memecoins with mechanics.</span><span>Demo build. Balances and results are simulated.</span></div></div></footer>
+</section>
+
+<!-- EXPLORE -->
+<section class="page" data-route="arenas" data-title="Arenas">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>Pick an Arena</h1></div>
+<p style="font-size:19px;max-width:720px;color:var(--body);margin-bottom:28px">Every community on Totem gets its own Arena, with its own games, entry rules and prizes, set by its team. Totem is the first community, and its Arena is the only one live right now.</p>
+<div id="arenaList" style="display:flex;flex-direction:column;gap:16px"></div>
+<h2 style="font-size:40px;margin:48px 0 14px">Multi-community tournaments</h2>
+<div class="card" style="border-style:dashed;display:flex;flex-direction:column;gap:8px;max-width:760px"><span style="font-family:var(--serif);font-size:28px;line-height:1.1">None scheduled yet</span><p class="muted">Tournaments where communities compete against each other open once a second community launches on Totem. $TOTEM holders vote on the first one.</p></div>
+</div>
+</section>
+
+<!-- LAUNCH -->
+<section class="page" data-route="launch" data-title="Launch">
+<div class="wrap">
+<div class="ph"><h1>Launch a Totem collection</h1>
+<div class="seg" role="group" aria-label="Starting point"><button type="button" data-mode="token" aria-pressed="true">I have a token</button><button type="button" data-mode="nft" aria-pressed="false">I have an NFT collection</button></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;padding-bottom:64px">
+<div style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px">
+<div class="card" style="display:flex;flex-direction:column;gap:14px">
+<h2 style="font-size:30px" id="lTitle">Your token</h2>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+<label class="f"><span id="lF1">Token contract</span><input type="text" id="lV1" value="yourtoken.near"></label>
+<label class="f"><span id="lF2">Collection name</span><input type="text" id="lV2" value="Your collection"></label>
+</div>
+<p style="font-size:15px;color:var(--body)" id="lNote">Holders mint by locking $TOTEM. Nothing is airdropped, so every Totem is backed from day one.</p>
+</div>
+<div class="card" style="display:flex;flex-direction:column;gap:14px">
+<h2 style="font-size:30px">Tokens per piece</h2>
+<div class="seg" role="group" aria-label="Tokens per piece" id="sizeSeg"></div>
+<p style="font-size:15px;color:var(--body)">Four pieces make a full Totem. A full Totem holds <strong id="lFull">100,000 $TOTEM</strong>.</p>
+</div>
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+<h2 style="font-size:30px">Set up your Arena</h2>
+<p style="font-size:15px;color:var(--body)">Your community gets its own Arena. You decide who gets in, what they play and when it is live.</p>
+<label class="f">Who can enter<select><option>Own one of our NFTs with 1 piece or more</option><option>Hold a set amount of our token</option><option>Anyone curious about our community</option></select></label>
+<fieldset style="border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px"><legend class="muted" style="font-size:14px;padding:0 6px">Games</legend>
+<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#00B97F">Meme Kart</label>
+<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#00B97F">Paint the Island</label>
+<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" style="width:20px;height:20px;accent-color:#00B97F">Games from builders</label></fieldset>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><label class="f">Goes live<input type="text" value="When the collection launches"></label><label class="f">Prize pool<input type="text" value="20 prefilled NFTs from treasury"></label></div>
+<div class="door"><span>Launch and Arena hosting fee<br><span class="muted" style="font-size:13px">Paid in $TOTEM</span></span><span class="chip">Set by $TOTEM vote</span></div>
+<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" style="width:20px;height:20px;accent-color:#00B97F">Allow free starter NFTs, gas paid by the platform</label>
+</div>
+<div class="card" style="display:flex;flex-direction:column;gap:12px">
+<h2 style="font-size:30px">Rooms and royalties</h2>
+<div class="door"><span>Holder room<br><span class="muted" style="font-size:13px">Chat, drops and calls with 1 piece</span></span><span class="chip g">On</span></div>
+<div class="door"><span>Treasury room<br><span class="muted" style="font-size:13px">Propose and vote with 3 pieces</span></span><span class="chip g">On</span></div>
+<div class="door"><span>Resale royalty 5%<br><span class="muted" style="font-size:13px">3% treasury, 2% creator</span></span><span class="chip">Edit</span></div>
+<div class="door"><span>Item royalty 10%<br><span class="muted" style="font-size:13px">Paid to the Totem that made the item</span></span><span class="chip">Edit</span></div>
+<div class="door"><span>Arena prize Totems<br><span class="muted" style="font-size:13px">20 prefilled from treasury</span></span><span class="chip">Edit</span></div>
+</div>
+</div>
+<aside style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;gap:14px;position:sticky;top:84px">
+<div class="card ink" style="display:flex;flex-direction:column;gap:12px">
+<span class="muted">Preview</span><span style="font-family:var(--serif);font-size:34px;line-height:1" id="lPrev">Totem Genesis</span>
+<div class="grid" style="grid-template-columns:1fr auto;gap:8px 12px;font-size:14px">
+<span class="muted">Collection size</span><span>2,222</span>
+<span class="muted">Full Totem holds</span><span id="lFull2">100,000</span>
+<span class="muted">Max locked</span><span class="mark" id="lPct">22.2% of supply</span>
+<span class="muted">Each Totem</span><span style="font-family:var(--mono);font-size:12px" id="lAcct">0001.totem.near</span>
+</div>
+</div>
+<button class="btn" type="button" id="deployBtn">Deploy collection on NEAR</button>
+<span class="muted" style="font-size:13px;text-align:center">Demo. Deploying shows what happens, nothing is sent.</span>
+</aside>
+</div>
+</div>
+</section>
+
+<!-- LOCK -->
+<section class="page" data-route="lock" data-title="Lock and unlock">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>Totem #0417</h1><span class="chip" style="font-family:var(--mono)">0417.totem.near</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+<div class="card" style="flex:1 1 340px;display:flex;gap:28px;align-items:center;justify-content:center;background:var(--soft);min-height:340px" id="lockTotem"></div>
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:18px" id="lockStatus"></p>
+<div class="grid" style="grid-template-columns:1fr 1fr">
+<button class="btn" type="button" id="addPiece">Add a piece</button>
+<button class="btn ghost" type="button" id="takePiece">Take one out</button>
+</div>
+<p class="muted" style="font-size:14px" id="walletLine"></p>
+<div class="doors" id="doors"></div>
+<p class="muted" style="font-size:13px">Items, credentials and royalties stay when a piece comes off.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TOTEM ACCOUNT -->
+<section class="page" data-route="totem" data-title="My Totem">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>This NFT is an account</h1><a class="btn ghost small" href="#lock">Add or remove pieces</a></div>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+<div class="card ink" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:14px">
+<div class="viewer"><canvas id="viewerCanvas" role="img" aria-label="Your Totem in 3D, drag to turn it"></canvas></div>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem #0417</span><span class="chip g" id="acctPieces">3 of 4</span></div>
+<span class="muted" style="font-family:var(--mono);font-size:13px">0417.totem.near</span>
+<span class="muted" style="font-size:13px">Selling transfers the whole account: tokens, items, credentials and future royalties.</span>
+</div>
+<div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
+<div class="grid g4" id="acctStats"></div>
+<div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="muted">Inventory</span><div class="inv" id="inv"></div></div>
+<div class="tbl"><table><thead><tr><th>When</th><th>What</th><th style="text-align:right">Amount</th></tr></thead><tbody id="ledger"></tbody></table></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ROOMS -->
+<section class="page" data-route="rooms" data-title="Rooms">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1 id="roomTitle">Holder room</h1><div class="seg" role="group" aria-label="Room"><button type="button" data-room="holder" aria-pressed="true">Holder room</button><button type="button" data-room="treasury" aria-pressed="false">Treasury room</button></div></div>
+<div id="roomBody"></div>
+</div>
+</section>
+
+<!-- ARENA -->
+<section class="page" data-route="arena" data-title="Arena">
+<div class="scene" id="arenaScene">
+<div class="canvas-box" id="arenaBox"><canvas id="arenaCanvas" role="img" aria-label="3D island with Arena venues. Drag to turn, scroll or pinch to zoom, choose a venue label to see details."></canvas><div id="arenaTags"></div>
+<div class="hud"><span class="pill" style="background:#000;color:#fff;border-color:#000">Totem Arena, season 1</span><a class="pill" href="#arenas" style="text-decoration:none;color:#000">Switch arena</a><span class="pill" id="prizeCount">14 prize Totems waiting</span><span class="pill muted">Drag to look around</span></div>
+</div>
+<aside class="panel" id="arenaPanel" aria-live="polite"></aside>
+</div>
+</section>
+
+<!-- PLAY -->
+<section class="page" data-route="play" data-title="Meme Kart">
+<div class="game" id="game">
+<canvas id="gameCanvas" role="img" aria-label="Meme Kart race. Arrow keys or WASD to drive, space to drift."></canvas>
+<div class="ghud" id="ghud" hidden>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><div class="gbox"><small>Lap</small><b id="hLap">1/3</b></div><div class="gbox"><small>Place</small><b id="hPos">1/6</b></div><div class="gbox"><small>$TOTEM</small><b id="hCoins">0</b></div></div>
+<div style="display:flex;gap:8px"><div class="gbox"><small>Time</small><b id="hTime">0:00.0</b></div><button class="btn small ghost" type="button" id="quitRace" style="background:#fff;pointer-events:auto">Quit</button></div>
+</div>
+<canvas id="minimap" width="300" height="300" aria-hidden="true" hidden></canvas>
+<div class="touch" id="touch" hidden>
+<div class="pad"><button type="button" data-k="left" aria-label="Steer left">Left</button><button type="button" data-k="right" aria-label="Steer right">Right</button></div>
+<div class="pad"><button type="button" data-k="drift" aria-label="Drift">Drift</button><button type="button" class="go" data-k="gas" aria-label="Accelerate">Go</button></div>
+</div>
+<div class="overlay" id="gOverlay"></div>
+</div>
+</section>
+
+<!-- BUILD -->
+<section class="page" data-route="build" data-title="Builders">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>Plug your game into the Arena</h1><a class="btn" href="#arena">See the island</a></div>
+<p style="font-size:19px;max-width:720px;color:var(--body)">Communities choose which games run in their Arena. Totem is the first. Any community can add a game to its corner of the island. Players drive, fight or solve with their Totem. Results are signed, checked, and prizes land inside the winner’s Totem.</p>
+<div class="grid g3" style="margin:32px 0">
+<div class="card"><span class="chip">Step 1</span><h3 style="font-size:30px;margin-top:10px">Describe the game</h3><p class="muted" style="margin-top:6px">A manifest says which Totems can play, how to win and what the prize is.</p></div>
+<div class="card"><span class="chip">Step 2</span><h3 style="font-size:30px;margin-top:10px">Read the Totem</h3><p class="muted" style="margin-top:6px">Load pieces, items and credentials to build the player’s character and stats.</p></div>
+<div class="card"><span class="chip">Step 3</span><h3 style="font-size:30px;margin-top:10px">Report the result</h3><p class="muted" style="margin-top:6px">Your game server signs results. After a short dispute window, prizes pay out.</p></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+<div style="flex:1 1 460px;min-width:0;display:flex;flex-direction:column;gap:14px">
+<h2 style="font-size:36px">totem.game.json</h2>
+<pre><code>{
+  <span class="s">"name"</span>: <span class="s">"Meme Kart"</span>,
+  <span class="s">"community"</span>: <span class="s">"totem.near"</span>,
+  <span class="s">"venue"</span>: { <span class="s">"plot"</span>: <span class="s">"north-shore"</span>, <span class="s">"model"</span>: <span class="s">"circuit"</span> },
+  <span class="s">"entry"</span>: { <span class="s">"minPieces"</span>: 0 },
+  <span class="s">"character"</span>: { <span class="s">"from"</span>: <span class="s">"totem"</span>, <span class="s">"stats"</span>: [<span class="s">"pieces"</span>, <span class="s">"items"</span>] },
+  <span class="s">"win"</span>: <span class="s">"first across the line, 3 laps"</span>,
+  <span class="s">"prize"</span>: { <span class="s">"totem"</span>: <span class="s">"prefilled"</span>, <span class="s">"pieces"</span>: 1 },
+  <span class="s">"reporter"</span>: <span class="s">"kart-server.totem.near"</span>
+}</code></pre>
+<h2 style="font-size:36px;margin-top:10px">In your game</h2>
+<pre><code><span class="k">import</span> { Totem } <span class="k">from</span> <span class="s">"@totem/arena"</span>;
+
+<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"0417.totem.near"</span>);
+<span class="c">// { pieces: 3, items: ["gold-wings"], credentials: [...] }</span>
+<span class="k">const</span> kart = buildKart(player.pieces, player.items);
+
+<span class="c">// after the race, from your game server</span>
+<span class="k">await</span> Totem.report({ game: <span class="s">"meme-kart"</span>, winner: player.id, proof });</code></pre>
+</div>
+<div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:14px">
+<div class="card ink" style="display:flex;flex-direction:column;gap:12px">
+<h2 style="font-size:32px">Register a game</h2>
+<label class="f">Game name<input type="text" id="gName" value="Totem Maze"></label>
+<label class="f">Community<select id="gComm"><option>Totem Arena</option><option disabled>More Arenas as communities launch</option></select></label>
+<label class="f">Type<select id="gType"><option>Racing</option><option>Puzzle</option><option>Open world</option><option>Fighting</option><option>Co-op raid</option></select></label>
+<label class="f">Prize per winner<select id="gPrize"><option>Prize Totem, 1 piece</option><option>Item for the winner’s Totem</option><option>Credential only</option></select></label>
+<button class="btn" type="button" id="regGame">Add to the island</button>
+</div>
+<div id="myGames" class="grid"></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- PAINT -->
+<section class="page" data-route="paint" data-title="Paint the Island">
+<div class="game" id="paintGame" style="background:#F6F6F2">
+<canvas id="paintCanvas" role="img" aria-label="Island map of tiles. Choose a tile next to your color to paint it."></canvas>
+<div class="ghud" id="pHud">
+<div style="display:flex;gap:8px;flex-wrap:wrap"><div class="gbox"><small>Paint left</small><b id="pPaint">14</b></div><div class="gbox"><small>Time</small><b id="pTime">60</b></div></div>
+<div class="gbox" style="min-width:min(360px,60vw)"><small>Island control</small><div id="pBar" style="display:flex;height:12px;border-radius:999px;overflow:hidden;margin-top:6px;border:1px solid #000"></div><div id="pLegend" style="display:flex;gap:10px;font-size:12px;margin-top:6px;flex-wrap:wrap"></div></div>
+</div>
+<div class="overlay" id="pOverlay"></div>
+</div>
+</section>
+
+<!-- RENT -->
+<section class="page" data-route="rent" data-title="Rent a Totem">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>Rent a Totem</h1><div class="seg" role="group" aria-label="Rent or lend"><button type="button" data-rt="rent" aria-pressed="true">Rent one</button><button type="button" data-rt="lend" aria-pressed="false">Lend mine</button></div></div>
+<p style="font-size:18px;max-width:720px;color:var(--body);margin-bottom:24px">Borrow a full Totem for a race or a week. You get a limited key that can play games and enter rooms. It can never withdraw tokens, sell or transfer the Totem, and it expires on its own.</p>
+<div id="rentBody"></div>
+</div>
+</section>
+
+<!-- CLAIM -->
+<section class="page" data-route="claim" data-title="Claim free">
+<div class="wrap" style="padding-bottom:64px;max-width:880px">
+<div class="ph"><h1>Your first Totem, no gas</h1></div>
+<p style="font-size:18px;color:var(--body);margin-bottom:24px">Won a race but don’t have a wallet or NEAR? Sign in with email or a passkey. Totem pays the network fee for you, and the prize lands in a Totem you own.</p>
+<ol id="claimSteps" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px"></ol>
+</div>
+</section>
+
+<!-- EXPLORE -->
+<section class="page" data-route="explore" data-title="Explore">
+<div class="wrap" style="padding-bottom:64px">
+<div class="ph"><h1>Explore</h1></div>
+<label style="display:block;max-width:760px;position:relative"><span class="sr">Search Totem</span>
+<input type="search" id="exSearch" placeholder="Search tokens, NFTs, Arenas, games or players" autocomplete="off" style="min-height:60px;font-size:18px;border-radius:18px;border:1.5px solid #000;padding:0 20px 0 52px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="position:absolute;left:20px;top:20px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></label>
+<div id="exResults" aria-live="polite" style="margin-top:14px"></div>
+<div id="exBody"></div>
+</div>
+</section>
+
+<!-- PROFILE -->
+<section class="page" data-route="profile" data-title="Profile">
+<div class="wrap" style="padding-bottom:64px" id="profileBody"></div>
+</section>
+
+<section class="page" data-route="nft" data-title="Totem NFT">
+<div class="wrap" style="padding-bottom:64px" id="nftRoot"></div>
+</section>
+
+<section class="page" data-route="market" data-title="Market">
+<div class="wrap" style="padding-bottom:64px" id="marketRoot"></div>
+</section>
+
+<section class="page" data-route="season" data-title="Season">
+<div class="wrap" style="padding-bottom:64px" id="seasonRoot"></div>
+</section>
+
+<section class="page" data-route="rules" data-title="Rules and fairness">
+<div class="wrap" style="padding-bottom:64px" id="rulesRoot"></div>
+</section>
+
+<section class="page" data-route="clash" data-title="Meme Clash">
+<div class="wrap" style="padding-bottom:64px" id="clashRoot"></div>
+</section>
+
+<section class="page" data-route="raid" data-title="Ritual Raid">
+<div class="wrap" style="padding-bottom:64px" id="raidRoot"></div>
+</section>
+
+<section class="page" data-route="bagwork" data-title="Bagwork">
+<div class="wrap" style="padding-bottom:64px" id="bagRoot"></div>
+</section>
+
+<section class="page" data-route="fish" data-title="Fishing Pier">
+<div class="wrap" style="padding-bottom:64px" id="fishRoot"></div>
+</section>
+
+<section class="page" data-route="agents" data-title="Agent Bazaar">
+<div class="wrap" style="padding-bottom:64px" id="agentsRoot"></div>
+</section>
+
+<section class="page" data-route="stack" data-title="Stack Attack">
+<div class="game" id="stGame" style="background:#F6F6F2"><canvas id="stCanvas" role="img" aria-label="Stack Attack. Tap or press space to drop the moving piece onto the tower."></canvas><div class="ghud" id="stHud"></div><div class="overlay" id="stOver"></div></div>
+</section>
+
+<section class="page" data-route="run" data-title="Red Day Run">
+<div class="game" id="rnGame" style="background:#F6F6F2"><canvas id="rnCanvas" role="img" aria-label="Red Day Run. Tap or press space to jump over red candles."></canvas><div class="ghud" id="rnHud"></div><div class="overlay" id="rnOver"></div></div>
+</section>
+
+<section class="page" data-route="heist" data-title="Vault Heist">
+<div class="game" id="hzGame" style="background:#F6F6F2"><canvas id="hzCanvas" role="img" aria-label="Vault Heist. Move with arrow keys or the on-screen pad. Collect loot and escape without meeting a guard."></canvas><div class="ghud" id="hzHud"></div><div class="overlay" id="hzOver"></div></div>
+</section>
+</main>

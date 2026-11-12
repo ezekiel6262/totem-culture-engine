@@ -60,11 +60,25 @@ test('NFT launch config converts price and royalties into enforceable init args'
   });
 });
 
-test('all Forge and Arena component scripts parse as JavaScript', () => {
-  for (const file of ['dist/Token-First.dc.html', 'dist/NFT-First.dc.html', 'dist/Twin-Launch.dc.html', 'dist/Forge-DNA.dc.html', 'dist/Launch-Review.dc.html', 'dist/Access.dc.html', 'dist/Arena.dc.html', 'dist/Market.dc.html']) {
-    const html = fs.readFileSync(file, 'utf8');
-    const scripts = [...html.matchAll(/<script type="text\/x-dc" data-dc-script>([\s\S]*?)<\/script>/g)];
-    assert.ok(scripts.length, `${file} includes a component script`);
-    for (const [, source] of scripts) new vm.Script(source, { filename: file });
+test('every frontend source part parses as JavaScript', () => {
+  const parts = fs.readdirSync('frontend/site').filter(name => /^p\d+\.html$/.test(name));
+  assert.ok(parts.length, 'frontend/site holds the UI source parts');
+  let inlineScripts = 0;
+  for (const name of parts) {
+    const html = fs.readFileSync(`frontend/site/${name}`, 'utf8');
+    for (const [, source] of html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+      if (!source.trim()) continue;
+      inlineScripts += 1;
+      new vm.Script(source, { filename: `frontend/site/${name}` });
+    }
   }
+  assert.ok(inlineScripts >= parts.length - 2, 'most parts carry an inline module');
+});
+
+test('the built page is the concatenation of the source parts', () => {
+  const parts = fs.readdirSync('frontend/site')
+    .filter(name => /^p\d+\.html$/.test(name))
+    .sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+  const expected = parts.map(name => fs.readFileSync(`frontend/site/${name}`, 'utf8')).join('');
+  assert.equal(fs.readFileSync('dist/index.html', 'utf8'), expected);
 });

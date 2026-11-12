@@ -1,0 +1,294 @@
+<style>
+#chainBtn{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:65;min-height:44px;padding:0 14px;border-radius:999px;border:1.5px solid #000;background:#fff;color:#000;font-size:14px;font-weight:500;cursor:pointer;box-shadow:3px 3px 0 #000}
+#chainBtn b{display:inline-block;min-width:20px;height:20px;border-radius:999px;background:#00B97F;margin-left:6px;font-size:12px;line-height:20px;text-align:center}
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:75;background:#fff;color:#000;border-top:1.5px solid #000;border-radius:22px 22px 0 0;max-height:72vh;overflow:auto;padding:20px clamp(16px,4vw,32px) calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 -10px 40px rgba(0,0,0,.12)}
+.drawer.open{transform:none}
+.call{border:1px solid #E6E6E0;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.call code{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all;background:#F6F6F2;border-radius:10px;padding:10px;display:block}
+#tour{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:78;width:min(640px,calc(100vw - 24px));background:#fff;color:#000;border:1.5px solid #000;border-radius:22px;box-shadow:6px 6px 0 #00B97F;padding:18px;display:none;flex-direction:column;gap:10px}
+#tour.on{display:flex}
+#shareModal{position:fixed;inset:0;z-index:85;background:rgba(255,255,255,.8);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+#shareModal.on{display:flex}
+#shareModal img{width:100%;border-radius:14px;border:1px solid #E6E6E0;display:block}
+.lb td:first-child{font-weight:600;width:40px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+</style>
+<button id="chainBtn" type="button" aria-controls="chainDrawer" aria-expanded="false">Onchain<b id="chainN">0</b></button>
+<div class="drawer" id="chainDrawer" role="dialog" aria-label="What happens onchain">
+<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="font-size:34px">What happens onchain</h2><button class="btn small ghost" type="button" id="chainClose">Close</button></div>
+<p class="muted" style="font-size:14px;margin-top:4px">Every action in this demo shows the NEAR call it would make. Contract names are planned. Nothing is sent from this preview.</p>
+<div id="chainList"></div>
+</div>
+<div id="tour" role="dialog" aria-label="Guided tour" aria-live="polite">
+<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="chip g" id="tourStep">Step 1 of 11</span><button class="btn small ghost" type="button" id="tourExit">Exit tour</button></div>
+<h2 style="font-size:30px;line-height:1.1" id="tourTitle"></h2>
+<p style="color:#34342F" id="tourText"></p>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small ghost" type="button" id="tourBack">Back</button><button class="btn small" type="button" id="tourNext">Next</button><button class="btn small ghost" type="button" id="tourChain">Show the onchain call</button></div>
+</div>
+<div id="shareModal" role="dialog" aria-label="Share card"><div class="card ink" style="max-width:640px;width:100%;display:flex;flex-direction:column;gap:12px;background:#fff;color:#000">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="font-size:30px">Share it</h2><button class="btn small ghost" type="button" id="shareClose">Close</button></div>
+<img id="shareImg" alt="">
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="shareSave">Save image</button><button class="btn ghost" type="button" id="shareX">Post on X</button><button class="btn ghost" type="button" id="shareCopy">Copy text</button></div>
+<span class="muted" style="font-size:13px" id="shareNote"></span>
+</div></div>
+<script>
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const yocto = (n) => String(n) + '000000000000000000000000';
+
+/* ======================= ONCHAIN DRAWER ======================= */
+const calls = [];
+function renderCalls(){
+  $('#chainN').textContent = calls.length;
+  $('#chainList').innerHTML = calls.length ? calls.map((c) => '<div class="call"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>' + esc(c.title) + '</strong><span class="muted" style="font-size:13px">' + c.when + '</span></div>' +
+    c.steps.map((s) => '<span class="muted" style="font-size:13px">' + esc(s.who || ('Signed by ' + (S.connected ? S.account : 'your wallet'))) + '</span><code>' + esc(s.receiver) + ' . ' + esc(s.method) + '(' + esc(JSON.stringify(s.args, null, 2)) + ')' + (s.deposit ? '\nattached deposit: ' + esc(s.deposit) : '') + '</code>').join('') + '</div>').join('')
+    : '<p class="muted" style="margin-top:14px">Do something on the site, like adding a piece or renting a Totem, and its NEAR call appears here.</p>';
+}
+T.chain = function(title, steps, quiet){
+  calls.unshift({ title, steps, when: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  if (calls.length > 30) calls.pop();
+  renderCalls();
+  const b = $('#chainBtn'); b.animate && !T.reduce && b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 380 });
+};
+T.calls = {
+  addPiece: () => T.chain('Lock a piece', [{ receiver: 'token.totem.near', method: 'ft_transfer_call', args: { receiver_id: '0417.totem.near', amount: yocto(25000), msg: '{"action":"add_piece"}' }, deposit: '1 yoctoNEAR' }]),
+  takePiece: () => T.chain('Take a piece out', [{ receiver: '0417.totem.near', method: 'withdraw_piece', args: { pieces: 1 }, deposit: '1 yoctoNEAR' }]),
+  rent: (id, term, price) => T.chain('Rent Totem #' + id, [{ receiver: 'rent.totem.near', method: 'rent', args: { token_id: id, term }, deposit: price + ' NEAR' }, { who: 'Then rent.totem.near adds a limited key', receiver: id + '.totem.near', method: 'add_renter_key', args: { renter: S.connected ? S.account : 'you.near', allowed_receiver: 'arena.totem.near', methods: ['play', 'enter_room'], expires: term === 'race' ? 'after 1 race' : '7 days' } }]),
+  lend: (on) => T.chain(on ? 'List Totem #0417 for rent' : 'Stop lending Totem #0417', [{ receiver: 'rent.totem.near', method: on ? 'list' : 'delist', args: { token_id: '0417' } }]),
+  claim: (h, prize) => T.chain('Gasless claim', [{ who: 'Relayer pays the fee (NEAR meta-transaction)', receiver: 'relayer.totem.near', method: 'relay_delegate_action', args: { sender: h, actions: ['create_account', 'claim_' + (prize ? 'prize' : 'starter')] } }, { who: 'Executed for ' + h, receiver: 'arena.totem.near', method: prize ? 'claim_prize' : 'claim_starter', args: { account: h } }]),
+  enter: () => T.chain('Enter Totem Arena', [{ who: 'Read only, no fee', receiver: 'arena.totem.near', method: 'check_entry', args: { account: S.connected ? S.account : 'you.near', rule: { min_pieces: S.entryPieces || 1 } } }]),
+  result: (game, place, coins) => T.chain(game + ' result', [{ who: 'Signed by the game server key', receiver: 'arena.totem.near', method: 'report_result', args: { game, player: S.connected ? S.account : 'you.near', place, coins: yocto(coins), proof: 'ed25519:...' } }, { who: 'After the 24 hour dispute window', receiver: 'arena.totem.near', method: 'settle', args: { game } }]),
+  operator: (method, args) => T.chain('Operator: ' + method.replace(/_/g, ' '), [{ who: 'Signed by the Totem Arena admin key', receiver: 'arena.totem.near', method, args }]),
+  deploy: (l) => T.chain('Launch ' + l.collection, [{ receiver: 'totem.near', method: 'create_collection', args: { token: l.token, collection: l.collection, tokens_per_piece: yocto(l.size), pieces: 4 }, deposit: 'Launch fee in $TOTEM' }, { receiver: 'totem.near', method: 'create_arena', args: { collection: l.collection, status: 'pending_review' } }]),
+  merge: (from) => T.chain('Merge Totem #' + from + ' into #0417', [{ receiver: 'totem.near', method: 'merge', args: { from_token_id: from, into_token_id: '0417' } }]),
+  split: (to) => T.chain('Gift a piece', [{ receiver: '0417.totem.near', method: 'split_piece', args: { receiver_id: to, pieces: 1 }, deposit: '0.01 NEAR for the new Totem account' }]),
+  buy: (id, price) => T.chain('Buy Totem #' + id, [{ receiver: 'market.totem.near', method: 'buy', args: { token_id: id }, deposit: price + ' NEAR' }, { who: 'Market transfers the whole Totem account', receiver: 'totem.near', method: 'nft_transfer', args: { token_id: id, receiver_id: S.connected ? S.account : 'you.near' } }]),
+  vote: (id, side) => T.chain('Treasury vote', [{ receiver: 'treasury.totem.near', method: 'vote', args: { proposal: id, vote: side, weight_from: '0417.totem.near pieces' } }])
+};
+$('#chainBtn').addEventListener('click', () => { const d = $('#chainDrawer'); const o = !d.classList.contains('open'); d.classList.toggle('open', o); $('#chainBtn').setAttribute('aria-expanded', o); });
+$('#chainClose').addEventListener('click', () => { $('#chainDrawer').classList.remove('open'); $('#chainBtn').setAttribute('aria-expanded', 'false'); });
+renderCalls();
+function chainVis(){ const h = (location.hash || '').slice(1); $('#chainBtn').style.display = ['play', 'paint', 'stack', 'run', 'heist'].includes(h) ? 'none' : ''; }
+window.addEventListener('hashchange', chainVis); chainVis();
+
+/* hook existing actions */
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button,a'); if (!t) return;
+  if (t.id === 'addPiece' && S.pieces < 4 && S.wallet >= 25000) T.calls.addPiece();
+  if (t.id === 'takePiece' && S.pieces > 0) T.calls.takePiece();
+  if (t.dataset && t.dataset.rent) { const l = { '1201': [2, 9], '0088': [1.5, 7], '0533': [1, 5], '2140': [2.5, 11] }[t.dataset.rent] || [2, 9]; T.calls.rent(t.dataset.rent, t.dataset.term, t.dataset.term === 'race' ? l[0] : l[1]); }
+  if (t.id === 'listBtn') T.calls.lend(!S.listing);
+  if (t.id === 'enterTotem') T.calls.enter();
+  if (t.id === 'opLive') T.calls.operator('set_status', { live: !!S.arenaPaused });
+  if (t.id === 'opSend') T.calls.operator('send_prizes', { count: Math.max(0, 3 - (S.delivered || 0)) });
+  if (t.dataset && t.dataset.ap) T.calls.operator('approve_game', { index: +t.dataset.ap });
+  if (t.dataset && t.dataset.v && t.dataset.p) T.calls.vote(t.dataset.p, t.dataset.v === 'y' ? 'yes' : 'no');
+  if (t.id === 'cClaim') T.calls.claim((S.email || 'player').split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() + '.totem.near', !!S.pendingPrize);
+  if (t.id === 'deployBtn') setTimeout(() => { if (S.launches && S.launches[0]) T.calls.deploy(S.launches[0]); }, 50);
+  T.sfx('tap');
+}, true);
+document.addEventListener('change', (e) => { if (e.target.id === 'opRule') T.calls.operator('set_entry_rule', { min_pieces: +e.target.value }); });
+
+/* ======================= SOUND AND HAPTICS ======================= */
+let ac = null;
+T.sfx = function(kind){
+  if (S.mute) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = { tap: [[660, 0.04]], coin: [[988, 0.06], [1319, 0.08]], paint: [[523, 0.05]], win: [[523, 0.1], [659, 0.1], [784, 0.1], [1047, 0.22]], lose: [[392, 0.14], [311, 0.22]], boost: [[300, 0.05], [600, 0.12]], piece: [[440, 0.07], [660, 0.12]], drop: [[220, 0.06]] }[kind] || [[600, 0.05]];
+    let t = ac.currentTime;
+    notes.forEach(([f, d]) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = kind === 'tap' ? 'triangle' : 'square'; o.frequency.value = f; g.gain.setValueAtTime(kind === 'tap' ? 0.03 : 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.9; });
+    if (navigator.vibrate && kind !== 'tap') navigator.vibrate(kind === 'win' ? [20, 40, 20] : 12);
+  } catch (e) {}
+};
+function paintSound(){ $('#soundBtn').setAttribute('aria-pressed', !S.mute); $('#soundBtn').setAttribute('aria-label', S.mute ? 'Sound off' : 'Sound on'); const w = $('#soundWave'); if (w) w.style.display = S.mute ? 'none' : ''; }
+$('#soundBtn').addEventListener('click', () => { S.mute = !S.mute; T.save(); paintSound(); T.toast(S.mute ? 'Sound and vibration off' : 'Sound and vibration on'); });
+paintSound();
+document.addEventListener('click', (e) => { const t = e.target.closest('button'); if (!t) return; if (t.id === 'addPiece') T.sfx('piece'); if (t.id === 'takePiece') T.sfx('drop'); }, false);
+
+/* ======================= LOW POWER ======================= */
+function paintLP(){ const b = $('#lowPowerBtn'); if (b) { b.textContent = S.lowPower ? 'Low-power mode is on' : 'Low-power mode'; b.setAttribute('aria-pressed', !!S.lowPower); } }
+$('#lowPowerBtn').addEventListener('click', () => { S.lowPower = !S.lowPower; T.save(); T.toast(S.lowPower ? 'Low-power mode on. Reloading with lighter 3D.' : 'Full 3D back on. Reloading.'); setTimeout(() => location.reload(), 900); });
+paintLP();
+if (S.lowPower) { const hc = $('#homeCanvas'); if (hc) { const box = document.createElement('div'); box.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:8vw;gap:18px;opacity:.9'; box.innerHTML = T.svgTotem(1, 70) + T.svgTotem(2, 90) + T.svgTotem(4, 140, 'wings') + T.svgTotem(3, 90); hc.style.display = 'none'; hc.parentElement.insertBefore(box, hc); } T.modules.home = { enter(){ const beats = $$('.beat'); const upd = () => { const f = $('#film'); const p = Math.min(1, Math.max(0, (window.scrollY - f.offsetTop) / Math.max(1, f.offsetHeight - innerHeight))) * 4; beats.forEach((b, i) => b.classList.toggle('on', i === Math.round(p))); }; window.addEventListener('scroll', upd, { passive: true }); upd(); }, leave(){} }; }
+
+/* ======================= SHARE CARDS ======================= */
+let shareBlob = null, shareText = '';
+T.share = function(o){
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 630; const x = c.getContext('2d');
+  x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, 1200, 630);
+  x.fillStyle = '#F6F6F2'; x.fillRect(760, 0, 440, 630);
+  const pieces = o.pieces == null ? S.pieces : o.pieces, G = '#00B97F';
+  const rr = (X, Y, W, H, R) => { x.beginPath(); x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R); x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath(); };
+  x.lineWidth = 6; x.strokeStyle = '#000';
+  [[0, 1], [1, 2], [2, 3]].forEach(([i, k]) => { rr(870, 470 - i * 104, 220, 92, 22); x.fillStyle = pieces >= k ? G : '#FFFFFF'; x.fill(); x.stroke(); });
+  x.beginPath(); x.moveTo(878, 262); x.lineTo(912, 186); x.lineTo(950, 232); x.lineTo(980, 170); x.lineTo(1010, 232); x.lineTo(1048, 186); x.lineTo(1082, 262); x.closePath(); x.fillStyle = pieces >= 4 ? G : '#FFFFFF'; x.fill(); x.stroke();
+  x.fillStyle = '#000'; x.beginPath(); x.arc(940, 312, 13, 0, 7); x.arc(1020, 312, 13, 0, 7); x.fill();
+  x.fillStyle = '#000'; x.font = '400 46px "Instrument Serif", Georgia, serif'; x.fillText('Totem', 60, 92);
+  x.font = '400 92px "Instrument Serif", Georgia, serif';
+  const words = o.title.split(' '); let line = '', y = 230; words.forEach((w) => { const t = line ? line + ' ' + w : w; if (x.measureText(t).width > 640) { x.fillText(line, 60, y); line = w; y += 92; } else line = t; }); x.fillText(line, 60, y);
+  x.fillStyle = '#FFF09A'; x.fillRect(56, y + 40, Math.min(660, x.measureText(o.stat || '').width * 0.62 + 30), 40);
+  x.fillStyle = '#000'; x.font = '600 44px Geist, system-ui, sans-serif'; x.fillText(o.stat || '', 60, y + 74);
+  x.fillStyle = '#5E5E57'; x.font = '400 28px Geist, system-ui, sans-serif'; x.fillText(o.line || '', 60, 570);
+  x.fillText('$TOTEM on NEAR', 880, 590);
+  shareText = o.text || (o.title + '. ' + (o.stat || '') + ' on Totem, the Arena for meme cultures on NEAR. $TOTEM');
+  $('#shareImg').src = c.toDataURL('image/png'); $('#shareImg').alt = 'Share card: ' + o.title + ', ' + (o.stat || '');
+  c.toBlob((b) => { shareBlob = b; });
+  $('#shareNote').textContent = '';
+  $('#shareModal').classList.add('on'); $('#shareClose').focus();
+};
+$('#shareClose').addEventListener('click', () => $('#shareModal').classList.remove('on'));
+$('#shareModal').addEventListener('click', (e) => { if (e.target.id === 'shareModal') $('#shareModal').classList.remove('on'); });
+$('#shareX').addEventListener('click', () => { window.open('https://x.com/intent/post?text=' + encodeURIComponent(shareText), '_blank', 'noopener'); });
+$('#shareCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(shareText); $('#shareNote').textContent = 'Text copied.'; } catch (e) { $('#shareNote').textContent = shareText; } });
+$('#shareSave').addEventListener('click', async () => {
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+  if (!dl || !shareBlob) { $('#shareNote').textContent = 'Saving isn’t available here. Long-press or right-click the image to save it.'; return; }
+  try { await dl.save({ filename: 'totem-share.png', data: shareBlob }); $('#shareNote').textContent = 'Saved.'; } catch (e) { $('#shareNote').textContent = e && e.code === 'declined' ? 'Not saved.' : 'Saving isn’t available here. Long-press or right-click the image to save it.'; }
+});
+
+/* ======================= GUIDED TOUR ======================= */
+const TOUR = [
+  ['home', 'Totem in one line', 'Token communities launch NFTs that hold their token. The NFT is an account: it holds money, earns, carries items and opens rooms. $TOTEM is the first culture on the platform.', null],
+  ['explore', 'Explore', 'Live tokens, NFTs with live tokens, trending Arenas and free ways to earn, all searchable.', null],
+  ['claim', 'No wallet? No problem.', 'A new player signs in with email or a passkey. A relayer pays the NEAR fee, so the first Totem is free to claim.', 'claim'],
+  ['arenas', 'Pick an Arena', 'Every community gets its own Arena with its own entry rule. Totem Arena is the first and only live one. Entry is checked against your NFT.', 'enter'],
+  ['arena', 'The Arena is a 3D island', 'Each venue is a game: Meme Kart, Paint the Island, Ritual Raid, Vault Heist and more. Builders can attach their own games.', null],
+  ['rent', 'Rent a full Totem', 'Borrow a full Totem with a limited NEAR key. It can play and enter rooms. It can never withdraw, sell or transfer.', 'rent'],
+  ['play', 'Your NFT is your driver', 'Pieces raise top speed, items change handling. Win and the prize is a Totem with $TOTEM already inside.', 'result'],
+  ['paint', 'Paint the Island', 'Houses fight for the island. Every piece in your Totem gives 4 paint.', null],
+  ['lock', 'Take tokens out, lose a piece', 'Lock 25,000 $TOTEM to add a piece. Withdraw and the top piece comes off. Selling the NFT sells everything inside.', 'addPiece'],
+  ['totem', 'The NFT is an account', 'Its own NEAR account holds tokens, prizes, royalties, items, credentials and even assets on other chains.', null],
+  ['profile', 'Profile and operator tools', 'See every NFT and which Arenas it opens. Launchers track their collection and Arena. Operators set entry rules and send prizes.', null]
+];
+let tStep = 0;
+function tourShow(){
+  const st = TOUR[tStep];
+  if (st[0] === 'arena' || st[0] === 'play' || st[0] === 'paint') { S.arena = 'totem'; S.arenaPaused = false; T.save(); }
+  if (st[0] === 'profile' && !S.connected) { S.connected = true; T.save(); const b = $('#connectBtn'); if (b) b.textContent = S.account; }
+  if (location.hash !== '#' + st[0]) location.hash = '#' + st[0];
+  $('#tour').classList.add('on');
+  $('#tourStep').textContent = 'Step ' + (tStep + 1) + ' of ' + TOUR.length;
+  $('#tourTitle').textContent = st[1]; $('#tourText').textContent = st[2];
+  $('#tourBack').setAttribute('aria-disabled', tStep === 0);
+  $('#tourNext').textContent = tStep === TOUR.length - 1 ? 'Finish' : 'Next';
+  $('#tourChain').style.display = st[3] ? '' : 'none';
+}
+T.tour = function(){ tStep = 0; tourShow(); };
+$$('[data-tour]').forEach((b) => b.addEventListener('click', T.tour));
+$('#tourNext').addEventListener('click', () => { if (tStep >= TOUR.length - 1) { $('#tour').classList.remove('on'); T.toast('Tour finished. Everything you saw is clickable.'); return; } tStep++; tourShow(); });
+$('#tourBack').addEventListener('click', () => { if (tStep > 0) { tStep--; tourShow(); } });
+$('#tourExit').addEventListener('click', () => $('#tour').classList.remove('on'));
+$('#tourChain').addEventListener('click', () => {
+  const k = TOUR[tStep][3];
+  if (k === 'claim') T.calls.claim('you.totem.near', true); else if (k === 'enter') T.calls.enter(); else if (k === 'rent') T.calls.rent('1201', 'race', 2); else if (k === 'result') T.calls.result('meme-kart', 1, 6000); else if (k === 'addPiece') T.calls.addPiece();
+  $('#chainDrawer').classList.add('open');
+});
+
+/* ======================= DATA FOR NFT PAGES AND MARKET ======================= */
+const NFTS = {
+  '0417': () => ({ owner: S.account, pieces: S.pieces, items: ['Gold Wings', 'Red Moon relic', 'Vault key'].concat(S.items || []), creds: ['Founding mark', 'Raid squad'].concat(S.prizes.filter((p) => !/^Prize Totem/.test(p))), race: S.ghostT ? fmtT(S.ghostT) : 'No race yet', rent: S.listing ? 'Listed for rent' : 'Not listed', mine: true }),
+  '1201': () => ({ owner: 'kofi.near', pieces: 4, items: ['Gold Wings', 'Ember Crown'], creds: ['Meme Kart champion'], race: '1:38.2', rent: 'For rent, 2 NEAR per race' }),
+  '0088': () => ({ owner: 'weaver.near', pieces: 4, items: ['Kente Wings'], creds: ['Item maker'], race: '1:44.9', rent: 'For rent, 1.5 NEAR per race' }),
+  '0533': () => ({ owner: 'tunde.near', pieces: 3, items: ['Vault key'], creds: ['Raid leader'], race: '1:51.0', rent: 'For rent, 1 NEAR per race' }),
+  '2140': () => ({ owner: 'sol:4kQ..9z', pieces: 4, items: ['Island flag'], creds: ['Arrived via Intents'], race: '1:47.3', rent: 'For rent, 2.5 NEAR per race' }),
+  '0731': () => ({ owner: 'ife.near', pieces: 2, items: [], creds: [], race: 'No race yet', rent: 'Not listed' }),
+  '1999': () => ({ owner: 'moremi.near', pieces: 4, items: ['Ember Crown', 'Harbor hat'], creds: ['Hold the Line finisher'], race: '1:41.6', rent: 'Not listed' }),
+  '0062': () => ({ owner: 'zeal.near', pieces: 1, items: [], creds: [], race: 'No race yet', rent: 'Not listed' })
+};
+function fmtT(ms){ const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); }
+T.nftData = NFTS;
+const MARKET = [{ id: '0731', price: 9 }, { id: '1999', price: 26 }, { id: '0062', price: 4.5 }];
+
+/* ======================= PUBLIC NFT PAGE ======================= */
+T.modules.nft = { enter(){
+  const id = T.param.nft || '0417'; const f = NFTS[id] ? NFTS[id]() : (S.bought.find((b) => b.id === id) ? { owner: S.account, pieces: S.bought.find((b) => b.id === id).pieces, items: [], creds: [], race: 'No race yet', rent: 'Not listed', mine: true } : null);
+  const root = $('#nftRoot');
+  if (!f) { root.innerHTML = '<div class="ph"><h1>Totem #' + esc(id) + '</h1></div><div class="card">This Totem isn’t in the demo yet. <a href="#explore">Search Explore</a>.</div>'; return; }
+  const mine = f.mine || f.owner === S.account;
+  root.innerHTML = '<div class="ph"><div><span class="muted">Public page</span><h1>Totem #' + id + '</h1></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="nftShare">Share</button>' + (mine ? '<a class="btn" href="#lock">Manage</a>' : f.rent.indexOf('For rent') === 0 ? '<a class="btn" href="#rent">Rent it</a>' : '<a class="btn" href="#market">See the market</a>') + '</div></div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div class="card ink" style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">' + T.svgTotem(f.pieces, 150, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<span class="chip g">' + f.pieces + ' of 4 pieces</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + id + '.totem.near</span></div>' +
+    '<div style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px"><div class="grid g4">' +
+    [['Owner', esc(f.owner)], ['Holds', '<span class="mark">' + T.fmt(f.pieces * 25000) + ' $TOTEM</span>'], ['Best Meme Kart', f.race], ['Rental', f.rent]].map((s) => '<div class="card"><span class="muted" style="font-size:13px">' + s[0] + '</span><div style="font-size:20px;font-weight:600;margin-top:4px">' + s[1] + '</div></div>').join('') + '</div>' +
+    '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Live Arenas</strong><br>' + (f.pieces >= (S.entryPieces || 1) ? 'Totem Arena, season 1' : 'None. Totem Arena needs ' + (S.entryPieces || 1) + ' pieces.') + '</span></div>' +
+    '<div class="card"><span class="muted" style="font-size:13px">Items</span><p style="margin-top:6px">' + (f.items.length ? f.items.map(esc).join(', ') : 'None yet') + '</p><span class="muted" style="font-size:13px;display:block;margin-top:12px">Credentials</span><p style="margin-top:6px">' + (f.creds.length ? f.creds.map(esc).join(', ') : 'None yet') + '</p></div>' +
+    '<p class="muted" style="font-size:13px">Anyone can open this page. Example data for Totems other than yours.</p></div></div>';
+  $('#nftShare').addEventListener('click', () => T.share({ title: 'Totem #' + id, stat: 'Holds ' + T.fmt(f.pieces * 25000) + ' $TOTEM', line: f.pieces + ' of 4 pieces, ' + (f.items[0] || 'no items yet'), pieces: f.pieces }));
+} };
+
+/* ======================= MARKET ======================= */
+T.modules.market = { enter(){
+  const root = $('#marketRoot');
+  const avail = MARKET.filter((m) => !S.bought.some((b) => b.id === m.id));
+  root.innerHTML = '<div class="ph"><h1>Totem market</h1><span class="chip">Buying a Totem buys everything inside it</span></div>' +
+    '<p style="font-size:18px;color:var(--body);max-width:720px;margin-bottom:22px">Every listing shows what the NFT holds next to its price, so you can see the floor before you buy.</p>' +
+    '<div class="grid g3">' + (avail.length ? avail.map((m) => { const f = NFTS[m.id](); return '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:16px;align-items:center">' + T.svgTotem(f.pieces, 64, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<div><a href="#nft-' + m.id + '" style="font-family:var(--serif);font-size:30px;line-height:1;text-decoration:none">Totem #' + m.id + '</a><br><span class="muted" style="font-size:13px">' + esc(f.owner) + '</span></div></div>' +
+      '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Holds inside</span><strong>' + T.fmt(f.pieces * 25000) + ' $TOTEM</strong></div><div class="door"><span>Items</span><span>' + (f.items.join(', ') || 'None') + '</span></div>' +
+      '<button class="btn" type="button" data-buy="' + m.id + '">Buy for ' + m.price + ' NEAR</button></div>'; }).join('') : '<div class="card">All demo listings are sold. Your purchases are in your Profile.</div>') + '</div>' +
+    '<div class="card" style="margin-top:22px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><strong>Sell Totem #0417</strong><br><span class="muted" style="font-size:14px">The buyer gets its ' + T.fmt(S.pieces * 25000) + ' $TOTEM, Gold Wings, credentials and future royalties.</span></span><button class="btn ghost" type="button" id="sellMine">List Totem #0417</button></div>';
+  $$('[data-buy]').forEach((b) => b.addEventListener('click', () => { const m = MARKET.find((x) => x.id === b.dataset.buy); const f = NFTS[m.id](); S.bought.push({ id: m.id, pieces: f.pieces }); T.log('Bought Totem #' + m.id, '-' + m.price + ' NEAR', 'e'); T.save(); T.calls.buy(m.id, m.price); T.sfx('win'); T.toast('Totem #' + m.id + ' is yours, with ' + T.fmt(f.pieces * 25000) + ' $TOTEM inside'); T.modules.market.enter(); }));
+  $('#sellMine').addEventListener('click', () => { T.chain('List Totem #0417 for sale', [{ receiver: 'market.totem.near', method: 'list', args: { token_id: '0417', price: '30 NEAR' } }]); T.toast('Listed in demo mode. Shown in the onchain log.'); });
+} };
+
+/* ======================= SEASON LEADERBOARD ======================= */
+let sTab = 'houses';
+T.modules.season = { enter(){
+  const root = $('#seasonRoot');
+  const you = 120 + (S.races || 0) * 40 + S.prizes.length * 60 + (S.best.stack || 0) * 5 + (S.best.run || 0);
+  const players = [['kofi.near', 'Moss', 1840], ['weaver.near', 'Gold', 1510], ['tunde.near', 'Ember', 1322], ['moremi.near', 'Moss', 1190], ['sol:4kQ..9z', 'Gold', 980], [S.account + ' (you)', 'Moss', you], ['ife.near', 'Ember', 640], ['zeal.near', 'Ember', 420]].sort((a, b) => b[2] - a[2]);
+  const kart = [['kofi.near', 98200], ['moremi.near', 101600], ['weaver.near', 104900], ['sol:4kQ..9z', 107300], ['tunde.near', 111000]].concat(S.ghostT ? [[S.account + ' (you)', S.ghostT]] : []).sort((a, b) => a[1] - b[1]);
+  const tabs = [['houses', 'Houses'], ['players', 'Players'], ['kart', 'Meme Kart times']];
+  let body = '';
+  if (sTab === 'houses') body = '<div class="grid g3">' + [['Moss house', '#00B97F', 41820, 1], ['Gold house', '#FFD23F', 38410, 2], ['Ember house', '#FF5A1F', 35190, 3]].map((h) => '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--serif);font-size:32px">' + h[0] + '</span><span style="font-family:var(--serif);font-size:44px">' + h[3] + '</span></div><div style="height:12px;border-radius:999px;background:#F6F6F2;border:1px solid #000;overflow:hidden"><div style="height:100%;width:' + Math.round(h[2] / 420) + '%;background:' + h[1] + '"></div></div><span class="muted">' + T.fmt(h[2]) + ' points' + (h[0] === 'Moss house' ? ', your house' : '') + '</span></div>').join('') + '</div>';
+  else if (sTab === 'players') body = '<div class="tbl lb"><table><thead><tr><th>#</th><th>Player</th><th>House</th><th style="text-align:right">Points</th></tr></thead><tbody>' + players.map((p, i) => '<tr' + (/you/.test(p[0]) ? ' style="background:#FFFBE0"' : '') + '><td>' + (i + 1) + '</td><td>' + esc(p[0]) + '</td><td>' + p[1] + '</td><td style="text-align:right">' + T.fmt(p[2]) + '</td></tr>').join('') + '</tbody></table></div>';
+  else body = '<div class="tbl lb"><table><thead><tr><th>#</th><th>Driver</th><th style="text-align:right">Best time</th></tr></thead><tbody>' + kart.map((p, i) => '<tr' + (/you/.test(p[0]) ? ' style="background:#FFFBE0"' : '') + '><td>' + (i + 1) + '</td><td>' + esc(p[0]) + '</td><td style="text-align:right">' + fmtT(p[1]) + '</td></tr>').join('') + '</tbody></table></div>' + (S.ghostT ? '' : '<p class="muted" style="margin-top:12px">Race once to set your time.</p>');
+  root.innerHTML = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Season 1 leaderboard</h1></div><span class="chip e">Ends in 23 days</span></div>' +
+    '<div class="seg" role="group" aria-label="Leaderboard" style="margin-bottom:18px">' + tabs.map((t) => '<button type="button" data-st="' + t[0] + '" aria-pressed="' + (t[0] === sTab) + '">' + t[1] + '</button>').join('') + '</div>' + body +
+    '<p class="muted" style="font-size:14px;margin-top:18px">Points come from races, paint rounds, raids, heists and streaks. At season end, the top house splits the season prize by pieces, and the top 10 players get a Season 1 credential. Example data except your own row.</p>';
+  $$('[data-st]').forEach((b) => b.addEventListener('click', () => { sTab = b.dataset.st; T.modules.season.enter(); }));
+} };
+
+/* ======================= RULES AND FAIRNESS ======================= */
+T.modules.rules = { enter(){
+  const sec = (h, items) => '<div class="card" style="display:flex;flex-direction:column;gap:10px"><h2 style="font-size:30px">' + h + '</h2><ul style="margin:0;padding-left:20px;line-height:1.7">' + items.map((i) => '<li>' + i + '</li>').join('') + '</ul></div>';
+  $('#rulesRoot').innerHTML = '<div class="ph"><h1>Rules and fairness</h1></div><div class="grid" style="gap:14px;max-width:880px">' +
+    sec('Prizes', ['Every prize comes from a community treasury or the Totem treasury, decided by vote. Prizes are not yield and Totem never promises returns.', 'Prize Totems are prefilled before a game starts, so the prize exists before anyone plays.', 'Results are signed by the game and open to dispute for 24 hours before prizes move.']) +
+    sec('Stopping bots and farming', ['One free starter per person per day, checked by device and account, with a cap per Arena.', 'Free starters can’t be sold or lent for 7 days.', 'Game servers can only report results for their own game, using a limited NEAR key.', 'Suspicious results are held and reviewed by the Arena’s operators before settling.']) +
+    sec('Rentals', ['A renter’s key can play games and enter rooms. It can never withdraw tokens, sell, transfer or change items.', 'Rental keys expire on their own after the race or the period paid for.']) +
+    sec('Your Totem', ['Tokens inside your Totem are yours. You can take a piece out at any time, and the top piece comes off.', 'Selling the NFT sells everything inside it, including future royalties.']) +
+    sec('What is live in this demo', ['Everything on this site is simulated in your browser: wallets, balances, results, rentals and prizes.', 'The onchain log shows the NEAR calls a live version would make. Contract names are planned.']) + '</div>';
+} };
+
+/* ======================= MERGE AND SPLIT on the lock page ======================= */
+const baseLock = T.modules.lock;
+T.modules.lock = { enter(){
+  baseLock.enter();
+  let card = $('#mergeCard'); if (!card) { card = document.createElement('div'); card.id = 'mergeCard'; card.className = 'card'; card.style.marginTop = '24px'; $('#lockTotem').parentElement.parentElement.appendChild(card); }
+  const others = S.bought.concat(S.prizes.filter((p) => /^Prize Totem/.test(p)).map((p) => ({ id: p.replace(/\D/g, ''), pieces: 1, prize: p })));
+  card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:32px">Merge and split</h2><button class="btn small ghost" type="button" id="sharePiece">Share my Totem</button></div>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:12px">' +
+    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Merge into #0417</strong><span class="muted" style="font-size:14px">Combine another Totem you own. Its pieces and items move in, up to a full Totem.</span>' + (others.length ? '<label class="f" style="width:100%"><span class="sr">Totem to merge</span><select id="mergeFrom">' + others.map((o, i) => '<option value="' + i + '">Totem #' + o.id + ', ' + o.pieces + ' piece' + (o.pieces > 1 ? 's' : '') + '</option>').join('') + '</select></label><button class="btn small" type="button" id="mergeBtn"' + (S.pieces >= 4 ? ' aria-disabled="true"' : '') + '>' + (S.pieces >= 4 ? 'Already full' : 'Merge') + '</button>' : '<span class="muted" style="font-size:14px">You own only one Totem. Win a prize or buy one on the market to merge.</span>') + '</div>' +
+    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Gift a piece</strong><span class="muted" style="font-size:14px">Split one piece off into a new Totem for a friend.</span><label class="f" style="width:100%"><span class="sr">Friend’s account</span><input type="text" id="splitTo" placeholder="friend.near"></label><button class="btn small" type="button" id="splitBtn"' + (S.pieces < 1 ? ' aria-disabled="true"' : '') + '>Send 1 piece</button></div></div>';
+  const mb = $('#mergeBtn'); if (mb) mb.addEventListener('click', () => { if (S.pieces >= 4) return; const o = others[+$('#mergeFrom').value]; const add = Math.min(4 - S.pieces, o.pieces); S.pieces += add; if (o.prize) S.prizes.splice(S.prizes.indexOf(o.prize), 1); else S.bought = S.bought.filter((b) => b.id !== o.id); T.log('Merged Totem #' + o.id, '+' + add + ' piece' + (add > 1 ? 's' : ''), 'g'); T.save(); T.calls.merge(o.id); T.sfx('piece'); T.toast('Merged. Totem #0417 now has ' + S.pieces + ' pieces.'); T.modules.lock.enter(); });
+  $('#splitBtn').addEventListener('click', () => { const to = $('#splitTo').value.trim(); if (S.pieces < 1) return; if (!/^[a-z0-9._-]+\.near$/.test(to)) { T.toast('Enter a NEAR account like friend.near'); return; } S.pieces--; T.log('Gifted a piece to ' + to, '-25,000 $TOTEM', 'e'); T.save(); T.calls.split(to); T.sfx('drop'); T.toast('Sent. ' + to + ' now owns a 1-piece Totem.'); T.modules.lock.enter(); });
+  $('#sharePiece').addEventListener('click', () => T.share({ title: S.pieces === 4 ? 'My Totem is full' : 'My Totem has ' + S.pieces + ' pieces', stat: T.fmt(S.pieces * 25000) + ' $TOTEM inside', line: 'Totem #0417 on NEAR' }));
+}, leave(){ if (baseLock.leave) baseLock.leave(); } };
+
+/* profile: owned bought Totems + share buttons */
+const baseProf = T.modules.profile;
+T.modules.profile = { enter(){
+  baseProf.enter();
+  const root = $('#profileBody'); if (!root || !S.connected) return;
+  const set = document.createElement('div'); set.className = 'card'; set.style.marginTop = '44px';
+  set.innerHTML = '<h2 style="font-size:32px;margin-bottom:10px">Settings</h2><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"><div class="door"><span>Sound and vibration</span><button class="btn small ghost" type="button" id="pfSound">' + (S.mute ? 'Turn on' : 'Turn off') + '</button></div><div class="door"><span>Low-power mode<br><span class="muted" style="font-size:13px">Lighter 3D for older phones</span></span><button class="btn small ghost" type="button" id="pfLP">' + (S.lowPower ? 'Turn off' : 'Turn on') + '</button></div><div class="door"><span>Guided tour</span><button class="btn small ghost" type="button" data-tour>Start</button></div><div class="door"><span>Reset demo data</span><button class="btn small ghost" type="button" id="pfReset">Reset</button></div></div>';
+  root.appendChild(set);
+  if (S.bought.length) { const b = document.createElement('div'); b.style.marginTop = '14px'; b.innerHTML = '<h2 style="font-size:32px;margin:30px 0 12px">Bought on the market</h2><div class="grid g3">' + S.bought.map((x) => '<a class="card" href="#nft-' + x.id + '" style="text-decoration:none;display:flex;gap:14px;align-items:center">' + T.svgTotem(x.pieces, 50) + '<span><span style="font-family:var(--serif);font-size:26px">Totem #' + x.id + '</span><br><span class="muted" style="font-size:13px">' + T.fmt(x.pieces * 25000) + ' $TOTEM inside, live in Totem Arena</span></span></a>').join('') + '</div>'; root.insertBefore(b, root.children[3] || null); }
+  $('#pfSound').addEventListener('click', () => { S.mute = !S.mute; T.save(); paintSound(); T.modules.profile.enter(); });
+  $('#pfLP').addEventListener('click', () => $('#lowPowerBtn').click());
+  $('#pfReset').addEventListener('click', () => { try { localStorage.removeItem('totem-demo-state-1'); } catch (e) {} location.hash = '#home'; location.reload(); });
+  $$('[data-tour]', set).forEach((x) => x.addEventListener('click', T.tour));
+} };
+})();
+</script>

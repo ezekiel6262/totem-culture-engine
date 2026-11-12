@@ -1,0 +1,126 @@
+<script>
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$ } = T;
+
+/* lower home sections */
+function paintHomeTotem(n){
+  $('#homeTotem').innerHTML = T.svgTotem(n, 120) +
+    '<div style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:14px">Inside</span><span class="big mark">' + T.fmt(n * 25000) + ' $TOTEM</span><span class="muted" style="font-size:14px">' + (n === 4 ? 'Full Totem, every door open' : n === 0 ? 'Empty shell' : n + ' of 4 pieces') + '</span></div>';
+}
+$('#homeRange').addEventListener('input', (e) => paintHomeTotem(+e.target.value));
+paintHomeTotem(3);
+const infra = [
+  ['Each Totem is a NEAR account', 'Totem #0417 lives at 0417.totem.near, so it can hold tokens, receive prizes and keep items.'],
+  ['Standard tokens and NFTs', 'NEP-141 tokens sit inside NEP-171 NFTs. Wallets and markets already understand both.'],
+  ['NEAR Intents', 'Arrive from Solana, Ethereum or Bitcoin and lock tokens into a Totem in one signature.'],
+  ['Game keys with limits', 'Game servers get function-call keys that can only report results for their own game.'],
+  ['Signed results', 'Results are signed by the game and open to dispute for 24 hours before prizes move.'],
+  ['Rental keys', 'Lend a Totem with a key that can play and enter rooms but can never withdraw, sell or transfer.'],
+  ['No gas for new players', 'Meta-transactions let a relayer pay the fee, so a winner can claim a Totem with just an email.'],
+  ['Chain Signatures, planned', 'Let a Totem hold assets on other chains too, controlled by its NEAR account.']
+];
+$('#infraGrid').innerHTML = infra.map((x) => '<div class="card" style="display:flex;flex-direction:column;gap:8px"><h3 style="font-size:26px;line-height:1.1">' + x[0] + '</h3><p class="muted" style="font-size:15px">' + x[1] + '</p></div>').join('');
+
+/* beats nav */
+const beats = $$('.beat');
+const dots = $('#beatDots');
+dots.innerHTML = beats.map((b, i) => '<button type="button" aria-label="Go to step ' + (i + 1) + '"></button>').join('');
+$$('button', dots).forEach((b, i) => b.addEventListener('click', () => {
+  const film = $('#film'); const top = film.offsetTop + (film.offsetHeight - window.innerHeight) * (i / 4);
+  window.scrollTo({ top, behavior: T.reduce ? 'auto' : 'smooth' });
+}));
+
+/* 3D film */
+let R, scene, cam, hero, small = [], coins = [], raf = 0, running = false, built = false, t0 = performance.now(), prog = 0;
+const N = T.isTouch ? 26 : 44;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const seeds = [];
+function build(){
+  if (!T.hasGL) { $('#homeCanvas').style.background = '#F6F6F2'; return; }
+  const canvas = $('#homeCanvas');
+  R = T.makeRenderer(canvas);
+  scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xffffff, 16, 34);
+  cam = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  T.lights(scene);
+  hero = T.makeTotem3D({ pieces: 3 }); hero.scale.setScalar(2.1); scene.add(hero);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshBasicMaterial({ color: 0xf6f6f2 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -2.2; scene.add(ground);
+  for (let i = 0; i < N; i++) {
+    const m = T.makeTotem3D({ pieces: 1 + Math.floor(Math.random() * 4), fill: Math.random() < 0.2 ? T.E : T.G });
+    const s = rnd(0.45, 0.8); m.scale.setScalar(s); scene.add(m); small.push(m);
+    const th = rnd(0, Math.PI * 2), ph = Math.acos(rnd(-1, 1)), r = rnd(4.5, 9);
+    seeds.push({ x: r * Math.sin(ph) * Math.cos(th), y: r * Math.cos(ph) * 0.6 + 1, z: r * Math.sin(ph) * Math.sin(th) - 2, s, sp: rnd(0.4, 1.2), ph: rnd(0, 6) });
+    m.position.set(seeds[i].x * 3, seeds[i].y + 12, seeds[i].z);
+  }
+  const coinG = new THREE.CylinderGeometry(0.32, 0.32, 0.08, 24);
+  for (let i = 0; i < 24; i++) { const c = T.ink(new THREE.Mesh(coinG, T.mat(T.GOLD)), 60); c.rotation.x = Math.PI / 2; c.userData.ph = Math.random(); scene.add(c); coins.push(c); }
+  built = true; resize();
+}
+function resize(){ if (!built) return; const st = $('#film .stage'); T.fitRenderer(R, cam, st); }
+window.addEventListener('resize', resize);
+const sm = (x) => x * x * (3 - 2 * x);
+function form(k, i, t, out){
+  const sd = seeds[i], wide = window.innerWidth > 760;
+  if (k === 0) { out.x = (wide ? Math.abs(sd.x) * 0.95 - 0.5 : sd.x) + Math.sin(t * sd.sp + sd.ph) * 0.4; out.y = sd.y + Math.cos(t * sd.sp * 0.8 + sd.ph) * 0.4; out.z = sd.z; out.r = t * 0.3 * sd.sp + sd.ph; }
+  else if (k === 1) { const a = i / N * Math.PI * 2 + t * 0.25; out.x = Math.cos(a) * 7.5; out.z = Math.sin(a) * 2.6 - 5.5; out.y = -1.6 + Math.sin(t * 2 + i) * 0.15; out.r = -a + Math.PI / 2; }
+  else if (k === 2) { const cols = wide ? 11 : 7, row = Math.floor(i / cols), col = i % cols; out.x = (col - (cols - 1) / 2) * 1.5; out.y = 4.4 - row * 1.55; out.z = -5; out.r = Math.sin(t + i) * 0.2; }
+  else if (k === 3) { const a = (i / (N - 1)) * Math.PI; out.x = Math.cos(a) * 6.2; out.y = -1.8 + Math.sin(a) * 6.2; out.z = -2.5; out.r = 0; }
+  else { const a = i / N * Math.PI * 2 + t * 0.55; out.x = Math.cos(a) * 8; out.z = Math.sin(a) * 4 - 1; out.y = -1.6; out.r = -a; }
+  return out;
+}
+const A = {}, B = {};
+function frame(now){
+  if (!running) return;
+  raf = requestAnimationFrame(frame);
+  const t = (now - t0) / 1000;
+  const film = $('#film');
+  const span = Math.max(1, film.offsetHeight - window.innerHeight);
+  const target = Math.min(1, Math.max(0, (window.scrollY - film.offsetTop) / span)) * 4;
+  prog += (target - prog) * 0.12;
+  const k = Math.floor(Math.min(prog, 3.999)), f = sm(Math.min(1, prog - k));
+  const bi = Math.round(prog);
+  beats.forEach((b, i) => b.classList.toggle('on', i === bi));
+  $$('button', dots).forEach((d, i) => d.setAttribute('aria-current', i === bi ? 'true' : 'false'));
+  $('#scrollHint').style.opacity = prog < 0.2 ? 1 : 0;
+  if (!built) return;
+  const wide = window.innerWidth > 760;
+  const ox = wide ? 3.2 : 0, oy = wide ? 0 : 1.8;
+  small.forEach((m, i) => {
+    form(k, i, t, A); form(Math.min(k + 1, 4), i, t, B);
+    const lerp = T.reduce ? 1 : 0.08;
+    m.position.x += ((A.x + (B.x - A.x) * f + ox) - m.position.x) * lerp;
+    m.position.y += ((A.y + (B.y - A.y) * f + oy) - m.position.y) * lerp;
+    m.position.z += ((A.z + (B.z - A.z) * f) - m.position.z) * lerp;
+    m.rotation.y += ((A.r + (B.r - A.r) * f) - m.rotation.y) * lerp;
+  });
+  hero.position.set(ox, -2.2 + oy + (prog > 3.2 ? 0.3 : 0) + Math.sin(t * 1.2) * 0.08, prog > 1.6 && prog < 2.6 ? 1.5 : 0);
+  hero.rotation.y = Math.sin(t * 0.5) * 0.45 + (prog > 1.5 && prog < 2.5 ? t * 0.6 : 0);
+  let hp = 3;
+  if (prog > 0.55 && prog < 1.6) hp = Math.max(0, Math.min(4, Math.floor((prog - 0.55) * 5)));
+  else if (prog >= 1.6) hp = 4;
+  hero.userData.set(hp);
+  const coinOn = prog > 0.5 && prog < 1.7 ? 1 : (prog > 1.7 && prog < 2.6 ? 0.5 : 0);
+  coins.forEach((c, i) => {
+    if (coinOn === 1) {
+      const u = (t * 0.45 + c.userData.ph) % 1;
+      c.position.set(ox + Math.sin(i * 2.1) * (1 - u) * 3, 9 - u * 8 + oy, Math.cos(i * 1.3) * (1 - u) * 2);
+      c.scale.setScalar(1 - u * 0.6);
+    } else if (coinOn === 0.5) {
+      const a = i / coins.length * Math.PI * 2 + t * 0.8;
+      c.position.set(ox + Math.cos(a) * 3.2, oy + 0.6 + Math.sin(a * 2) * 0.6, 1.5 + Math.sin(a) * 3.2);
+      c.scale.setScalar(0.7);
+    } else c.scale.setScalar(0.0001);
+    c.rotation.z = t * 3 + i;
+  });
+  cam.position.set(Math.sin(t * 0.1) * 0.6, 2.4 + prog * 0.3, 15 - (prog > 3.5 ? 1.5 : 0));
+  cam.lookAt(wide ? 1.6 : 0, 1.2 + oy * 0.5, 0);
+  R.render(scene, cam);
+}
+T.modules.home = {
+  enter(){ if (!built) build(); resize(); running = true; t0 = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); },
+  leave(){ running = false; cancelAnimationFrame(raf); }
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden) { running = false; cancelAnimationFrame(raf); } else if (window.TOTEM && location.hash.replace('#', '') in { '': 1, home: 1 }) { running = true; raf = requestAnimationFrame(frame); } });
+})();
+</script>

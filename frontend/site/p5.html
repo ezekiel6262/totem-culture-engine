@@ -1,0 +1,161 @@
+<script>
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+
+/* ---------- arenas directory ---------- */
+function meets(){ const need = S.entryPieces || 1; return S.pieces >= need || (!!S.rented && S.rented.pieces >= need) || (need <= 1 && S.prizes.some((p) => /^Prize Totem/.test(p))); }
+function paintArenas(){
+  const ok = meets();
+  $('#arenaList').innerHTML =
+    '<div class="card ink" style="display:flex;flex-wrap:wrap;gap:28px;align-items:center">' +
+    '<div style="flex-shrink:0">' + T.svgTotem(4, 110, 'wings') + '</div>' +
+    '<div style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px;min-width:0">' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="font-size:44px;line-height:1">Totem Arena</h2>' + (S.arenaPaused ? '<span class="chip e">Paused by operators</span>' : '<span class="chip g">Live, season 1</span>') + '<span class="chip">Flagship</span></div>' +
+    '<p style="color:var(--body)">Meme Kart, Paint the Island, Hold the Line and more on the Totem island. Prizes are Totem NFTs with $TOTEM already inside.</p>' +
+    '<div class="door" style="background:var(--soft);border-color:var(--soft)"><span>Entry rule, set by the Totem team<br><strong>' + ((S.entryPieces || 1) >= 4 ? 'Own a full Totem' : 'Own a Totem with ' + (S.entryPieces || 1) + ' piece' + ((S.entryPieces || 1) > 1 ? 's' : '') + ' or more') + '</strong></span><span class="chip ' + (ok ? 'g' : 'e') + '">' + (ok ? 'You qualify' : 'Not yet') + '</span></div>' +
+    (S.arenaPaused ? '<p class="muted">The Totem team paused this Arena. Entry reopens when it goes live again.</p>' : ok ? '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="enterTotem">' + (S.arena === 'totem' ? 'Return to Totem Arena' : 'Enter Totem Arena') + '</button>' + (S.arena === 'totem' ? '<button class="btn ghost" type="button" id="leaveTotem">Leave this Arena</button>' : '') + '</div>'
+        : '<p class="muted" style="font-size:14px">The Totem team allows three ways in:</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#lock">Lock $TOTEM into a Totem</a><a class="btn ghost" href="#rent">Rent a Totem</a><a class="btn ghost" href="#claim">Claim a free starter</a></div>') +
+    '</div></div>' +
+    '<a class="card" href="#launch" style="text-decoration:none;border-style:dashed;display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between"><span style="display:flex;flex-direction:column;gap:6px"><span style="font-family:var(--serif);font-size:32px;line-height:1.05">Your community’s Arena could be next</span><span class="muted">Launch your token’s NFT collection and your Arena opens here, with your rules.</span></span><span class="btn ghost">Launch a collection</span></a>';
+  const en = $('#enterTotem');
+  if (en) en.addEventListener('click', () => { S.arena = 'totem'; T.save(); T.toast('Entry checked. Welcome to Totem Arena.'); location.hash = '#arena'; });
+  const lv = $('#leaveTotem');
+  if (lv) lv.addEventListener('click', () => { S.arena = null; T.save(); paintArenas(); T.toast('You left Totem Arena'); });
+}
+T.modules.arenas = { enter: paintArenas };
+T.requireArena = function(){ if (S.arenaPaused) { T.toast('Totem Arena is paused by its operators'); setTimeout(() => { location.hash = '#arenas'; }, 0); return false; } if (S.arena) return true; T.toast('Pick an Arena first. Totem Arena is live.'); setTimeout(() => { location.hash = '#arenas'; }, 0); return false; };
+
+/* ---------- launch ---------- */
+let lMode = 'token', lSize = 25000;
+function paintLaunch(){
+  const tok = lMode === 'token', tick = 'tokens';
+  $$('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === lMode));
+  $('#sizeSeg').innerHTML = [10000, 25000, 50000].map((v) => '<button type="button" data-size="' + v + '" aria-pressed="' + (v === lSize) + '">' + T.fmt(v) + '</button>').join('');
+  $$('#sizeSeg button').forEach((b) => b.addEventListener('click', () => { lSize = +b.dataset.size; paintLaunch(); }));
+  $('#lTitle').textContent = tok ? 'Your token' : 'Your collection and its new token';
+  $('#lF1').textContent = tok ? 'Token contract' : 'NFT collection';
+  $('#lF2').textContent = tok ? 'Collection name' : 'New token ticker';
+  $('#lV1').value = tok ? 'yourtoken.near' : 'yourcollection.near';
+  $('#lV2').value = tok ? 'Your collection' : 'TICKER';
+  $('#lNote').textContent = tok ? 'Holders mint by locking your token. Nothing is airdropped, so every NFT is backed from day one. This is how $TOTEM launched.' : 'Each NFT in your collection becomes an account. Your new token lands inside every NFT, not in wallets, so each one starts with pieces filled.';
+  $('#lFull').textContent = T.fmt(lSize * 4) + ' ' + tick;
+  $('#lFull2').textContent = T.fmt(lSize * 4) + ' ' + tick;
+  $('#lPct').textContent = (lSize * 4 * 2222 / 1e9 * 100).toFixed(1) + '% of supply';
+  $('#lPrev').textContent = 'Your collection';
+  $('#lAcct').textContent = '0001.' + (tok ? 'yourtoken' : 'yourcollection') + '.totem.near';
+  $('#deployBtn').textContent = tok ? 'Deploy collection and Arena' : 'Turn my NFTs into Totem accounts';
+}
+$$('[data-mode]').forEach((b) => b.addEventListener('click', () => { lMode = b.dataset.mode; paintLaunch(); }));
+$('#deployBtn').addEventListener('click', () => {
+  const tok = lMode === 'token';
+  S.launches = S.launches || [];
+  S.launches.unshift({ kind: tok ? 'Token-first' : 'NFT-first', token: tok ? $('#lV1').value : '$' + $('#lV2').value.replace('$', ''), collection: tok ? $('#lV2').value : $('#lV1').value, size: lSize, when: 'Just now' });
+  S.launches = S.launches.slice(0, 3); T.save();
+  T.toast('Deployed in demo mode. It now shows in your Profile under What I launched.');
+  setTimeout(() => { location.hash = '#profile'; }, 900);
+});
+T.modules.launch = { enter: paintLaunch };
+
+/* ---------- lock ---------- */
+function paintLock(){
+  const n = S.pieces;
+  $('#lockTotem').innerHTML = T.svgTotem(n, 150) + '<div style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:14px">Inside</span><span class="big mark">' + T.fmt(n * 25000) + '</span><span class="muted" style="font-size:14px">$TOTEM, ' + n + ' of 4</span></div>';
+  $('#lockStatus').textContent = n === 4 ? 'Full Totem. Every door is open.' : n === 0 ? 'Empty shell. Lock tokens to bring it back.' : (4 - n) + ' more piece' + (n === 3 ? '' : 's') + ' to a full Totem.';
+  $('#walletLine').textContent = 'Wallet: ' + T.fmt(S.wallet) + ' $TOTEM. Each piece is 25,000.';
+  const canAdd = n < 4 && S.wallet >= 25000, canTake = n > 0;
+  $('#addPiece').setAttribute('aria-disabled', !canAdd); $('#takePiece').setAttribute('aria-disabled', !canTake);
+  $('#addPiece').textContent = n < 4 && S.wallet < 25000 ? 'Need 25,000 in wallet' : 'Add a piece';
+  const doors = [['Holder room', '1 piece', 1], ['Treasury room', '3 pieces', 3], ['Arena finals', 'Full Totem', 4]];
+  $('#doors').innerHTML = doors.map((d) => '<div class="door"><span>' + d[0] + '<br><span class="muted" style="font-size:13px">' + d[1] + '</span></span><span class="chip ' + (n >= d[2] ? 'g' : '') + '">' + (n >= d[2] ? 'Open' : 'Locked') + '</span></div>').join('');
+}
+$('#addPiece').addEventListener('click', () => { if (S.pieces < 4 && S.wallet >= 25000) { S.pieces++; S.wallet -= 25000; T.log('Locked a piece', '+25,000 $TOTEM', 'g'); T.save(); paintLock(); T.toast('Piece added. 25,000 $TOTEM locked in Totem #0417'); } });
+$('#takePiece').addEventListener('click', () => { if (S.pieces > 0) { S.pieces--; S.wallet += 25000; T.log('Took a piece out', '-25,000 $TOTEM', 'e'); T.save(); paintLock(); T.toast('Piece removed. 25,000 $TOTEM back in your wallet'); } });
+T.modules.lock = { enter: paintLock };
+
+/* ---------- totem account + 3D viewer ---------- */
+let vR, vS, vC, vT, vRaf = 0, vOn = false, vAng = 0.4, drag = null;
+function viewerBuild(){
+  if (!T.hasGL || vR) return;
+  const cv = $('#viewerCanvas');
+  vR = T.makeRenderer(cv); vR.setClearColor(0xf6f6f2, 1);
+  vS = new THREE.Scene(); vC = new THREE.PerspectiveCamera(35, 1, 0.1, 50); T.lights(vS);
+  const ped = T.ink(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.2, 0.3, 32), T.mat('#FFFFFF')), 40); ped.position.y = -0.15; vS.add(ped);
+  vT = T.makeTotem3D({ pieces: S.pieces, wings: true }); vS.add(vT);
+  cv.addEventListener('pointerdown', (e) => { drag = e.clientX; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (drag != null) { vAng += (e.clientX - drag) * 0.01; drag = e.clientX; } });
+  cv.addEventListener('pointerup', () => { drag = null; });
+}
+function viewerLoop(){
+  if (!vOn) return; vRaf = requestAnimationFrame(viewerLoop);
+  if (drag == null && !T.reduce) vAng += 0.006;
+  T.fitRenderer(vR, vC, $('#viewerCanvas').parentElement);
+  vC.position.set(Math.sin(vAng) * 5.2, 2.2, Math.cos(vAng) * 5.2); vC.lookAt(0, 0.8, 0);
+  vR.render(vS, vC);
+}
+function paintAccount(){
+  $('#acctPieces').textContent = S.pieces + ' of 4';
+  const prizeN = S.prizes.length;
+  const stats = [['Holds money', T.fmt(S.pieces * 25000) + ' $TOTEM', (142.5 + prizeN * 0).toFixed(1) + ' NEAR in Arena prizes'], ['Earns royalties', '12.4 NEAR', 'Gold Wings, made here, equipped by 31 Totems'], ['Carries items', String(7 + prizeN), 'Wings, relics, trophies'], ['Opens', S.pieces >= 3 ? '2 rooms' : S.pieces >= 1 ? '1 room' : 'Nothing yet', S.pieces >= 4 ? 'Plus Arena finals' : 'Full Totem opens the finals']];
+  $('#acctStats').innerHTML = stats.map((s) => '<div class="card" style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:14px">' + s[0] + '</span><span class="big">' + s[1] + '</span><span class="muted" style="font-size:14px">' + s[2] + '</span></div>').join('');
+  const items = [['Gold Wings', T.GOLD, '999px 4px'], ['Red Moon relic', T.E, '999px'], ['Vault key', '#B5B5AD', '4px'], ['Clash trophy', T.Y, '4px 4px 14px 14px'], ['Raid fragment', T.G, '2px'], ['$TOTEM banner', T.G, '2px 12px'], ['Founding mark', '#FFFFFF', '999px']]
+    .concat(S.prizes.map((p) => [p, T.Y, '4px']));
+  while (items.length < 8) items.push(['Empty slot', '#F6F6F2', '4px']);
+  $('#inv').innerHTML = items.slice(0, 12).map((i) => '<div><i style="background:' + i[1] + ';border-radius:' + i[2] + '"></i>' + i[0] + '</div>').join('');
+  $('#ledger').innerHTML = S.ledger.map((l) => '<tr><td class="muted">' + l.w + '</td><td>' + l.t + '</td><td style="text-align:right;font-weight:500;color:' + (l.c === 'g' ? 'var(--green-ink)' : l.c === 'e' ? 'var(--ember-ink)' : 'inherit') + '">' + l.a + '</td></tr>').join('');
+}
+T.modules.totem = {
+  enter(){ paintAccount(); viewerBuild(); if (vT) vT.userData.set(S.pieces); if (vR) { vOn = true; viewerLoop(); } },
+  leave(){ vOn = false; cancelAnimationFrame(vRaf); }
+};
+
+/* ---------- rooms ---------- */
+let room = 'holder'; const votes = {};
+const posts = [
+  ['kofi.near', 'Full Totem', '2m', 'Meme Kart finals tonight. Prize is a Totem with 1 piece already inside.', T.G],
+  ['weaver.near', '3 pieces', '18m', 'Gold Wings are live. Equip them and 10% of item sales go to the maker Totem.', T.GOLD],
+  ['tunde.near', '1 piece', '1h', 'Need 2 more for a Ritual Raid squad. Anyone with 2 pieces or more.', '#FFFFFF'],
+  ['creator.near', 'Creator', '3h', 'Treasury vote on Arena prize funding closes Friday.', T.E]
+];
+const props = [
+  { id: 'p1', t: 'Fund 6 more prize Totems for Meme Kart', b: 'Prefill 6 Totems with 1 piece each from the treasury, as prizes for next week’s races.', y: 214, n: 61, e: 'Ends Friday' },
+  { id: 'p2', t: 'Commission a crown artist for season 2', b: 'Pay 300 NEAR to a new artist. Their crown earns item royalties for the maker Totem.', y: 140, n: 102, e: 'Ends in 4 days' }
+];
+function paintRooms(){
+  $$('[data-room]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.room === room));
+  $('#roomTitle').textContent = room === 'holder' ? 'Holder room' : 'Treasury room';
+  const need = room === 'holder' ? 1 : 3;
+  if (S.pieces < need) {
+    $('#roomBody').innerHTML = '<div class="card ink" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;max-width:620px"><h2 style="font-size:36px">This room needs ' + need + ' piece' + (need > 1 ? 's' : '') + '</h2><p class="muted">Your Totem has ' + S.pieces + '. Lock more $TOTEM to open it.</p><a class="btn" href="#lock">Add a piece</a></div>';
+    return;
+  }
+  if (room === 'holder') {
+    $('#roomBody').innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;max-width:860px">' +
+      '<div class="card ink" style="background:#FFFBE0;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><span class="muted" style="font-size:13px">Pinned drop</span><br><span style="font-family:var(--serif);font-size:28px;line-height:1.1">Gold Wings, free to equip this week</span></span><button class="btn" type="button" id="claimDrop">Claim to my Totem</button></div>' +
+      posts.map((p) => '<div class="card" style="display:flex;gap:14px;padding:16px"><span style="width:40px;height:40px;flex-shrink:0;border-radius:12px;background:' + p[4] + ';border:1.5px solid #000"></span><div><span style="font-size:14px"><strong>' + p[0] + '</strong> <span class="muted">' + p[1] + ', ' + p[2] + '</span></span><p style="font-size:16px">' + p[3] + '</p></div></div>').join('') +
+      '<label style="display:flex;gap:10px"><span class="sr">Message</span><input type="text" placeholder="Write to the holder room" id="roomMsg"><button class="btn" type="button" id="roomSend">Send</button></label></div>';
+    $('#claimDrop').addEventListener('click', () => T.toast('Gold Wings added to Totem #0417'));
+    $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.near', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
+  } else {
+    $('#roomBody').innerHTML = '<div class="grid g3" style="margin-bottom:14px"><div class="card" style="background:#000;color:#fff;border-color:#000"><span style="color:#B5B5AD">Treasury</span><div class="big">8,420 NEAR</div><span style="color:#B5B5AD;font-size:14px">from resale royalties</span></div><div class="card"><span class="muted">Locked in Totems</span><div class="big">31.2M</div><span class="muted" style="font-size:14px">$TOTEM out of circulation</span></div><div class="card"><span class="muted">Your votes</span><div class="big">' + S.pieces + '</div><span class="muted" style="font-size:14px">one per piece</span></div></div>' +
+      props.map((p) => { const v = votes[p.id], y = p.y + (v === 'y' ? S.pieces : 0), n = p.n + (v === 'n' ? S.pieces : 0);
+        return '<div class="card" style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h3 style="font-size:28px;line-height:1.1">' + p.t + '</h3><span class="muted" style="font-size:13px">' + p.e + '</span></div><p class="muted">' + p.b + '</p><div style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--soft)"><div style="flex:' + y + ';background:#00B97F"></div><div style="flex:' + n + ';background:#FF5A1F"></div></div><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><span><strong style="color:var(--green-ink)">' + y + ' yes</strong>, <strong style="color:var(--ember-ink)">' + n + ' no</strong></span><span style="display:flex;gap:8px"><button class="btn small ' + (v === 'y' ? 'green' : 'ghost') + '" type="button" data-v="y" data-p="' + p.id + '">Vote yes</button><button class="btn small ' + (v === 'n' ? '' : 'ghost') + '" type="button" data-v="n" data-p="' + p.id + '">Vote no</button></span></div></div>'; }).join('');
+    $$('[data-v]').forEach((b) => b.addEventListener('click', () => { votes[b.dataset.p] = votes[b.dataset.p] === b.dataset.v ? null : b.dataset.v; paintRooms(); }));
+  }
+}
+$$('[data-room]').forEach((b) => b.addEventListener('click', () => { room = b.dataset.room; paintRooms(); }));
+T.modules.rooms = { enter: paintRooms };
+
+/* ---------- build ---------- */
+function paintGames(){
+  $('#myGames').innerHTML = S.games.map((g) => '<div class="card" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span><span style="font-family:var(--serif);font-size:24px">' + g.name + '</span><br><span class="muted" style="font-size:13px">' + g.comm + ', ' + g.type + '</span></span><span class="chip e">In review</span></div>').join('');
+}
+$('#regGame').addEventListener('click', () => {
+  const name = $('#gName').value.trim();
+  if (!name) { T.toast('Give the game a name first'); return; }
+  S.games.unshift({ name, comm: $('#gComm').value, type: $('#gType').value }); S.games = S.games.slice(0, 4); T.save(); paintGames();
+  T.toast(name + ' added. It appears on the island as a plot in review.');
+});
+T.modules.build = { enter: paintGames };
+})();
+</script>
