@@ -31,7 +31,7 @@ test('application server serves the product routes the frontend calls', async t 
   const body = await totem.json()
   assert.equal(body.data.totem.pieces, 3)
   // The dev server runs on testnet, so the Totem account carries the testnet suffix.
-  assert.equal(body.data.totem.account, '417.totem.testnet')
+  assert.equal(body.data.totem.account, '417.totemtest.testnet')
 
   const arenas = await fetch(base + '/api/v1/arenas')
   assert.equal(arenas.status, 200)

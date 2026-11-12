@@ -21,8 +21,9 @@ directly beside it. Their supply and collection size are decided at that point.
 
 ## Deploying the platform
 
-Platform contracts deploy under **`totem.testnet`**, matching the stack defaults, as
-`launch.totem.testnet`, `market.totem.testnet` and `agent.totem.testnet`.
+Platform contracts deploy under **`totemtest.testnet`**, as `launch.totemtest.testnet`,
+`market.totemtest.testnet` and `agent.totemtest.testnet`. Note that `totem.testnet` is **not**
+ours: it is a different owner's account, so nothing may be deployed under it.
 
 ```
 npm run build:contracts          # produces the wasm
@@ -30,17 +31,33 @@ npm run deploy:platform          # prints the plan, changes nothing
 npm run deploy:platform -- --execute
 ```
 
-This needs about 7.2 NEAR on the parent, staked as storage on the three sub-accounts and
+All three need about 7.2 NEAR on the parent, staked as storage on the sub-accounts and
 recoverable by deleting them.
+
+### Fitting a faucet funded parent
+
+`--only` deploys a subset and `--headroom` tunes the per-account margin above the code size,
+because on a faucet funded account that margin decides what fits.
+
+| Command | Needs |
+| --- | --- |
+| `--only factory` | 2.8 NEAR |
+| `--only factory,agent` | 4.9 NEAR |
+| `--only factory,market` | 5.1 NEAR |
+| all three, `--headroom 0.1` | 6.0 NEAR |
+| all three, default headroom | 7.2 NEAR |
+
+Deploying a subset is safe to repeat: an account that already carries a contract is skipped,
+so a later run completes the rest.
 
 Afterwards set the stack parameters it prints:
 
 | Parameter | Value |
 | --- | --- |
-| `ArenaMarketContractId` | `market.totem.testnet` |
-| `ArenaAgentContractId` | `agent.totem.testnet` |
-| `TotemFactoryContractId` | `launch.totem.testnet` |
-| `TotemAccountSuffix` | `totem.testnet` |
+| `ArenaMarketContractId` | `market.totemtest.testnet` |
+| `ArenaAgentContractId` | `agent.totemtest.testnet` |
+| `TotemFactoryContractId` | `launch.totemtest.testnet` |
+| `TotemAccountSuffix` | `totemtest.testnet` |
 
 `TotemAccountSuffix` matters beyond the launchpad: every account the backend names in a call
 plan is derived from it, so without it a testnet deployment shows `token.totem.near` and the

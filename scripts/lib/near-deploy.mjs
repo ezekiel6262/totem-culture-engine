@@ -17,9 +17,11 @@ export const flagReader = args => (name, fallback) => {
   return index === -1 ? fallback : args[index + 1]
 }
 
-export const fundingFor = path => {
+// The headroom covers state growth and gas beyond the code itself. It is a parameter because
+// on a faucet funded account the difference between 0.5 and 0.2 per account decides what fits.
+export const fundingFor = (path, headroom = 0.5) => {
   const bytes = readFileSync(path).length
-  return Math.max(1, Math.ceil((bytes * STORAGE_NEAR_PER_BYTE + 0.5) * 10) / 10) // headroom for state and gas
+  return Math.max(0.1, Math.ceil((bytes * STORAGE_NEAR_PER_BYTE + headroom) * 10) / 10)
 }
 
 export const globalBurnFor = path => readFileSync(path).length * GLOBAL_NEAR_PER_BYTE

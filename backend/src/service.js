@@ -10,7 +10,7 @@ export class TotemService {
   constructor(repository, clock = () => Date.now(), contracts = {}) {
     this.repository = repository
     this.clock = clock
-    this.contracts = { nftContractId: 'nft.totem.testnet', ...contracts }
+    this.contracts = { nftContractId: 'nft.totemtest.testnet', ...contracts }
   }
 
   async cultureAccount({ campaignId, accountId }) {

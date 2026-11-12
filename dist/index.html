@@ -2725,7 +2725,7 @@ async function loadWallet(){
     if (!window.totemApi) await loadScript('totem-api.js');
     if (!window.totemWallet) await import('./wallet.js');
     const health = await T.api.get('/health');
-    return { network: (health.ok && health.data.network) || 'testnet', contractId: 'nft.totem.testnet' };
+    return { network: (health.ok && health.data.network) || 'testnet', contractId: 'nft.totemtest.testnet' };
   })().catch((error) => { loading = null; throw error; });
   return loading;
 }

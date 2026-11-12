@@ -5,12 +5,12 @@ Parameters:
   AuthRecipient: {Type: String}
   NearRpcUrl: {Type: String, Default: 'https://rpc.testnet.near.org'}
   NearNetwork: {Type: String, Default: testnet, AllowedValues: [testnet, mainnet]}
-  TotemTokenContractId: {Type: String, Default: token.totem.testnet}
-  TotemNftContractId: {Type: String, Default: nft.totem.testnet}
-  ArenaAgentContractId: {Type: String, Default: agent.totem.testnet}
-  ArenaMarketContractId: {Type: String, Default: market.totem.testnet}
-  TotemFactoryContractId: {Type: String, Default: launch.totem.testnet}
-  TotemAccountSuffix: {Type: String, Default: totem.testnet}
+  TotemTokenContractId: {Type: String, Default: token.totemtest.testnet}
+  TotemNftContractId: {Type: String, Default: nft.totemtest.testnet}
+  ArenaAgentContractId: {Type: String, Default: agent.totemtest.testnet}
+  ArenaMarketContractId: {Type: String, Default: market.totemtest.testnet}
+  TotemFactoryContractId: {Type: String, Default: launch.totemtest.testnet}
+  TotemAccountSuffix: {Type: String, Default: totemtest.testnet}
   MainnetLaunchEnabled: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}
   MainnetParentAccount: {Type: String, Default: maleegg7870.near}
   ContractsAudited: {Type: String, Default: 'false', AllowedValues: ['true', 'false']}

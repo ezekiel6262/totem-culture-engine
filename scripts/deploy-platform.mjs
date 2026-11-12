@@ -21,19 +21,26 @@ const args = process.argv.slice(2)
 const flag = flagReader(args)
 const execute = args.includes('--execute')
 
-// The stack parameters already default to market.totem.testnet and agent.totem.testnet,
-// so the platform keeps that parent unless one is passed.
-const parent = flag('parent', 'totem.testnet')
+// totemtest.testnet is the account that is actually owned here, and the stack parameters
+// default to its sub-accounts to match.
+const parent = flag('parent', 'totemtest.testnet')
 const network = flag('network', 'testnet')
 const treasury = flag('treasury', parent)
+const headroom = Number(flag('headroom', '0.5'))
+// A faucet funded parent may not cover all three at once, so a subset can be deployed first.
+const only = String(flag('only', '')).split(',').map(name => name.trim()).filter(Boolean)
 const operator = flag('operator', parent)
 
 const WASM = resolve('contracts/target/wasm32-unknown-unknown/release')
-const artifacts = {
+const everything = {
   factory: resolve(WASM, 'totem_factory.wasm'),
   market: resolve(WASM, 'totem_market.wasm'),
   agent: resolve(WASM, 'totem_agent.wasm')
 }
+for (const name of only) {
+  if (!everything[name]) throw new Error(`Unknown contract "${name}". Choose from: ${Object.keys(everything).join(', ')}`)
+}
+const artifacts = only.length ? Object.fromEntries(only.map(name => [name, everything[name]])) : everything
 // Referenced by the factory, not deployed here.
 const templates = {
   token: resolve(WASM, 'totem_token.wasm'),
@@ -42,12 +49,14 @@ const templates = {
 
 const yocto = near_ => (BigInt(Math.round(Number(near_) * 1000)) * 10n ** 21n).toString()
 
-const accounts = {
+const allAccounts = {
   // A launch derives <slug>.<factory account>, so the factory sits on its own name.
   factory: flag('factory-account', `launch.${parent}`),
   market: flag('market-account', `market.${parent}`),
   agent: flag('agent-account', `agent.${parent}`)
 }
+// Keep the accounts in step with whatever --only selected.
+const accounts = Object.fromEntries(Object.keys(artifacts).map(name => [name, allAccounts[name]]))
 
 const run = near({ execute })
 
@@ -92,7 +101,7 @@ try {
   console.log('\nArtifact hashes:')
   for (const [label, path] of Object.entries(artifacts)) console.log(`  ${label.padEnd(8)} ${sha256Hex(path)}`)
 
-  const funding = Object.fromEntries(Object.entries(artifacts).map(([label, path]) => [label, fundingFor(path)]))
+  const funding = Object.fromEntries(Object.entries(artifacts).map(([label, path]) => [label, fundingFor(path, headroom)]))
   const needed = Object.values(funding).reduce((total, amount) => total + amount, 0) + 0.5 // the parent keeps a little for gas
 
   console.log('\nFunding, sized from the artifacts:')
