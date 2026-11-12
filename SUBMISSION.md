@@ -17,6 +17,7 @@ development phase; outside it the API answers 403.
 - [ ] Top up `totemtest.testnet` from https://near-faucet.io: it holds about 1.29 NEAR and the token needs 3.1 (testnet NEAR is free, Q-008).
 - [x] Deploy the token: `token.totemtest.testnet`, total supply 1,000,000,000 at 18 decimals, 2.60 NEAR staked.
 - [x] Deploy the market and the Culture Agent: `market.totemtest.testnet`, `agent.totemtest.testnet`.
+- [x] Exercise the deployed contracts end to end on chain: mint, NEP-141 transfer, market listing, agent reward, and a refused over-cap payment. Eight transactions, listed in `JUDGES.md`.
 - [ ] Optional: deploy the launchpad factory (2.8 NEAR). It cannot demonstrate `launch` without ~55.6 NEAR burned on global template registration.
 - [x] Record the deployed contract ids and code hashes here (see Deployed contracts below).
 - [x] Stack parameter `TotemNftContractId` already defaults to `nft.totemtest.testnet`, which is what was deployed. The others follow their own deploys.
@@ -32,7 +33,7 @@ development phase; outside it the API answers 403.
 
 | Claim | Evidence |
 | --- | --- |
-| NFTs with behaviour | `contracts/totem-nft`, a Totem is a sub-account holding `$TOTEM`, `#profile` lock and unlock against the live API |
+| NFTs with behaviour | `nft.totemtest.testnet` live on testnet, Totem #1 minted on chain behind an eligibility gate, listed on the live market |
 | Memecoin mechanics | `token.totemtest.testnet` live on testnet, 25,000 `$TOTEM` per piece and 4 pieces per Totem, enforced in `backend/src/totem-product.js` |
 | Arena entry gated on locked value | `backend/src/arena-economy.js`, `#arenas` shows the entry rule and the server's decision |
 | Agent wallets with limits | `agent.totemtest.testnet` live on testnet, `get_policy` returns the per-payment cap, daily cap and paused flag from contract state |

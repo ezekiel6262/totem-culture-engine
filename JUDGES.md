@@ -66,6 +66,61 @@ near contract call-function as-read-only token.totemtest.testnet ft_total_supply
 `nft_total_supply` is `0`: the contract is deployed and initialised, and nothing has been
 minted. The four other contracts are not deployed; each needs its own funded sub-account.
 
+## The flow has already been run on chain
+
+These are not instructions to try, they are transactions that happened. Every one is on
+NEAR testnet and signed by `totemtest.testnet`. Read any of them back with the RPC query
+below, or open `https://explorer.testnet.near.org/transactions/<hash>`.
+
+| Step | Contract call | Transaction |
+| --- | --- | --- |
+| 1. Gate the mint | `nft.approve_eligibility` for branch `meme-commander` | `5sXi3Twz9ZMy8DEWtx3YEwkGxzrHiUHJC46eH9jTDCQm` |
+| 2. Mint a Totem | `nft.mint` — emitted a NEP-171 `nft_mint` event for token `1` | `EYvswUA3SLXRoPj17sXugimRt7JGLdRc1BcyT6NmttEc` |
+| 3. Register for the token | `token.storage_deposit` for the recipient (NEP-145) | `J1vMv2pAY58LjUREqUBPLpaSWZjKcE74MNkEeZSYxsdu` |
+| 4. Move one piece | `token.ft_transfer` of 25,000 `$TOTEM`, NEP-141 `ft_transfer` event | `zLVnT2SxTWKSr5HgV9vgkm9BZ8GoN5xmvWLnqWbnZ8F` |
+| 5. Approve the market | `nft.nft_approve` for `market.totemtest.testnet`, approval id 1 | `gnM7e6Ey5TpADpCYNq2RyXsV5Ze5ArGKsrYPx5GcyQK` |
+| 6. List it | `market.list` at 1 NEAR, listing `nft.totemtest.testnet:1` | `4Sh7itV2MjxcxGtFPygKgJjibRRPnnUDYHE3KZHDHfHF` |
+| 7. Pay a quest reward | `agent.pay_reward` 0.05 NEAR, action `quest_reward` | `FejmQ8Zv3cJ4RdVck59bJgL6kEsisxfJAeDcMvybURYo` |
+| 8. **Refused** over the cap | `agent.pay_reward` for 2 NEAR against a 1 NEAR cap — aborted, nothing paid | `Gwue4hLvfNyobKPVxdYpNsporJes4nBptzB4G1ZUf9Kq` |
+
+The resulting state, which anyone can query now:
+
+```sh
+near contract call-function as-read-only token.totemtest.testnet ft_balance_of \
+  json-args '{"account_id":"totemtest.testnet"}' network-config testnet now
+# "999975000000000000000000000"   and the recipient holds "25000000000000000000000"
+#   the two sum to exactly 1,000,000,000 at 18 decimals
+
+near contract call-function as-read-only market.totemtest.testnet listings \
+  json-args '{"limit":5}' network-config testnet now
+# one listing: nft.totemtest.testnet:1, seller totemtest.testnet, price 1 NEAR
+
+near contract call-function as-read-only agent.totemtest.testnet get_reward \
+  json-args '{"quest_id":"demo-quest-1"}' network-config testnet now
+# the paid receipt: 0.05 NEAR, action quest_reward, with the day it counted against
+```
+
+### How to check the spending caps yourself
+
+The caps are the security claim, so check them by state rather than by error text. Ask the
+agent for a quest it refused and for one it paid:
+
+```sh
+near contract call-function as-read-only agent.totemtest.testnet get_reward \
+  json-args '{"quest_id":"demo-quest-overcap"}' network-config testnet now
+# null  -- the 2 NEAR attempt wrote no receipt and transferred nothing
+```
+
+Step 8 above is that attempt. It consumed gas and changed nothing: no receipt, no transfer,
+and `available_budget` moved only by the 0.05 NEAR that step 7 legitimately paid.
+
+**One rough edge, stated plainly.** These contracts are built with `panic = "abort"` and
+`strip = true`, so a rejected call surfaces as a generic WebAssembly trap rather than the
+`require!` message behind it. The guard holds either way — the state proves it — but a
+caller sees `unreachable` instead of `Payment exceeds per-payment cap`. Rebuilding for
+readable messages would change every code hash and need all four contracts redeployed, so
+the deployed build is kept and the receipt query above is the verification path instead.
+
 ## Evidence by track
 
 Product proof is a route on the live site. The page is one document with hash routes.
