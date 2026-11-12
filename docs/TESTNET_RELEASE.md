@@ -7,14 +7,42 @@
 - Culture Pair model, anti-snapshot eligibility, contributions, access decisions, Arena economy planning, agent spending policy, and market listing preparation.
 - Token, NFT, agent, market, and launch contract source plus automated JavaScript tests.
 
-## Deployment account
+## Launching on testnet
 
-Testnet contracts deploy under **`totemtest.testnet`**.
+Testnet contracts deploy under **`totemtest.testnet`**, as `token.totemtest.testnet` and
+`nft.totemtest.testnet`.
 
-The `totemstart` stack still carries the earlier placeholder contract ids
-(`token.totem.testnet`, `nft.totem.testnet`, `agent.totem.testnet`,
-`market.totem.testnet`). They are stack parameters, so they can be repointed at the real
-sub-accounts without a code change once the naming is settled and the contracts exist.
+```
+npm run build:contracts          # produces the wasm
+npm run launch:testnet           # prints the plan, changes nothing
+npm run launch:testnet -- --execute
+```
+
+The script sizes each sub-account's funding from its artifact, because NEAR stakes
+1 NEAR per 100KB and a deployed contract stores its own code. It checks the parent's
+balance first and refuses with the exact shortfall rather than failing halfway.
+
+Signing goes through near-cli-rs and its existing key store, so the script never sees a
+key. Authorise the parent once:
+
+```
+near account import-account using-seed-phrase --network-id testnet
+```
+
+Reproducible artifact hashes, which the backend's deployment gate already expects:
+
+| Contract | SHA-256 |
+| --- | --- |
+| `totem_token.wasm` | `2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E` |
+| `totem_nft.wasm` | `9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929` |
+
+After the deploy, repoint the stack parameters `TotemTokenContractId` and
+`TotemNftContractId` at the new accounts. They are CloudFormation parameters, so no code
+changes.
+
+Note: `npm run test:contracts` does not run on Windows. `near-sdk`'s `unit-testing`
+feature pulls in `aws-lc-sys`, which needs NASM to build for the host. The wasm build is
+unaffected and CI runs the tests on Ubuntu.
 
 ## Waiting for funded NEAR testnet accounts
 
