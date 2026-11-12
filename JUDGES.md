@@ -33,6 +33,32 @@ Expected results:
 feature pulls in `aws-lc-sys`, which needs NASM to build for the host, so it does not run on
 Windows. It runs in CI on Ubuntu, and the wasm build is unaffected.
 
+## Verify the deployed contract, end to end
+
+The Totem NFT contract is on NEAR testnet at `nft.totemtest.testnet`. Three commands prove
+the deployed bytes are the artifact in this repository, with nothing taken on trust:
+
+```sh
+# 1. The artifact this project publishes, hashed.
+curl -s https://mytotem.buzz/contracts/totem_nft.wasm | sha256sum
+# 9fbb3ef2f7e4e3682784035a466ff02caaf766526516a6f4386dc72039587929
+#    the same value infrastructure/template.yaml pins as NftArtifactSha256
+
+# 2. What the chain says is deployed there.
+curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"view_account","account_id":"nft.totemtest.testnet","finality":"final"}}'
+# "code_hash": "BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz"
+#    which is the base58 of that same sha256
+
+# 3. The collection terms, read from the contract itself.
+near contract call-function as-read-only nft.totemtest.testnet launch_config \
+  json-args {} network-config testnet now
+# max_supply 10000, creator_royalty_bps 500, treasury_royalty_bps 250
+```
+
+`nft_total_supply` is `0`: the contract is deployed and initialised, and nothing has been
+minted. The four other contracts are not deployed; each needs its own funded sub-account.
+
 ## Evidence by track
 
 Product proof is a route on the live site. The page is one document with hash routes.
