@@ -1,0 +1,155 @@
+<script>
+/* ======================= LIVE API ========================
+   The screens below are built from demo state in the browser. This part adds the real
+   API on top: where the server has data it is shown and labelled live, and where it has
+   none the demo stands on its own. Nothing here gates the demo, so the site keeps
+   working with no backend, offline, or against an empty database. */
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const BASE = '/api/v1';
+const TIMEOUT = 6000;
+
+async function call(path, options){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT);
+  try {
+    const response = await fetch(BASE + path, Object.assign({ signal: controller.signal, headers: { 'content-type': 'application/json' } }, options || {}));
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) return { ok: false, code: body && body.error ? body.error.code : 'REQUEST_FAILED', message: body && body.error ? body.error.message : '' };
+    return { ok: true, data: body.data };
+  } catch (e) {
+    return { ok: false, code: 'UNREACHABLE', message: 'The Totem API could not be reached' };
+  } finally { clearTimeout(timer); }
+}
+
+T.api = {
+  live: false,
+  get: (path) => call(path),
+  post: (path, body) => call(path, { method: 'POST', body: JSON.stringify(body || {}) })
+};
+
+const liveChip = '<span class="chip g">Live</span>';
+const section = (route) => document.querySelector('[data-route="' + route + '"]');
+const append = (route, id, html) => {
+  const page = section(route);
+  if (!page) return;
+  const existing = page.querySelector('#' + id);
+  if (existing) existing.remove();
+  const box = document.createElement('div');
+  box.id = id;
+  box.style.marginTop = '22px';
+  box.innerHTML = html;
+  page.appendChild(box);
+};
+
+/* ---------- arenas: the real Arena record and the server's entry decision ---------- */
+const baseArenas = T.modules.arenas;
+T.modules.arenas = { enter(){
+  baseArenas.enter();
+  if (!T.api.live) return;
+  (async () => {
+    const arenas = await T.api.get('/arenas');
+    if (!arenas.ok || !arenas.data.arenas.length) return;
+    const rows = await Promise.all(arenas.data.arenas.map(async (arena) => {
+      const entry = await T.api.post('/arenas/' + encodeURIComponent(arena.id) + '/entry', { accountId: S.account });
+      const decision = entry.ok ? entry.data : null;
+      return '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-family:var(--serif);font-size:30px">' + esc(arena.name) + '</span>' +
+        (arena.paused ? '<span class="chip e">Paused</span>' : '<span class="chip g">Open</span>') + '</div>' +
+        '<div class="door"><span>Entry rule</span><strong>' + arena.entryPieces + ' piece' + (arena.entryPieces === 1 ? '' : 's') + '</strong></div>' +
+        '<div class="door"><span>' + esc(S.account) + '</span><span>' + (decision ? esc(decision.message) : 'Not checked') + '</span></div>' +
+        '<span class="muted" style="font-size:13px;font-family:var(--mono)">operator ' + esc(arena.operator) + '</span></div>';
+    }));
+    append('arenas', 'liveArenas', '<h2 style="font-size:32px;margin:0 0 12px">On the Totem API ' + liveChip + '</h2>' +
+      '<div class="grid g3">' + rows.join('') + '</div>' +
+      '<p class="muted" style="font-size:13px;margin-top:10px">Read from the Totem API. Entry above is the server’s answer for this account, separate from the demo.</p>');
+  })();
+} };
+
+/* ---------- season: real standings once games settle ---------- */
+const baseSeason = T.modules.season;
+T.modules.season = { enter(){
+  baseSeason.enter();
+  if (!T.api.live) return;
+  (async () => {
+    const result = await T.api.get('/seasons/current/standings');
+    if (!result.ok) return;
+    const { season, standings } = result.data;
+    const body = standings.length
+      ? '<div class="tbl lb"><table><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Coins</th><th style="text-align:right">Wins</th></tr></thead><tbody>' +
+        standings.map((row, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(row.player) + '</td><td style="text-align:right">' + T.fmt(row.coins) + '</td><td style="text-align:right">' + row.wins + '</td></tr>').join('') +
+        '</tbody></table></div>'
+      : '<div class="card"><p style="margin:0">No settled results yet. A result settles 24 hours after the game reports it, and then appears here.</p></div>';
+    append('season', 'liveSeason', '<h2 style="font-size:32px;margin:0 0 12px">' + esc(season.name) + ' on the Totem API ' + liveChip + '</h2>' + body);
+  })();
+} };
+
+/* ---------- market: real listings alongside the demo ones ---------- */
+const baseMarket = T.modules.market;
+T.modules.market = { enter(){
+  baseMarket.enter();
+  if (!T.api.live) return;
+  (async () => {
+    const result = await T.api.get('/market/listings');
+    if (!result.ok || !result.data.listings.length) return;
+    const cards = result.data.listings.map((listing) => '<div class="card" style="display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;gap:16px;align-items:center">' + T.svgTotem(listing.pieces, 64) +
+      '<div><a href="#nft-' + esc(listing.totemId) + '" style="font-family:var(--serif);font-size:30px;line-height:1;text-decoration:none">Totem #' + esc(listing.totemId) + '</a><br>' +
+      '<span class="muted" style="font-size:13px">' + esc(listing.seller) + '</span></div></div>' +
+      '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Holds inside</span><strong>' + T.fmt(listing.pieces * 25000) + ' $TOTEM</strong></div>' +
+      '<div class="door"><span>Price</span><strong>' + esc(listing.price) + ' NEAR</strong></div>' +
+      '<p class="muted" style="font-size:13px;margin:0">Buying needs a connected NEAR wallet.</p></div>').join('');
+    append('market', 'liveMarket', '<h2 style="font-size:32px;margin:0 0 12px">Listed on the Totem API ' + liveChip + '</h2><div class="grid g3">' + cards + '</div>');
+  })();
+} };
+
+/* ---------- public Totem page: the real record when the server knows it ---------- */
+const baseNft = T.modules.nft;
+T.modules.nft = { enter(){
+  baseNft.enter();
+  if (!T.api.live) return;
+  const id = String(T.param.nft || '0417').replace(/^0+/, '') || '0';
+  (async () => {
+    const result = await T.api.get('/totems/' + encodeURIComponent(id));
+    if (!result.ok) return;
+    const totem = result.data.totem;
+    append('nft', 'liveNft', '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-family:var(--serif);font-size:30px">On the Totem API</span>' + liveChip + '</div>' +
+      '<div class="grid g4">' +
+      [['Owner', esc(totem.owner)], ['Pieces', totem.pieces + ' of 4'], ['Holds', T.fmt(totem.holds) + ' $TOTEM'], ['Account', esc(totem.account)]]
+        .map((cell) => '<div class="card"><span class="muted" style="font-size:13px">' + cell[0] + '</span><div style="font-size:20px;font-weight:600;margin-top:4px">' + cell[1] + '</div></div>').join('') +
+      '</div><p class="muted" style="font-size:13px;margin:0">Items: ' + (totem.items.length ? totem.items.map(esc).join(', ') : 'None yet') + '</p></div>');
+  })();
+} };
+
+/* ---------- rules: keep the claim about what is simulated accurate ---------- */
+const baseRules = T.modules.rules;
+T.modules.rules = { enter(){
+  baseRules.enter();
+  append('rules', 'liveRules', '<div class="card" style="display:flex;flex-direction:column;gap:10px;max-width:880px">' +
+    '<h2 style="font-size:30px;margin:0">What is live right now ' + (T.api.live ? liveChip : '<span class="chip e">Offline</span>') + '</h2>' +
+    (T.api.live
+      ? '<ul style="margin:0;padding-left:20px;line-height:1.7">' +
+        '<li>The Totem API is reachable. Arenas, entry rules, seasons, the market and public Totem pages are read from it and labelled live.</li>' +
+        '<li>Everything else on this site, including wallets, balances, games and prizes, is still simulated in your browser.</li>' +
+        '<li>Writing to the API needs a connected NEAR wallet, so the demo buttons do not change server state.</li></ul>'
+      : '<ul style="margin:0;padding-left:20px;line-height:1.7"><li>The Totem API is not reachable from here, so everything on this page is simulated in your browser.</li></ul>'));
+} };
+
+/* ---------- probe once, then repaint if the open screen has a live section ---------- */
+const wired = ['arenas', 'season', 'market', 'nft', 'rules'];
+window.addEventListener('DOMContentLoaded', () => {
+  (async () => {
+    const probe = await T.api.get('/arenas');
+    T.api.live = probe.ok;
+    if (!T.api.live) return;
+    const current = (location.hash || '#home').slice(1).split('-')[0];
+    const module = T.modules[wired.indexOf(current) === -1 ? '' : current];
+    if (module) module.enter();
+  })();
+});
+})();
+</script>

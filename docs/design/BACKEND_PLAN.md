@@ -118,6 +118,22 @@ Publishing the backend: `npm run build:lambda`, then update the function code. T
 esbuild in the same CJS shape the template's build method produces, and shipped with a
 `package.json` marking the bundle as CommonJS, since the repository itself is ESM.
 
-Remaining: the frontend screens still read and write `localStorage`. Pointing them at
-these routes is the next step, and the only decision left there is whether the offline
-demo path stays as a fallback when the API is unreachable.
+## 8. How the frontend uses the API
+
+`frontend/site/p12.html` adds `TOTEM.api` and wraps the screens that have a server side.
+It probes `/api/v1/arenas` once on load and sets `TOTEM.api.live`.
+
+The demo is never gated by the API. Each wired screen renders its demo content first and
+then appends a section built from the server, labelled live. Where the server has nothing,
+the section is skipped or says so, which is what production looks like until real Totems
+exist. The site therefore still works offline, with no backend, and against an empty
+database, and a reader can tell which numbers came from where.
+
+Wired so far: `#arenas` (the Arena record and the server's entry decision for the current
+account), `#season` (settled standings), `#market` (open listings), `#nft-<id>` (the real
+Totem record) and `#rules` (an accurate statement of what is live).
+
+Writes are not wired. Every mutating route requires a wallet session, so the demo buttons
+deliberately do not change server state. Connecting the existing NEAR wallet selector to
+`/api/v1/auth/*` and then pointing lock, claim, market and rent at the API is the next
+step.
