@@ -6,6 +6,8 @@
 | --- | --- | --- | --- |
 | Totem NFT, NEP-171 | `nft.totemtest.testnet` | 2026-11-12 | `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz` |
 | Totem token, NEP-141 | `token.totemtest.testnet` | 2026-11-13 | `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j` |
+| Player-owned market | `market.totemtest.testnet` | 2026-11-13 | `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV` |
+| Culture Agent | `agent.totemtest.testnet` | 2026-11-13 | `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh` |
 
 4.10 and 2.60 NEAR staked as storage on the two sub-accounts. Each code hash is the base58
 of the sha256 pinned in `infrastructure/template.yaml`, so the deployed code is the artifact
@@ -18,8 +20,20 @@ in this repository in both cases.
   10,000 Totems x 4 pieces x 25,000 is 1,000,000,000, so rewards and locking draw on one
   shared float rather than a separate emission.
 
-The parent `totemtest.testnet` holds about 4.49 NEAR. The three remaining contracts are the
-launchpad factory, the player owned market and the Arena agent; see the costs below.
+- Market: initialised with a 250 bps fee to the treasury. `listings` returns `[]`.
+- Agent: `get_policy` reports a 1 NEAR per-payment cap, a 5 NEAR daily cap and
+  `paused: false`. `available_budget` is about 0.49 NEAR, because the balance is mostly
+  staked for the contract's own storage, so a payment larger than that fails on balance
+  before the cap is reached.
+
+Only the launchpad factory is left, at about 2.8 NEAR. Note that deploying it does not make
+`launch` work: that needs the token and NFT templates registered as global contracts, about
+55.6 NEAR burnt, as set out below.
+
+A note on `--headroom`: a deploy needs roughly 0.12 NEAR beyond the code itself for initial
+state and the gas the new account pays. `--headroom 0.1` was tried here and the market
+deploy failed 0.0009 NEAR short, after the account had been created and funded, so it
+needed a top up and a re-run. The script now warns below 0.3.
 
 ## Ready now
 

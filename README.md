@@ -103,7 +103,9 @@ Stated plainly, because the UI labels it and a judge should not have to guess.
 | Arena games, prizes, balances, the demo wallet | **Simulated in the browser**, labelled as such |
 | Totem NFT contract (NEP-171) | **Live on testnet** at `nft.totemtest.testnet` |
 | Totem token contract (NEP-141) | **Live on testnet** at `token.totemtest.testnet` |
-| Market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
+| Player-owned market (NEP-171 royalties) | **Live on testnet** at `market.totemtest.testnet` |
+| Culture Agent (bounded spending) | **Live on testnet** at `agent.totemtest.testnet` |
+| Launchpad factory contract | **Source and tests complete, not yet deployed** |
 
 The contracts are real Rust against `near-sdk 5.30.1` with tests, and they build
 reproducibly. **The Totem NFT contract is deployed to NEAR testnet** at
@@ -135,7 +137,23 @@ not every Totem is fully built, and the unlocked remainder is what funds Arena p
 quest rewards, so rewards and locking draw on the same float rather than on a separate
 emission.
 
-The remaining three contracts are not deployed: each needs its own funded sub-account, and
+The market and the Culture Agent are live too, at `market.totemtest.testnet` (code hash
+`C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`) and `agent.totemtest.testnet` (code hash
+`2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh`). The agent's caps are not a claim about a prompt, they
+are state you can read off the chain:
+
+```sh
+near contract call-function as-read-only agent.totemtest.testnet get_policy \
+  json-args {} network-config testnet now
+# max_payment 1 NEAR, daily_cap 5 NEAR, paused false
+```
+
+Being straight about one limit: the agent holds 2.10 NEAR, nearly all of it staked for its
+own storage, so `available_budget` is about 0.49 NEAR. A payment above that fails for lack
+of balance before the 1 NEAR cap is ever reached. The cap is real and enforced in the
+contract; the treasury behind it is testnet-sized.
+
+Only the launchpad factory is still undeployed. It needs its own funded sub-account, and
 `docs/TESTNET_RELEASE.md` records the exact cost and command for each. Launch quoting fails
 closed in the meantime, in `backend/src/launch-quotes.js`, rather than pretending a factory
 exists.

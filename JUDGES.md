@@ -119,8 +119,15 @@ No wallet needed for steps 1–3.
   repository's artifact by the same hash check. Note that the supply is exactly the lockable
   float for a fully built collection, so rewards and locking share one float rather than
   drawing on a separate emission.
-- The other three contracts are complete Rust with tests and build reproducibly, but are
-  **not deployed yet** — each needs its own funded sub-account.
+- **The player-owned market is live** at `market.totemtest.testnet`, code hash
+  `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`, initialised with a 250 bps fee to the treasury.
+  `listings` returns `[]`: deployed and initialised, nothing listed.
+- **The Culture Agent is live** at `agent.totemtest.testnet`, code hash
+  `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh`. `get_policy` reports a 1 NEAR per-payment cap, a
+  5 NEAR daily cap and `paused: false`, all enforced in the contract. Note that
+  `available_budget` is about 0.49 NEAR, since the account's balance is mostly staked for
+  its own storage, so a larger payment fails on balance before it reaches the cap.
+- Only the launchpad factory is **not deployed yet** — it needs its own funded sub-account.
   `docs/TESTNET_RELEASE.md` holds the per-contract cost and the exact deploy command.
   Launch quoting fails closed meanwhile, in `backend/src/launch-quotes.js`.
 - No mainnet deployment, no audit, and no yield or return claim.

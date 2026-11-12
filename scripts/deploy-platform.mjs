@@ -1,7 +1,8 @@
 // Deploys the Totem platform to NEAR testnet: the launchpad factory, the player owned
-// market, and the Arena agent. The Totem token and the Totem NFT collection are NOT here
-// on purpose: those are launched afterwards, through the launchpad, once the platform is up
-// and the supply figures are decided.
+// market, and the Arena agent. The Totem token and the Totem NFT collection are NOT here:
+// both are already live on testnet, deployed directly with launch:testnet, at
+// token.totemtest.testnet and nft.totemtest.testnet. The launchpad route is for collections
+// launched later, by other people, through the factory.
 //
 //   npm run deploy:platform                 print the plan, change nothing
 //   npm run deploy:platform -- --execute    create the accounts and deploy
@@ -27,6 +28,10 @@ const parent = flag('parent', 'totemtest.testnet')
 const network = flag('network', 'testnet')
 const treasury = flag('treasury', parent)
 const headroom = Number(flag('headroom', '0.5'))
+// Measured on testnet: a deploy needs about 0.12 NEAR beyond the code itself for initial
+// state and the gas the new account pays. Below roughly 0.3 the margin is thinner than the
+// variation between contracts, and the account is already funded when it fails.
+const MIN_SAFE_HEADROOM = 0.3
 // A faucet funded parent may not cover all three at once, so a subset can be deployed first.
 const only = String(flag('only', '')).split(',').map(name => name.trim()).filter(Boolean)
 const operator = flag('operator', parent)
@@ -98,8 +103,9 @@ try {
   console.log(`  parent account  ${parent}`)
   console.log(`  network         ${network}`)
   for (const [label, account] of Object.entries(accounts)) console.log(`  ${label.padEnd(14)}  ${account}`)
-  console.log('\n  The Totem token and Totem NFT are deliberately not deployed here. They are')
-  console.log('  launched later, through the launchpad, once supply figures are decided.')
+  console.log('\n  The Totem token and Totem NFT are not deployed here. Both are already live on')
+  console.log('  testnet, deployed directly with launch:testnet: token.totemtest.testnet and')
+  console.log('  nft.totemtest.testnet. The launchpad route is for collections launched later.')
 
   console.log('\nArtifact hashes:')
   for (const [label, path] of Object.entries(artifacts)) console.log(`  ${label.padEnd(8)} ${sha256Hex(path)}`)
@@ -110,6 +116,12 @@ try {
   console.log('\nFunding, sized from the artifacts:')
   for (const [label, account] of Object.entries(accounts)) console.log(`  ${account.padEnd(26)} ${funding[label]} NEAR`)
   console.log(`  needed on ${parent}: about ${needed.toFixed(1)} NEAR`)
+  if (headroom < MIN_SAFE_HEADROOM) {
+    console.log(`\n  WARNING: --headroom ${headroom} leaves little for contract state and the gas the`)
+    console.log('  new account pays on its own deploy. About 0.12 NEAR beyond the code has been')
+    console.log(`  needed in practice, so ${MIN_SAFE_HEADROOM} or more is the safe floor. A deploy that runs`)
+    console.log('  out leaves the account created and funded but empty, needing a top up and a re-run.')
+  }
 
   // Which key store holds the key decides the signer, so it comes from the preflight
   // rather than being assumed. --signer overrides it.
@@ -149,9 +161,9 @@ try {
   }
 
   console.log('\nAfterwards, point the stack at the deployed contracts:')
-  console.log(`  ArenaMarketContractId=${accounts.market}`)
-  console.log(`  ArenaAgentContractId=${accounts.agent}`)
-  console.log(`  TotemFactoryContractId=${accounts.factory}`)
+  if (accounts.market) console.log(`  ArenaMarketContractId=${accounts.market}`)
+  if (accounts.agent) console.log(`  ArenaAgentContractId=${accounts.agent}`)
+  if (accounts.factory) console.log(`  TotemFactoryContractId=${accounts.factory}`)
   console.log(`  TotemAccountSuffix=${parent}`)
   console.log(`  Launch quoting stays closed regardless: it is gated on the audit and the`)
   console.log(`  mainnet flags, not on these parameters.`)
