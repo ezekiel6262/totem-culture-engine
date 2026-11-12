@@ -145,14 +145,17 @@ export class TotemProductService {
     this.#now = now
     this.#rateLimiter = rateLimiter
     this.#limits = { ...CLAIM_LIMITS, ...limits }
+    // Every account hangs off the suffix, so a testnet deployment never shows mainnet names
+    // in the call plans the UI displays. A null override falls back to the derived name.
+    const suffix = accounts.suffix ?? 'totem.near'
     this.#accounts = {
-      token: accounts.token ?? 'token.totem.near',
-      factory: accounts.factory ?? 'totem.near',
-      arena: accounts.arena ?? 'arena.totem.near',
-      market: accounts.market ?? 'market.totem.near',
-      rent: accounts.rent ?? 'rent.totem.near',
-      relayer: accounts.relayer ?? 'relayer.totem.near',
-      suffix: accounts.suffix ?? 'totem.near'
+      token: accounts.token ?? `token.${suffix}`,
+      factory: accounts.factory ?? `launch.${suffix}`,
+      arena: accounts.arena ?? `arena.${suffix}`,
+      market: accounts.market ?? `market.${suffix}`,
+      rent: accounts.rent ?? `rent.${suffix}`,
+      relayer: accounts.relayer ?? `relayer.${suffix}`,
+      suffix
     }
   }
 

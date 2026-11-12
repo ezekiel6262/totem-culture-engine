@@ -137,7 +137,10 @@ try {
   console.log('\nAfterwards, point the stack at the deployed contracts:')
   console.log(`  ArenaMarketContractId=${accounts.market}`)
   console.log(`  ArenaAgentContractId=${accounts.agent}`)
-  console.log(`  the factory has no stack parameter yet, so launch quoting stays closed`)
+  console.log(`  TotemFactoryContractId=${accounts.factory}`)
+  console.log(`  TotemAccountSuffix=${parent}`)
+  console.log(`  Launch quoting stays closed regardless: it is gated on the audit and the`)
+  console.log(`  mainnet flags, not on these parameters.`)
   console.log(execute ? '\nPlatform deployed.' : '\nPlan only. Nothing was created or deployed.')
 } catch (error) {
   console.error(`\nDeployment stopped: ${error.message}`)

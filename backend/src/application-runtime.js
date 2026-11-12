@@ -43,6 +43,7 @@ export async function createApplicationRuntime(config){
   catch(error){console.error(JSON.stringify({event:'platform_setup_failed',message:error?.message??String(error)}))}
   const rateLimiter=dynamo?new DynamoRateLimiter(dynamo,config.dynamoTable):new MemoryRateLimiter()
   const intents=new IntentsService({network:'mainnet'})
-  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter}),auth,intents})
+  const accounts={suffix:config.accountSuffix,token:config.tokenContractId,factory:config.factoryContractId,market:config.arenaMarketContractId}
+  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter,accounts}),auth,intents})
   return{db,dynamo,api,routes,product}
 }

@@ -412,3 +412,19 @@ test('a starter is claimed for the signed in account, not a name in the body', a
   const response = await call(router, 'POST', '/api/v1/claims/starter', { token: 'ada', body: { handle: 'someoneelse.near', deviceId: 'd2' } })
   assert.equal((await response.json()).data.totem.owner, 'ada.near')
 })
+
+test('call plans never name a mainnet account on a testnet deployment', async () => {
+  const repository = new MemoryProductRepository()
+  await seedProduct(repository, { now: clock })
+  const product = new TotemProductService({ repository, now, accounts: { suffix: 'totem.testnet' } })
+  const accounts = product.accounts
+  for (const [name, value] of Object.entries(accounts)) {
+    assert.ok(!String(value).endsWith('.near'), `${name} is a mainnet account: ${value}`)
+  }
+  assert.equal(accounts.factory, 'launch.totem.testnet')
+  assert.equal(accounts.token, 'token.totem.testnet')
+  assert.equal(accounts.market, 'market.totem.testnet')
+  // An explicit id still wins over the derived one.
+  const pinned = new TotemProductService({ repository, now, accounts: { suffix: 'totem.testnet', factory: 'launch.other.testnet' } })
+  assert.equal(pinned.accounts.factory, 'launch.other.testnet')
+})

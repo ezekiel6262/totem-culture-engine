@@ -33,6 +33,19 @@ npm run deploy:platform -- --execute
 This needs about 7.2 NEAR on the parent, staked as storage on the three sub-accounts and
 recoverable by deleting them.
 
+Afterwards set the stack parameters it prints:
+
+| Parameter | Value |
+| --- | --- |
+| `ArenaMarketContractId` | `market.totem.testnet` |
+| `ArenaAgentContractId` | `agent.totem.testnet` |
+| `TotemFactoryContractId` | `launch.totem.testnet` |
+| `TotemAccountSuffix` | `totem.testnet` |
+
+`TotemAccountSuffix` matters beyond the launchpad: every account the backend names in a call
+plan is derived from it, so without it a testnet deployment shows `token.totem.near` and the
+other mainnet names in the UI.
+
 ### What the launchpad cannot do yet
 
 `totem-factory` launches instances with the `UseGlobalContract` action, which requires the

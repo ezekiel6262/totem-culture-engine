@@ -16,7 +16,8 @@ const api=createTotemApi({repository,service,auth,coordination:new CoordinationS
 const productRepository=new MemoryProductRepository()
 await ensurePlatform(productRepository)
 if(config.seedDemo)await seedProduct(productRepository)
-const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository}),auth,intents:new IntentsService({network:'mainnet'})})
+const productAccounts={suffix:config.accountSuffix,token:config.tokenContractId,factory:config.factoryContractId,market:config.arenaMarketContractId}
+const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository,accounts:productAccounts}),auth,intents:new IntentsService({network:'mainnet'})})
 const routes=new Map([['GET /api/v1/health',api.health],['GET /api/v1/readiness',api.readiness],['GET /api/v1/deployment/config',api.deploymentConfig],['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'}
 const webRequest=req=>{const init={method:req.method,headers:req.headers};if(!['GET','HEAD'].includes(req.method)){init.body=req;init.duplex='half'}return new Request('http://'+(req.headers.host??'localhost')+req.url,init)}
