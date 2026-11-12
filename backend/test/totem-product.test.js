@@ -362,3 +362,53 @@ test('rate limit keys never contain the address or device id', async () => {
     assert.ok(!key.includes('device-abc'), 'no raw device id in ' + key)
   }
 })
+
+/* ---------- accounts ---------- */
+
+test('signing in registers the NEAR account, and twice is not twice', async () => {
+  const { product } = await build()
+  const first = await product.registerAccount({ accountId: 'newcomer.near', publicKey: 'ed25519:abc' })
+  assert.equal(first.created, true)
+  assert.equal(first.account.source, 'near-wallet')
+  const again = await product.registerAccount({ accountId: 'newcomer.near' })
+  assert.equal(again.created, false)
+
+  const ledger = await product.ledger({ accountId: 'newcomer.near' })
+  assert.equal(ledger.length, 1)
+  assert.equal(ledger[0].title, 'Registered with Totem')
+})
+
+test('claiming a starter registers the account that claimed it', async () => {
+  const { product } = await build()
+  await product.claimStarter({ handle: 'fresh.near', deviceId: 'd1', ip: '1.1.1.1' })
+  const profile = await product.getAccount({ accountId: 'fresh.near' })
+  assert.equal(profile.registered, true)
+  assert.equal(profile.totems.length, 1)
+  assert.equal(profile.totems[0].pieces, 1)
+})
+
+test('an account that never signed in is simply not registered', async () => {
+  const { product } = await build()
+  const profile = await product.getAccount({ accountId: 'stranger.near' })
+  assert.equal(profile.registered, false)
+  assert.deepEqual(profile.totems, [])
+})
+
+test('claiming a starter needs a signed in account', async () => {
+  const { product } = await build()
+  const router = createProductRouter({ product, auth: authStub })
+  const denied = await call(router, 'POST', '/api/v1/claims/starter', { body: { deviceId: 'd1' } })
+  assert.equal((await denied.json()).error.code, 'AUTH_REQUIRED')
+
+  const allowed = await call(router, 'POST', '/api/v1/claims/starter', { token: 'ada', body: { deviceId: 'd1' } })
+  const payload = await allowed.json()
+  assert.equal(allowed.status, 200)
+  assert.equal(payload.data.totem.owner, 'ada.near')
+})
+
+test('a starter is claimed for the signed in account, not a name in the body', async () => {
+  const { product } = await build()
+  const router = createProductRouter({ product, auth: authStub })
+  const response = await call(router, 'POST', '/api/v1/claims/starter', { token: 'ada', body: { handle: 'someoneelse.near', deviceId: 'd2' } })
+  assert.equal((await response.json()).data.totem.owner, 'ada.near')
+})

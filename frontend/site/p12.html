@@ -143,7 +143,7 @@ T.modules.rules = { enter(){
 } };
 
 /* ---------- probe once, then repaint if the open screen has a live section ---------- */
-const wired = ['arenas', 'season', 'market', 'nft', 'rules', 'profile'];
+const wired = ['arenas', 'season', 'market', 'nft', 'rules', 'profile', 'claim'];
 window.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const probe = await T.api.get('/arenas');

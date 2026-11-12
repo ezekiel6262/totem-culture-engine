@@ -42,7 +42,7 @@ const route = (method, path, handle, { auth = 'none' } = {}) => {
   return { method, path, pattern, names, handle, auth }
 }
 
-export function createProductRouter({ product, auth = null }) {
+export function createProductRouter({ product, auth = null, intents = null }) {
   invariant(product, 'PRODUCT_REQUIRED', 'The product router requires a TotemProductService')
 
   const identityOf = async request => {
@@ -99,9 +99,15 @@ export function createProductRouter({ product, auth = null }) {
     /* rooms */
     route('POST', '/api/v1/rooms/:id/access', async ({ params, body, identity }) => product.roomAccess({ roomId: params.id, accountId: identity?.accountId ?? body?.accountId })),
 
+    /* accounts */
+    route('POST', '/api/v1/accounts/register', async ({ identity }) => product.registerAccount({ accountId: actingAs(identity), publicKey: identity?.publicKey ?? null }), { auth: 'required' }),
+    route('GET', '/api/v1/accounts/:account', async ({ params }) => product.getAccount({ accountId: params.account })),
+
     /* claims */
-    route('POST', '/api/v1/claims/starter', async ({ body, request }) => product.claimStarter({ handle: body?.handle, ip: clientAddress(request), deviceId: body?.deviceId })),
-    route('POST', '/api/v1/claims/prize', async ({ body }) => product.claimPrize({ handle: body?.handle, prizeId: body?.prizeId })),
+    // A starter is claimed by a signed in NEAR account. Creating the account is the
+    // wallet's job, so there is no name to invent and nothing to claim anonymously.
+    route('POST', '/api/v1/claims/starter', async ({ request, body, identity }) => product.claimStarter({ handle: actingAs(identity), ip: clientAddress(request), deviceId: body?.deviceId }), { auth: 'required' }),
+    route('POST', '/api/v1/claims/prize', async ({ body, identity }) => product.claimPrize({ handle: actingAs(identity), prizeId: body?.prizeId }), { auth: 'required' }),
 
     /* launches */
     route('GET', '/api/v1/launches', async ({ url }) => ({ launches: await product.listLaunches({ creatorId: url.searchParams.get('creator') ?? undefined }) })),
@@ -111,6 +117,21 @@ export function createProductRouter({ product, auth = null }) {
     /* ledger */
     route('GET', '/api/v1/accounts/:account/ledger', async ({ params, url }) => ({ ledger: await product.ledger({ accountId: params.account, limit: Number(url.searchParams.get('limit') ?? 20) }) }))
   ]
+
+  /* NEAR Intents: real routes and real prices from the solver network */
+  if (intents) {
+    routes.push(
+      route('GET', '/api/v1/intents/routes', async ({ url }) => intents.fundingRoutes({ destinationAsset: url.searchParams.get('to') ?? undefined })),
+      route('POST', '/api/v1/intents/quote', async ({ body, identity }) => intents.quote({
+        originAsset: body?.originAsset,
+        destinationAsset: body?.destinationAsset,
+        amount: body?.amount,
+        depositType: body?.depositType,
+        recipient: identity?.accountId ?? body?.recipient,
+        refundTo: body?.refundTo
+      }))
+    )
+  }
 
   const match = (method, pathname) => {
     for (const entry of routes) {

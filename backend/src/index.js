@@ -30,3 +30,4 @@ export {MemoryProductRepository,seedProduct,ensurePlatform} from './totem-produc
 export {createProductRouter} from './totem-product-api.js'
 export {DynamoProductRepository} from './dynamo-product-repository.js'
 export {MemoryRateLimiter,DynamoRateLimiter,OpenRateLimiter,DAY_MS} from './rate-limit.js'
+export {IntentsService,ONE_CLICK_BASE} from './intents.js'

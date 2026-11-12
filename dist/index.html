@@ -2668,7 +2668,7 @@ T.modules.rules = { enter(){
 } };
 
 /* ---------- probe once, then repaint if the open screen has a live section ---------- */
-const wired = ['arenas', 'season', 'market', 'nft', 'rules', 'profile'];
+const wired = ['arenas', 'season', 'market', 'nft', 'rules', 'profile', 'claim'];
 window.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const probe = await T.api.get('/arenas');
@@ -2768,6 +2768,7 @@ async function paintWallet(){
         const connected = await T.wallet.connect();
         if (!connected) { T.toast('Wallet was not connected'); paintWallet(); return; }
         T.toast('Signed in as ' + connected);
+        document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: connected } }));
         paintWallet();
       } catch (error) {
         T.toast(error && error.message ? error.message : 'Could not connect the wallet');
@@ -2804,7 +2805,12 @@ async function paintWallet(){
     '<div class="grid g3">' + cards + '</div>' + activity);
   if (!box) return;
 
-  $('#walletOut').addEventListener('click', async () => { await T.wallet.signOut(); T.toast('Signed out'); paintWallet(); });
+  $('#walletOut').addEventListener('click', async () => {
+    await T.wallet.signOut();
+    T.toast('Signed out');
+    document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: null } }));
+    paintWallet();
+  });
 
   const write = async (button, run, done) => {
     if (button.getAttribute('aria-disabled') === 'true') return;
@@ -2839,10 +2845,151 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       if (!window.totemApi) await loadScript('totem-api.js');
       if (!window.totemApi.session) return;
-      await window.totemApi.restore();
-      if ((location.hash || '').indexOf('#profile') === 0) T.modules.profile.enter();
+      const restored = await window.totemApi.restore();
+      if (!restored) return;
+      document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: restored.accountId } }));
+      const current = (location.hash || '#home').slice(1).split('-')[0];
+      if (T.modules[current]) T.modules[current].enter();
     } catch (error) { /* a stale session is cleared by restore itself */ }
   })();
+});
+})();
+</script>
+<script>
+/* ======================= NEAR INTENTS AND THE STARTER CLAIM =======================
+   Real cross chain prices from the NEAR Intents solver network, and a starter claim that
+   belongs to a signed in NEAR account. Both are additive: with no API and no wallet the
+   demo screens are untouched. */
+(function(){
+'use strict';
+const T = window.TOTEM; const { $, $$, S } = T;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const section = (route) => document.querySelector('[data-route="' + route + '"]');
+const append = (route, id, html) => {
+  const page = section(route);
+  if (!page) return null;
+  const existing = page.querySelector('#' + id);
+  if (existing) existing.remove();
+  const box = document.createElement('div');
+  box.id = id; box.style.marginTop = '22px'; box.innerHTML = html;
+  page.appendChild(box);
+  return box;
+};
+
+/* A stable id for this browser, so a free starter cannot be farmed by reloading. */
+function deviceId(){
+  try {
+    let id = localStorage.getItem('totem-device-1');
+    if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)); localStorage.setItem('totem-device-1', id); }
+    return id;
+  } catch (e) { return null; }
+}
+
+/* ---------- market: bring funds from another chain ---------- */
+const units = (amount, decimals) => {
+  const [whole, fraction = ''] = String(amount).split('.');
+  return (whole + (fraction + '0'.repeat(decimals)).slice(0, decimals)).replace(/^0+(?=\d)/, '') || '0';
+};
+
+async function paintIntents(){
+  if (!T.api.live) return;
+  const routes = await T.api.get('/intents/routes');
+  if (!routes.ok || !routes.data.origins.length) return;
+  const origins = routes.data.origins.slice(0, 24);
+
+  const box = append('market', 'intentsBox',
+    '<h2 style="font-size:32px;margin:0 0 12px">Bring funds from another chain <span class="chip g">Live prices</span></h2>' +
+    '<div class="card" style="display:flex;flex-direction:column;gap:12px;max-width:760px">' +
+    '<p style="margin:0">NEAR Intents routes value from another chain into NEAR. The price below comes from the solver network now, for the amount you enter.</p>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' +
+    '<label class="f"><span class="sr">Asset</span><select id="intentFrom">' +
+    origins.map((o) => '<option value="' + esc(o.assetId) + '" data-decimals="' + o.decimals + '">' + esc(o.symbol) + ' on ' + esc(o.blockchain) + '</option>').join('') +
+    '</select></label>' +
+    '<label class="f"><span class="sr">Amount</span><input id="intentAmount" inputmode="decimal" value="1" style="width:120px"></label>' +
+    '<button class="btn" type="button" id="intentQuote">Get a price</button></div>' +
+    '<div id="intentResult" class="muted" style="font-size:14px">Prices are quoted for mainnet assets. Totem runs on testnet, so this is a real price for the route, not a swap this release performs.</div>' +
+    '</div>');
+  if (!box) return;
+
+  $('#intentQuote').addEventListener('click', async () => {
+    const select = $('#intentFrom'), option = select.options[select.selectedIndex];
+    const decimals = Number(option.dataset.decimals || 18);
+    const typed = $('#intentAmount').value.trim();
+    const result = $('#intentResult');
+    if (!/^\d+(\.\d+)?$/.test(typed) || Number(typed) <= 0) { result.textContent = 'Enter an amount like 0.5'; return; }
+
+    result.textContent = 'Asking the solver network...';
+    const quote = await T.api.post('/intents/quote', {
+      originAsset: select.value,
+      amount: units(typed, decimals),
+      recipient: (T.wallet && T.wallet.account()) || S.account,
+      depositType: 'INTENTS'
+    });
+
+    if (!quote.ok) {
+      result.textContent = quote.code === 'INTENTS_NO_ROUTE' ? 'No solver quoted that route right now.' : 'The solver network did not answer. Try again in a moment.';
+      return;
+    }
+    const q = quote.data;
+    result.innerHTML = '<div class="door" style="background:var(--green-tint);border-color:transparent"><span>' + esc(typed) + ' ' + esc(option.textContent) + '</span>' +
+      '<strong>' + esc(Number(q.amountOutFormatted).toFixed(4)) + ' wNEAR</strong></div>' +
+      '<p style="margin:8px 0 0">About $' + esc(Number(q.amountInUsd).toFixed(2)) + ' in, settling in roughly ' + esc(q.timeEstimateSeconds) + ' seconds. ' +
+      'Guaranteed at least ' + esc((Number(q.minAmountOut) / Math.pow(10, 24)).toFixed(4)) + ' wNEAR.</p>' +
+      '<p class="muted" style="font-size:13px;margin:6px 0 0">Quoted by the NEAR Intents solver network for a mainnet route. This release prices the route and does not move funds.</p>';
+  });
+}
+
+const baseMarket = T.modules.market;
+T.modules.market = { enter(){ baseMarket.enter(); paintIntents(); } };
+
+/* ---------- claim: a starter belongs to a signed in NEAR account ---------- */
+async function paintClaim(){
+  if (!T.api.live) return;
+  const account = T.wallet && T.wallet.account();
+
+  if (!account) {
+    append('claim', 'claimLive',
+      '<div class="card" style="display:flex;flex-direction:column;gap:10px;max-width:720px">' +
+      '<h2 style="font-size:30px;margin:0">Claim on the live API <span class="chip">Wallet needed</span></h2>' +
+      '<p style="margin:0">A starter Totem is held by a real NEAR account, so claiming one needs a connected wallet. Creating the NEAR account itself is the wallet’s job.</p>' +
+      '<a class="btn green" href="#profile">Connect a wallet on your profile</a></div>');
+    return;
+  }
+
+  const profile = await T.api.get('/accounts/' + encodeURIComponent(account));
+  const has = profile.ok && profile.data.totems.length;
+  const box = append('claim', 'claimLive',
+    '<div class="card" style="display:flex;flex-direction:column;gap:10px;max-width:720px">' +
+    '<h2 style="font-size:30px;margin:0">Claim on the live API <span class="chip g">' + esc(account) + '</span></h2>' +
+    (has
+      ? '<p style="margin:0">This account already holds ' + profile.data.totems.length + ' Totem' + (profile.data.totems.length === 1 ? '' : 's') + ' on the server. <a href="#profile">See them on your profile</a>.</p>'
+      : '<p style="margin:0">Claim a starter Totem for this account. One per account, one per browser per day.</p><button class="btn green" type="button" id="claimLiveBtn">Claim a starter</button>'));
+  if (!box || has) return;
+
+  $('#claimLiveBtn').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = 'Claiming...';
+    try {
+      const result = await window.totemApi.request('/api/v1/claims/starter', { method: 'POST', authenticated: true, body: { deviceId: deviceId() } });
+      T.toast('Totem #' + result.totem.id + ' is yours, with ' + T.fmt(result.totem.holds) + ' $TOTEM inside');
+      if (result.calls) T.chain('Gasless claim', result.calls, true);
+      paintClaim();
+    } catch (error) {
+      T.toast(error && error.message ? error.message : 'That claim did not go through');
+      paintClaim();
+    }
+  });
+}
+
+const baseClaim = T.modules.claim;
+if (baseClaim) T.modules.claim = { enter(){ baseClaim.enter(); paintClaim(); } };
+
+/* Register the account with Totem as soon as a wallet session exists. */
+document.addEventListener('totem:session', () => {
+  if (!window.totemApi || !window.totemApi.session) return;
+  window.totemApi.request('/api/v1/accounts/register', { method: 'POST', authenticated: true }).catch(() => {});
 });
 })();
 </script>

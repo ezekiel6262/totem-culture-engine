@@ -14,6 +14,7 @@ export class MemoryProductRepository {
   #launches = new Map()
   #prizes = new Map()
   #claims = new Map()
+  #accounts = new Map()
   #ledger = []
   #seasons = new Map()
   #currentSeasonId = null
@@ -163,6 +164,10 @@ export class MemoryProductRepository {
     this.#prizes.set(id, updated)
     return clone(updated)
   }
+
+  async saveAccount(account) { this.#accounts.set(account.id, clone(account)); return clone(account) }
+  async getAccount(id) { return clone(this.#accounts.get(id) ?? null) }
+  async listAccounts() { return [...this.#accounts.values()].map(clone) }
 
   async createClaim(claim) { this.#claims.set(claim.handle, clone(claim)); return clone(claim) }
   async getClaim(handle) { return clone(this.#claims.get(handle) ?? null) }

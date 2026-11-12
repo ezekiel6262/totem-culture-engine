@@ -19,6 +19,7 @@ import {DynamoProductRepository} from './dynamo-product-repository.js'
 import {TotemProductService} from './totem-product.js'
 import {createProductRouter} from './totem-product-api.js'
 import {DynamoRateLimiter,MemoryRateLimiter} from './rate-limit.js'
+import {IntentsService} from './intents.js'
 export async function createApplicationRuntime(config){
   const db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
   const dynamo=config.dynamoTable?createDynamoDocumentClient():null
@@ -41,6 +42,7 @@ export async function createApplicationRuntime(config){
   try{await ensurePlatform(productRepository);if(config.seedDemo)await seedProduct(productRepository)}
   catch(error){console.error(JSON.stringify({event:'platform_setup_failed',message:error?.message??String(error)}))}
   const rateLimiter=dynamo?new DynamoRateLimiter(dynamo,config.dynamoTable):new MemoryRateLimiter()
-  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter}),auth})
+  const intents=new IntentsService({network:'mainnet'})
+  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter}),auth,intents})
   return{db,dynamo,api,routes,product}
 }

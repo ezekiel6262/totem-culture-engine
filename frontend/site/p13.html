@@ -84,6 +84,7 @@ async function paintWallet(){
         const connected = await T.wallet.connect();
         if (!connected) { T.toast('Wallet was not connected'); paintWallet(); return; }
         T.toast('Signed in as ' + connected);
+        document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: connected } }));
         paintWallet();
       } catch (error) {
         T.toast(error && error.message ? error.message : 'Could not connect the wallet');
@@ -120,7 +121,12 @@ async function paintWallet(){
     '<div class="grid g3">' + cards + '</div>' + activity);
   if (!box) return;
 
-  $('#walletOut').addEventListener('click', async () => { await T.wallet.signOut(); T.toast('Signed out'); paintWallet(); });
+  $('#walletOut').addEventListener('click', async () => {
+    await T.wallet.signOut();
+    T.toast('Signed out');
+    document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: null } }));
+    paintWallet();
+  });
 
   const write = async (button, run, done) => {
     if (button.getAttribute('aria-disabled') === 'true') return;
@@ -155,8 +161,11 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
       if (!window.totemApi) await loadScript('totem-api.js');
       if (!window.totemApi.session) return;
-      await window.totemApi.restore();
-      if ((location.hash || '').indexOf('#profile') === 0) T.modules.profile.enter();
+      const restored = await window.totemApi.restore();
+      if (!restored) return;
+      document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: restored.accountId } }));
+      const current = (location.hash || '#home').slice(1).split('-')[0];
+      if (T.modules[current]) T.modules[current].enter();
     } catch (error) { /* a stale session is cleared by restore itself */ }
   })();
 });

@@ -387,11 +387,32 @@ export class TotemProductService {
     }
   }
 
+  /* accounts */
+
+  // A NEAR account becomes a Totem account by signing in. Creating the NEAR account
+  // itself is the wallet's job, so there is nothing to invent here.
+  async registerAccount({ accountId, publicKey = null }) {
+    requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
+    const existing = await this.#repository.getAccount(accountId)
+    if (existing) return { account: existing, created: false }
+    const account = await this.#repository.saveAccount({ id: accountId, registeredAt: this.#now(), publicKey, source: 'near-wallet' })
+    await this.#ledger(accountId, { title: 'Registered with Totem', amount: 'NEAR wallet', tone: 'g' })
+    return { account, created: true }
+  }
+
+  async getAccount({ accountId }) {
+    requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
+    const account = await this.#repository.getAccount(accountId)
+    const totems = await this.listTotems({ owner: accountId })
+    return { account, registered: Boolean(account), totems }
+  }
+
   async claimStarter({ handle, ip = null, deviceId = null }) {
-    requireAccount(handle, 'HANDLE_INVALID', 'Pick a name like yourname.totem.near')
+    requireAccount(handle, 'HANDLE_INVALID', 'Connect a NEAR wallet to claim a starter')
     const existing = await this.#repository.getClaim(handle)
-    invariant(!existing, 'CLAIM_ALREADY_USED', 'That name has already claimed a starter Totem')
+    invariant(!existing, 'CLAIM_ALREADY_USED', 'This account has already claimed a starter Totem')
     await this.#guardClaim({ ip, deviceId })
+    await this.registerAccount({ accountId: handle })
     const totem = await this.#repository.createTotem({ owner: handle, pieces: 1, items: [], origin: 'gasless starter', createdAt: this.#now() })
     await this.#repository.createClaim({ handle, totemId: totem.id, kind: 'starter', at: this.#now() })
     await this.#ledger(handle, { title: 'Claimed a starter Totem', amount: `+${PIECE_TOKENS.toLocaleString('en-US')} $TOTEM`, tone: 'g' })

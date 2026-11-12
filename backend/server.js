@@ -3,7 +3,7 @@ import {readFile,stat} from 'node:fs/promises'
 import {extname,join,normalize} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {TOTEM_CAMPAIGN} from './src/demo-campaign.js'
-import {CoordinationService,createProductRouter,createTotemApi,loadConfig,MemoryAuthRepository,MemoryCoordinationRepository,ensurePlatform,MemoryProductRepository,MemoryTotemRepository,NearRpcClient,PostgresAuthRepository,PostgresClient,PostgresCoordinationRepository,PostgresTotemRepository,seedProduct,TotemAuthService,TotemProductService,TotemService} from './src/index.js'
+import {CoordinationService,createProductRouter,createTotemApi,IntentsService,loadConfig,MemoryAuthRepository,MemoryCoordinationRepository,ensurePlatform,MemoryProductRepository,MemoryTotemRepository,NearRpcClient,PostgresAuthRepository,PostgresClient,PostgresCoordinationRepository,PostgresTotemRepository,seedProduct,TotemAuthService,TotemProductService,TotemService} from './src/index.js'
 const root=fileURLToPath(new URL('../dist/',import.meta.url))
 const config=loadConfig(),db=config.databaseUrl?new PostgresClient(config.databaseUrl):null
 const repository=db?new PostgresTotemRepository(db):new MemoryTotemRepository(),service=new TotemService(repository)
@@ -16,7 +16,7 @@ const api=createTotemApi({repository,service,auth,coordination:new CoordinationS
 const productRepository=new MemoryProductRepository()
 await ensurePlatform(productRepository)
 if(config.seedDemo)await seedProduct(productRepository)
-const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository}),auth})
+const productRouter=createProductRouter({product:new TotemProductService({repository:productRepository}),auth,intents:new IntentsService({network:'mainnet'})})
 const routes=new Map([['GET /api/v1/health',api.health],['GET /api/v1/readiness',api.readiness],['GET /api/v1/deployment/config',api.deploymentConfig],['POST /api/v1/auth/challenge',api.createAuthChallenge],['POST /api/v1/auth/verify',api.verifyAuth],['GET /api/v1/auth/session',api.getSession],['POST /api/v1/campaigns',api.createCampaign],['POST /api/v1/eligibility/evaluate',api.evaluateEligibility],['POST /api/v1/mints/prepare',api.prepareMint],['GET /api/v1/events',api.listEvents],['POST /api/v1/votes',api.vote]])
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'}
 const webRequest=req=>{const init={method:req.method,headers:req.headers};if(!['GET','HEAD'].includes(req.method)){init.body=req;init.duplex='half'}return new Request('http://'+(req.headers.host??'localhost')+req.url,init)}

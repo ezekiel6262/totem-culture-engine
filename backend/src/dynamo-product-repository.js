@@ -231,6 +231,10 @@ export class DynamoProductRepository {
     return this.putItem(`PRIZE#${id}`, 'PRIZE', 'prize', 'prize', { ...prize, ...patch })
   }
 
+  async saveAccount(account) { return this.putItem(`ACCOUNT#${account.id}`, 'ACCOUNT', 'account', 'account', account) }
+  async getAccount(id) { return this.getField(`ACCOUNT#${id}`, 'ACCOUNT', 'account') }
+  async listAccounts() { return (await this.scanEntity('account')).map(item => clone(item.account)) }
+
   async createClaim(claim) { return this.putItem(`CLAIM#${claim.handle}`, 'CLAIM', 'claim', 'claim', claim, 'attribute_not_exists(pk)') }
   async getClaim(handle) { return this.getField(`CLAIM#${handle}`, 'CLAIM', 'claim') }
 
