@@ -13,9 +13,9 @@ development phase; outside it the API answers 403.
 - [x] Repository made public.
 - [x] Verify a clean clone: `git clone`, `npm ci`, `npm run judge:verify` (114 tests, both audits).
 - [ ] Authorise `totemtest.testnet` for near-cli-rs: `near account import-account using-seed-phrase --network-id testnet`.
-- [ ] Deploy the NFT, which the current 5.40 NEAR covers: `npm run launch:testnet -- --only nft --execute` (needs 4.6).
+- [ ] Deploy the NFT, which the current 5.40 NEAR covers: `npm run launch:testnet -- --only nft --execute` (needs 4.6). Collection size 10,000.
 - [ ] Top up `totemtest.testnet` from https://near-faucet.io (testnet NEAR is free, Q-008).
-- [ ] Deploy the token: `npm run launch:testnet -- --only token --execute` (needs 3.1).
+- [ ] Decide the `$TOTEM` total supply, then deploy: `npm run launch:testnet -- --only token --execute --supply <n>` (needs 3.1).
 - [ ] Record the deployed contract ids and transaction hashes here.
 - [ ] Repoint the stack parameters at the deployed contracts.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).

@@ -2,8 +2,9 @@
 //
 // This runs AFTER the rest of the platform is deployed and working on testnet, since the
 // intended route is to launch them through the launchpad rather than deploy them directly.
-// Supply and collection size are decided at that point, so treat the defaults below as
-// placeholders and pass the real figures.
+//
+// The collection size is decided: 10,000 Totems, which is the default below. The token
+// total supply is NOT decided, so --supply has to be passed when the token is launched.
 //
 //   npm run launch:testnet                    print the plan, change nothing
 //   npm run launch:testnet -- --execute       create the accounts and deploy
@@ -86,11 +87,16 @@ try {
   console.log('Totem testnet launch')
   console.log(`  parent account  ${parent}`)
   console.log(`  network         ${network}`)
-  console.log(`  token           ${tokenAccount}`)
-  console.log(`  nft             ${nftAccount}`)
-  console.log(`  supply          ${SUPPLY} (${flag('supply', '1000000000')} at ${DECIMALS} decimals)`)
-  console.log(`  nft max supply  ${nftArgs.max_supply}`)
-  console.log('\n  Supply and collection size are placeholders. Pass --supply and --max-supply.')
+  if (artifacts.token) console.log(`  token           ${tokenAccount}`)
+  if (artifacts.nft) console.log(`  nft             ${nftAccount}`)
+  if (artifacts.token) console.log(`  supply          ${SUPPLY} (${flag('supply', '1000000000')} at ${DECIMALS} decimals)`)
+  if (artifacts.nft) console.log(`  nft max supply  ${nftArgs.max_supply}`)
+  // Say which figure is settled and which is not, so a run cannot quietly deploy a
+  // placeholder supply as though it had been chosen.
+  if (artifacts.token && !args.includes('--supply')) {
+    console.log('\n  Token total supply is still a placeholder. Pass --supply with the real figure.')
+  }
+  if (artifacts.nft) console.log(`\n  Collection size ${nftArgs.max_supply} Totems.`)
   console.log('\nArtifact hashes, for TokenArtifactSha256 and NftArtifactSha256 on the stack:')
   for (const [label, path] of Object.entries(artifacts)) console.log(`  ${label.padEnd(6)} ${sha256Hex(path)}`)
 

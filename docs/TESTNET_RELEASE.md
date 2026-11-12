@@ -89,8 +89,9 @@ exercise the launch path end to end.
 
 ## Launching the Totem token and NFT
 
-These come last, after the platform is up and the supply figures are decided. The defaults
-in the script are placeholders.
+These come last, after the platform is up. The collection size is decided at **10,000
+Totems**, which is the script default. The token total supply is not decided yet, so
+`--supply` must be passed when the token is launched.
 
 ```
 npm run launch:testnet                     # prints the plan, changes nothing
