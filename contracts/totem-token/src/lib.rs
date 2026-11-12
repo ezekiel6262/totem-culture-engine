@@ -193,6 +193,10 @@ mod tests {
         let unlock_at_ms = 10_000;
         testing_env!(VMContextBuilder::new().predecessor_account_id(owner.clone()).block_timestamp(1_000_000_000).build());
         let mut contract = TotemToken::new(owner.clone(), U128(100), "Culture".into(), "CULT".into(), 0, vec![InitialAllocation { account_id: owner.clone(), amount: U128(100), unlock_at_ms: Some(unlock_at_ms) }]);
+        // NEP-141 refuses a transfer to an account that has not paid for its own storage, so
+        // the receiver registers first, exactly as a wallet does before it can hold a token.
+        testing_env!(VMContextBuilder::new().predecessor_account_id(receiver.clone()).attached_deposit(NearToken::from_near(1)).build());
+        contract.storage_deposit(Some(receiver.clone()), Some(true));
         testing_env!(VMContextBuilder::new().predecessor_account_id(owner.clone()).block_timestamp(11_000_000_000).attached_deposit(NearToken::from_yoctonear(1)).build());
         contract.ft_transfer(receiver.clone(), U128(25), None);
         assert_eq!(contract.ft_balance_of(receiver).0, 25);
