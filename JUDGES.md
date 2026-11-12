@@ -76,11 +76,15 @@ No wallet needed for steps 1–3.
   solver network is unavailable, the page says so rather than inventing a price.
 - Arena games, prizes, balances and the demo wallet are **simulated in the browser** and
   labelled as such on the page.
-- The five contracts are complete Rust with tests and build reproducibly — `totem_token.wasm`
-  and `totem_nft.wasm` hash to the values pinned in `infrastructure/template.yaml` — but are
-  **not deployed to testnet yet**. `docs/TESTNET_RELEASE.md` holds the per-contract cost and
-  the exact deploy command. Launch quoting fails closed meanwhile, in
-  `backend/src/launch-quotes.js`.
+- **The Totem NFT contract is live on NEAR testnet** at `nft.totemtest.testnet`, deployed
+  from this repository's own artifact: its on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`,
+  the base58 of the sha256 pinned in `infrastructure/template.yaml`. `nft_metadata` and
+  `launch_config` answer over public RPC, the latter reporting 10,000 max supply and the
+  500 / 250 bps royalty split. Total supply is 0: nothing has been minted.
+- The other four contracts are complete Rust with tests and build reproducibly, but are
+  **not deployed yet** — each needs its own funded sub-account.
+  `docs/TESTNET_RELEASE.md` holds the per-contract cost and the exact deploy command.
+  Launch quoting fails closed meanwhile, in `backend/src/launch-quotes.js`.
 - No mainnet deployment, no audit, and no yield or return claim.
 
 ## Independent second submission

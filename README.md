@@ -101,14 +101,32 @@ Stated plainly, because the UI labels it and a judge should not have to guess.
 | NEAR Intents funding routes and quotes | **Live**, mainnet-priced and dry (see below) |
 | Rate limiting on the public claim path | **Live**, hashed identifiers only |
 | Arena games, prizes, balances, the demo wallet | **Simulated in the browser**, labelled as such |
-| Token, NFT, market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
+| Totem NFT contract (NEP-171) | **Live on testnet** at `nft.totemtest.testnet` |
+| Token, market, agent, launchpad contracts | **Source and tests complete, not yet deployed** |
 
 The contracts are real Rust against `near-sdk 5.30.1` with tests, and they build
-reproducibly — `totem_token.wasm` and `totem_nft.wasm` hash to the values pinned in
-`infrastructure/template.yaml`. They are not deployed to testnet yet: deployment needs a
-funded parent account, and `docs/TESTNET_RELEASE.md` records the exact cost of each one and
-the command that deploys it. Launch quoting fails closed in the meantime, in
-`backend/src/launch-quotes.js`, rather than pretending a factory exists.
+reproducibly. **The Totem NFT contract is deployed to NEAR testnet** at
+`nft.totemtest.testnet`, and the deployed code is the artifact in this repository: its
+on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`, which is the base58 of the sha256
+`9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929` that `infrastructure/template.yaml` pins. Check both yourself:
+
+```sh
+curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"view_account","account_id":"nft.totemtest.testnet","finality":"final"}}'
+```
+
+The collection is 10,000 Totems with a 5% creator and 2.5% treasury royalty, which the
+contract reports itself:
+
+```sh
+near contract call-function as-read-only nft.totemtest.testnet launch_config \
+  json-args {} network-config testnet now
+```
+
+The remaining four contracts are not deployed: each needs its own funded sub-account, and
+`docs/TESTNET_RELEASE.md` records the exact cost and command for each. Launch quoting fails
+closed in the meantime, in `backend/src/launch-quotes.js`, rather than pretending a factory
+exists.
 
 ## NEAR Intents, honestly
 

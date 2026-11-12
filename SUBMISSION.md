@@ -12,12 +12,12 @@ development phase; outside it the API answers 403.
 - [x] README walkthrough verified against the live deployment, with no dead links.
 - [x] Repository made public.
 - [x] Verify a clean clone: `git clone`, `npm ci`, `npm run judge:verify` (114 tests, both audits).
-- [ ] Authorise `totemtest.testnet` for near-cli-rs: `near account import-account using-seed-phrase --network-id testnet`.
-- [ ] Deploy the NFT, which the current 5.40 NEAR covers: `npm run launch:testnet -- --only nft --execute` (needs 4.6). Collection size 10,000.
-- [ ] Top up `totemtest.testnet` from https://near-faucet.io (testnet NEAR is free, Q-008).
-- [ ] Decide the `$TOTEM` total supply, then deploy: `npm run launch:testnet -- --only token --execute --supply <n>` (needs 3.1).
-- [ ] Record the deployed contract ids and transaction hashes here.
-- [ ] Repoint the stack parameters at the deployed contracts.
+- [x] Authorise `totemtest.testnet` for near-cli-rs. The key is in the legacy key store and matches the account full access key on chain, `ed25519:247jogH965g1UaFCMjWY4ShQPfqLKNLELETr1vMHsCeC`.
+- [x] Deploy the NFT: `nft.totemtest.testnet`, collection size 10,000, 4.10 NEAR staked.
+- [ ] Top up `totemtest.testnet` from https://near-faucet.io: it holds about 1.29 NEAR and the token needs 3.1 (testnet NEAR is free, Q-008).
+- [ ] Decide the `$TOTEM` total supply, then deploy: `npm run launch:testnet -- --only token --execute --supply <n>`.
+- [x] Record the deployed contract ids and code hashes here (see Deployed contracts below).
+- [x] Stack parameter `TotemNftContractId` already defaults to `nft.totemtest.testnet`, which is what was deployed. The others follow their own deploys.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).
 - [ ] Record a short demo video: one complete moment from a user action to a visible result.
 - [ ] Human publishes the X post with `@NEARProtocol` and `#NEARHackathon` and the video attached.
@@ -39,6 +39,21 @@ development phase; outside it the API answers 403.
 | NEAR Intents, live | `backend/src/intents.js`, 222 solver assets at `/api/v1/intents/routes`, dry mainnet quotes per Q-007 |
 | No anonymous writes | `POST /api/v1/claims/starter` answers `AUTH_REQUIRED`; NEP-413 sign-in required |
 | Reproducible contracts | `totem_token.wasm` and `totem_nft.wasm` hash to the values in `infrastructure/template.yaml` |
+| Contract deployed from this repo | `nft.totemtest.testnet` on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`, the base58 of the pinned sha256 |
+
+## Deployed contracts
+
+| Contract | Account | Network | Evidence |
+| --- | --- | --- | --- |
+| Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`, 4.10 NEAR staked, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
+
+Deployed 2026-11-12 from `totem_nft.wasm`, sha256 `9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929`, with
+`npm run launch:testnet -- --only nft --execute`. Read it back over public RPC:
+
+```sh
+near contract call-function as-read-only nft.totemtest.testnet nft_metadata \
+  json-args {} network-config testnet now
+```
 
 ## Links
 
