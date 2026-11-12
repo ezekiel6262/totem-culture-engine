@@ -193,3 +193,5 @@ Outputs:
     Value: !Ref FrontendBucket
   FrontendUrl:
     Value: !Sub 'https://${FrontendDistribution.DomainName}'
+  FrontendDistributionId:
+    Value: !Ref FrontendDistribution

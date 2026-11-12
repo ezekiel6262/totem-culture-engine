@@ -14,7 +14,8 @@
     "build:contracts": "cargo build --manifest-path contracts/Cargo.toml --workspace --target wasm32-unknown-unknown --release",
     "build:lambda": "esbuild ./backend/lambda.js --bundle --platform=node --format=esm --target=node24 --outfile=./build/lambda.js",
     "build:site": "node scripts/build-site.js",
-    "normalize": "node scripts/normalize-site.js"
+    "normalize": "node scripts/normalize-site.js",
+    "deploy:frontend": "node scripts/build-site.js && node scripts/deploy-frontend.mjs"
   },
   "engines": {
     "node": ">=22"

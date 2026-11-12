@@ -80,6 +80,34 @@ These are currently enforced in the browser only, which means they are not enfor
 ## 6. Deployment
 
 `infrastructure/template.yaml` already provisions the S3 frontend bucket, CloudFront, the
-Lambda API and DynamoDB. The new single-page frontend needs one change: CloudFront must
-serve `index.html` for unknown paths so deep links keep working. Hash routes do not need
-it, but the 404 mapping should be set before any path-based routes are added.
+Lambda API and DynamoDB. The new frontend is a single `index.html` with hash routes, so it
+needs no path rewriting: `/#arena` is still a request for `/`.
+
+Do not add `CustomErrorResponses` mapping 404 to `index.html` on this distribution. The
+same distribution also serves `/api*` from the Lambda origin, and a distribution-wide
+error mapping would turn an API 404 into the HTML page with status 200. If path-based
+routes are ever added, scope the rewrite to the frontend behaviour with a CloudFront
+Function instead.
+
+Publishing is `npm run deploy:frontend`, which builds the parts, syncs `dist` to the
+bucket and invalidates the distribution. It reads the bucket and distribution from the
+CloudFormation stack outputs, so it needs an AWS session with access to that stack.
+
+Live stack: `totemstart` in us-east-1, bucket `totemstart-frontendbucket-agixkeoemiyu`,
+distribution `E2TGHXC8NZF4AV`, serving mytotem.buzz.
+
+## 7. Before the product API goes live
+
+The routes in section 3 are mounted in `backend/server.js` only. They are deliberately
+not mounted in the Lambda yet, because `MemoryProductRepository` holds state in the
+process: on Lambda it would be empty on every cold start and inconsistent between
+concurrent instances, so writes would appear to succeed and then vanish.
+
+The frontend does not call these routes yet, so nothing is broken by the gap. Before the
+API goes live:
+
+1. Add a DynamoDB implementation of the product repository, alongside the existing
+   `DynamoTotemRepository`, using the single `TOTEM_DYNAMODB_TABLE`.
+2. Select it in `application-runtime.js` the way the other repositories are selected, and
+   mount `createProductRouter` in the Lambda route table.
+3. Only then point the frontend screens at the API.
