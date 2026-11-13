@@ -197,10 +197,11 @@ function paintClaim(){
   on('cPass', () => { S.email = S.email || 'player@passkey'; T.save(); cStep = 1; paintClaim(); });
   on('cCreate', () => { cStep = 2; paintClaim(); T.toast('Account created. You paid 0 NEAR.'); });
   on('cClaim', () => {
-    S.connected = true; S.account = handle();
-    if (S.pendingPrize) S.prizes.push('Prize Totem #P' + (100 + S.prizes.length));
-    if (S.pendingCoins) { S.wallet += S.pendingCoins; T.log('Meme Kart coins', '+' + T.fmt(S.pendingCoins) + ' $TOTEM', 'g'); }
-    T.log('Claimed with no gas', S.pendingPrize ? 'Prize Totem' : 'Totem shell', 'g');
+    // This used to set S.connected itself and invent a prize Totem and a $TOTEM balance, so
+    // a visitor appeared to have an account and holdings that existed in no wallet and on no
+    // chain. Claiming now goes through the real wallet, and the real faucet and mint permit
+    // on the profile, which move actual tokens.
+    const header = $('#connectBtn'); if (header) header.click();
     S.pendingCoins = 0; S.pendingPrize = false; T.save(); cStep = 3; paintClaim();
     const b = $('#connectBtn'); if (b) b.textContent = S.account;
   });
