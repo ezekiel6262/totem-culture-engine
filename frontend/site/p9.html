@@ -53,10 +53,6 @@ async function paintExplore(){
     stat('Royalties', (p.collection.creatorRoyaltyBps / 100) + '% + ' + (p.collection.treasuryRoyaltyBps / 100) + '%', 'creator and treasury, on every sale') +
     '</div>';
 
-  const allocations = '<div class="tbl"><table><thead><tr><th>Allocation</th><th>Account</th><th>$TOTEM held now</th></tr></thead><tbody>' +
-    p.allocations.map((a) => '<tr><td style="text-transform:capitalize">' + esc(a.account.split('.')[0]) + '</td><td style="font-family:var(--mono);font-size:13px;word-break:break-all">' + esc(a.account) + '</td><td>' + T.fmt(Number(a.whole)) + '</td></tr>').join('') +
-    '</tbody></table></div><p class="muted" style="font-size:13px;margin-top:8px">Query any of these yourself with ft_balance_of on ' + esc(p.token.contractId) + '.</p>';
-
   const arenaHtml = !arena ? '' : '<a class="card ink" href="#arenas" style="text-decoration:none;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">' +
     '<span style="display:flex;gap:16px;align-items:center"><span style="font-family:var(--serif);font-size:44px;line-height:1">1</span><span><span style="font-family:var(--serif);font-size:30px;line-height:1">' + esc(arena.name) + '</span><br><span class="muted" style="font-size:14px">' + (arena.paused ? 'Paused by its operator' : 'Open') + '</span></span></span>' +
     '<span style="display:flex;gap:18px;flex-wrap:wrap;font-size:14px"><span>Entry <strong>' + (arena.entryPieces ?? 1) + '</strong> piece(s)</span><span><strong>' + T.fmt((arena.entryPieces ?? 1) * p.piece) + '</strong> $TOTEM to enter</span></span></a>';
@@ -71,7 +67,7 @@ async function paintExplore(){
   body.innerHTML =
     section('What you can do', 'Every one of these writes to NEAR testnet', actionHtml) +
     section('What Totem is, from the contracts', '', whatItIs) +
-    section('Where the supply sits', 'Read from ' + esc(p.token.contractId), allocations) +
+
     (arenaHtml ? section('Arenas', '', '<div class="grid" style="gap:10px">' + arenaHtml + '</div>') : '') +
     '<p class="muted" style="font-size:13px;margin-top:24px">Read live from ' + esc(p.collection.contractId) + ' and ' + esc(p.token.contractId) + ' on NEAR testnet.</p>';
   searchPaint($('#exSearch').value);
