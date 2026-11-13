@@ -18,6 +18,8 @@ export class MemoryProductRepository {
   #ledger = []
   #seasons = new Map()
   #currentSeasonId = null
+  #grants = new Map()
+  #grantSeq = new Map()
   #nextTotemId = 1000
   #nextId = 1
 
@@ -168,6 +170,14 @@ export class MemoryProductRepository {
   async saveAccount(account) { this.#accounts.set(account.id, clone(account)); return clone(account) }
   async getAccount(id) { return clone(this.#accounts.get(id) ?? null) }
   async listAccounts() { return [...this.#accounts.values()].map(clone) }
+
+  async nextGrantNumber(kind) { const next = (this.#grantSeq.get(kind) ?? 0) + 1; this.#grantSeq.set(kind, next); return next }
+  async createGrant(grant) {
+    const key = `${grant.kind}#${grant.accountId}`
+    if (this.#grants.has(key)) throw new DomainError('GRANT_EXISTS', 'That account already has this grant')
+    this.#grants.set(key, clone(grant)); return clone(grant)
+  }
+  async getGrant(kind, accountId) { return clone(this.#grants.get(`${kind}#${accountId}`) ?? null) }
 
   async createClaim(claim) { this.#claims.set(claim.handle, clone(claim)); return clone(claim) }
   async getClaim(handle) { return clone(this.#claims.get(handle) ?? null) }

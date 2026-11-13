@@ -16,6 +16,7 @@ import {ArenaEconomyService} from './arena-economy.js'
 import {SocialTreasuryService} from './social-treasury.js'
 import {MemoryProductRepository,ensurePlatform,seedProduct} from './totem-product-repository.js'
 import {DynamoProductRepository} from './dynamo-product-repository.js'
+import {NearSigner} from './near-signer.js'
 import {TotemProductService} from './totem-product.js'
 import {createProductRouter} from './totem-product-api.js'
 import {DynamoRateLimiter,MemoryRateLimiter} from './rate-limit.js'
@@ -44,6 +45,10 @@ export async function createApplicationRuntime(config){
   const rateLimiter=dynamo?new DynamoRateLimiter(dynamo,config.dynamoTable):new MemoryRateLimiter()
   const intents=new IntentsService({network:'mainnet'})
   const accounts={suffix:config.accountSuffix,token:config.tokenContractId,factory:config.factoryContractId,market:config.arenaMarketContractId}
-  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter,accounts,chain:{rpc,tokenContractId:config.tokenContractId,nftContractId:config.nftContractId}}),auth,intents})
+    // A signer exists only where its key is configured. Without one the claim endpoints
+  // refuse with CLAIMS_NOT_CONFIGURED rather than pretending to have done something.
+  const signerFor=(accountId,publicKey,secretKey)=>accountId&&publicKey&&secretKey?new NearSigner({rpcUrl:config.nearRpcUrl,accountId,publicKey,secretKey}):null
+  const chain={rpc,tokenContractId:config.tokenContractId,nftContractId:config.nftContractId,eligibilityCap:config.eligibilityCap,faucetWhole:config.faucetWhole,signer:signerFor(config.signerAccountId,config.signerPublicKey,config.signerSecretKey),faucetSigner:signerFor(config.faucetAccountId,config.faucetPublicKey,config.faucetSecretKey)}
+  const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter,accounts,chain}),auth,intents})
   return{db,dynamo,api,routes,product}
 }

@@ -235,6 +235,16 @@ export class DynamoProductRepository {
   async getAccount(id) { return this.getField(`ACCOUNT#${id}`, 'ACCOUNT', 'account') }
   async listAccounts() { return (await this.scanEntity('account')).map(item => clone(item.account)) }
 
+  // A grant is one per account per kind, and the counter is the phase cap: the store hands
+  // out the next number atomically, so two requests racing cannot both take the last slot.
+  async nextGrantNumber(kind) {
+    const result = await this.send(new UpdateCommand({ TableName: this.tableName, Key: { pk: `GRANT_SEQ#${kind}`, sk: 'COUNTER' }, UpdateExpression: 'ADD #value :one', ExpressionAttributeNames: { '#value': 'value' }, ExpressionAttributeValues: { ':one': 1 }, ReturnValues: 'UPDATED_NEW' }))
+    return Number(result.Attributes.value)
+  }
+
+  async createGrant(grant) { return this.putItem(`GRANT#${grant.kind}#${grant.accountId}`, 'GRANT', 'grant', 'grant', grant, 'attribute_not_exists(pk)') }
+  async getGrant(kind, accountId) { return this.getField(`GRANT#${kind}#${accountId}`, 'GRANT', 'grant') }
+
   async createClaim(claim) { return this.putItem(`CLAIM#${claim.handle}`, 'CLAIM', 'claim', 'claim', claim, 'attribute_not_exists(pk)') }
   async getClaim(handle) { return this.getField(`CLAIM#${handle}`, 'CLAIM', 'claim') }
 

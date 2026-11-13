@@ -148,7 +148,18 @@ export class TotemProductService {
     this.#limits = { ...CLAIM_LIMITS, ...limits }
     // Reading the chain is optional so that tests and local runs work without a network,
     // but when it is configured the product answers from it rather than from its own notes.
-    this.#chain = { decimals: 18, ...chain }
+    this.#chain = {
+      decimals: 18,
+      // The phase cap is the claimable collection, not the collection: minting needs a
+      // permit this service issues, so refusing to issue more than this many is what
+      // keeps the other 9,000 Totems unmintable.
+      eligibilityCap: 1000,
+      eligibilityDays: 30,
+      branches: ['diamond-holder', 'liquidity-guardian', 'meme-commander', 'community-builder'],
+      // One piece, which is the smallest amount that opens a one piece Arena.
+      faucetWhole: 25000,
+      ...chain
+    }
     // Every account hangs off the suffix, so a testnet deployment never shows mainnet names
     // in the call plans the UI displays. A null override falls back to the derived name.
     const suffix = accounts.suffix ?? 'totem.near'
@@ -458,6 +469,78 @@ export class TotemProductService {
     return { account, registered: Boolean(account), totems, onChain, operator: operates }
   }
 
+  /* ---------- claims that reach the chain ---------- */
+
+  // The platform grants the permit; the holder mints from their own wallet. That split is
+  // deliberate. Totem never holds a user's key, so the Totem that appears in their wallet
+  // is the result of their own signature, and this service cannot mint on their behalf.
+  async claimEligibility({ accountId, branch = 'community-builder' }) {
+    requireAccount(accountId, 'ACCOUNT_INVALID', 'Connect a NEAR wallet to claim a Totem')
+    const { signer, nftContractId, eligibilityCap, eligibilityDays, branches } = this.#chain
+    invariant(signer && nftContractId, 'CLAIMS_NOT_CONFIGURED', 'On-chain claiming is not configured on this deployment')
+    invariant(branches.includes(branch), 'BRANCH_INVALID', `branch must be one of: ${branches.join(', ')}`)
+
+    const existing = await this.#repository.getGrant('eligibility', accountId)
+    if (existing) return { ...existing, alreadyGranted: true, mint: this.#mintPlan() }
+
+    // The counter is handed out atomically, so two requests racing cannot both take the
+    // last slot of the phase.
+    const number = await this.#repository.nextGrantNumber('eligibility')
+    invariant(number <= eligibilityCap, 'PHASE_SUPPLY_EXHAUSTED', `All ${eligibilityCap} Totems in this phase have been claimed`)
+
+    const expiresAtMs = this.#now() + eligibilityDays * 86_400_000
+    const { transactionHash } = await signer.call({
+      receiverId: nftContractId,
+      methodName: 'approve_eligibility',
+      args: { account_id: accountId, branch, expires_at_ms: expiresAtMs }
+    })
+    const grant = { kind: 'eligibility', accountId, branch, number, expiresAtMs, transactionHash, at: this.#now() }
+    await this.#repository.createGrant(grant)
+    await this.registerAccount({ accountId })
+    await this.#ledger(accountId, { title: `Eligible to mint Totem ${number} of ${eligibilityCap}`, amount: branch, tone: 'g' })
+    return { ...grant, alreadyGranted: false, remaining: Math.max(0, eligibilityCap - number), mint: this.#mintPlan() }
+  }
+
+  // Minting is the holder's own transaction, so what comes back is what to sign, not a
+  // promise that something was done for them.
+  #mintPlan() {
+    return { receiver: this.#chain.nftContractId, method: 'mint', args: {}, deposit: '0.1 NEAR', note: 'Signed by you. The unused part of the deposit is refunded by the contract.' }
+  }
+
+  // A faucet exists so a tester can reach an Arena without being sent to find tokens first.
+  // It sends one piece, which is the smallest amount a one piece Arena will accept.
+  async claimTokens({ accountId, ip = null, deviceId = null }) {
+    requireAccount(accountId, 'ACCOUNT_INVALID', 'Connect a NEAR wallet to claim $TOTEM')
+    const { faucetSigner, tokenContractId, faucetWhole, decimals } = this.#chain
+    invariant(faucetSigner && tokenContractId, 'FAUCET_NOT_CONFIGURED', 'The $TOTEM faucet is not configured on this deployment')
+
+    const existing = await this.#repository.getGrant('faucet', accountId)
+    if (existing) return { ...existing, alreadyGranted: true }
+
+    await this.#guardClaim({ ip, deviceId })
+    const amount = (BigInt(faucetWhole) * 10n ** BigInt(decimals)).toString()
+
+    // NEP-141 refuses a transfer to an account that has not paid for its own storage, so the
+    // faucet registers the receiver first. Registering an account twice is harmless.
+    await faucetSigner.call({
+      receiverId: tokenContractId,
+      methodName: 'storage_deposit',
+      args: { account_id: accountId, registration_only: true },
+      deposit: 1_250_000_000_000_000_000_000n
+    })
+    const { transactionHash } = await faucetSigner.call({
+      receiverId: tokenContractId,
+      methodName: 'ft_transfer',
+      args: { receiver_id: accountId, amount, memo: 'Totem faucet' },
+      deposit: 1n
+    })
+    const grant = { kind: 'faucet', accountId, amount, whole: faucetWhole, transactionHash, at: this.#now() }
+    await this.#repository.createGrant(grant)
+    await this.registerAccount({ accountId })
+    await this.#ledger(accountId, { title: 'Claimed $TOTEM from the faucet', amount: `+${Number(faucetWhole).toLocaleString('en-US')} $TOTEM`, tone: 'g' })
+    return { ...grant, alreadyGranted: false }
+  }
+
   async claimStarter({ handle, ip = null, deviceId = null }) {
     requireAccount(handle, 'HANDLE_INVALID', 'Connect a NEAR wallet to claim a starter')
     const existing = await this.#repository.getClaim(handle)
@@ -466,7 +549,10 @@ export class TotemProductService {
     await this.registerAccount({ accountId: handle })
     const totem = await this.#repository.createTotem({ owner: handle, pieces: 1, items: [], origin: 'gasless starter', createdAt: this.#now() })
     await this.#repository.createClaim({ handle, totemId: totem.id, kind: 'starter', at: this.#now() })
-    await this.#ledger(handle, { title: 'Claimed a starter Totem', amount: `+${PIECE_TOKENS.toLocaleString('en-US')} $TOTEM`, tone: 'g' })
+    // This writes a platform record and moves no tokens, so it must not render as a
+    // transfer. The $TOTEM amount that used to be here was a receipt for something that
+    // never happened on chain.
+    await this.#ledger(handle, { title: 'Claimed a starter Totem', amount: 'platform record, no transfer', tone: 'g' })
     return { totem: this.#present(totem), gasless: true, calls: callPlans.claim({ relayerAccount: this.#accounts.relayer, arenaAccount: this.#accounts.arena, handle, prize: false }) }
   }
 

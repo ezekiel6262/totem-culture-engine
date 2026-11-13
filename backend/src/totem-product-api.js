@@ -107,6 +107,10 @@ export function createProductRouter({ product, auth = null, intents = null }) {
     // A starter is claimed by a signed in NEAR account. Creating the account is the
     // wallet's job, so there is no name to invent and nothing to claim anonymously.
     route('POST', '/api/v1/claims/starter', async ({ request, body, identity }) => product.claimStarter({ handle: actingAs(identity), ip: clientAddress(request), deviceId: body?.deviceId }), { auth: 'required' }),
+    // Both of these reach the chain. Eligibility is a permit the platform signs; the mint
+    // that follows is signed by the holder. The faucet sends one piece of $TOTEM.
+    route('POST', '/api/v1/claims/eligibility', async ({ body, identity }) => product.claimEligibility({ accountId: actingAs(identity), branch: body?.branch }), { auth: 'required' }),
+    route('POST', '/api/v1/claims/tokens', async ({ request, body, identity }) => product.claimTokens({ accountId: actingAs(identity), ip: clientAddress(request), deviceId: body?.deviceId }), { auth: 'required' }),
     route('POST', '/api/v1/claims/prize', async ({ body, identity }) => product.claimPrize({ handle: actingAs(identity), prizeId: body?.prizeId }), { auth: 'required' }),
 
     /* launches */
