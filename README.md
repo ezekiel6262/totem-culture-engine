@@ -116,8 +116,8 @@ Stated plainly, because the UI labels it and a judge should not have to guess.
 The contracts are real Rust against `near-sdk 5.30.1` with tests, and they build
 reproducibly. **The Totem NFT contract is deployed to NEAR testnet** at
 `nft.totemtest.testnet`, and the deployed code is the artifact in this repository: its
-on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`, which is the base58 of the sha256
-`9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929` that `infrastructure/template.yaml` pins. Check both yourself:
+on-chain `code_hash` is `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, which is the base58 of the sha256
+`BCE70A87CC289AA60C5DE3099B9C89FFB0F6D330638A37BC75713FE4B6997667` that `infrastructure/template.yaml` pins. Check both yourself:
 
 ```sh
 curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \

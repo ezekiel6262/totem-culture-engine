@@ -41,13 +41,13 @@ the deployed bytes are the artifact in this repository, with nothing taken on tr
 ```sh
 # 1. The artifact this project publishes, hashed.
 curl -s https://mytotem.buzz/contracts/totem_nft.wasm | sha256sum
-# 9fbb3ef2f7e4e3682784035a466ff02caaf766526516a6f4386dc72039587929
+# bce70a87cc289aa60c5de3099b9c89ffb0f6d330638a37bc75713fe4b6997667
 #    the same value infrastructure/template.yaml pins as NftArtifactSha256
 
 # 2. What the chain says is deployed there.
 curl -s https://rpc.testnet.near.org -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"view_account","account_id":"nft.totemtest.testnet","finality":"final"}}'
-# "code_hash": "BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz"
+# "code_hash": "DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv"
 #    which is the base58 of that same sha256
 
 # 3. The collection terms, read from the contract itself.
@@ -179,7 +179,7 @@ No wallet needed for steps 1–3.
   wallet or MyNearWallet, and Totem never holds a user's key: the mint and any purchase are
   signed by the holder.
 - **The Totem NFT contract is live on NEAR testnet** at `nft.totemtest.testnet`, deployed
-  from this repository's own artifact: its on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`,
+  from this repository's own artifact: its on-chain `code_hash` is `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`,
   the base58 of the sha256 pinned in `infrastructure/template.yaml`. `nft_metadata` and
   `launch_config` answer over public RPC, the latter reporting 10,000 max supply and the
   500 / 250 bps royalty split. Total supply is 0: nothing has been minted.

@@ -60,33 +60,40 @@ T.modules.launch = { enter: paintLaunch };
 
 /* ---------- lock ---------- */
 function paintLock(){
-  const n = S.pieces;
+  // What the Totem holds and what the wallet holds are read from the chain, and they are
+  // not the same number: one is standing, the other is what could still be locked.
+  const n = T.holdings ? T.holdings.pieces : 0;
+  const wallet = T.holdings ? Number(T.holdings.balanceWhole) : 0;
   $('#lockTotem').innerHTML = T.svgTotem(n, 150) + '<div style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:14px">Inside</span><span class="big mark">' + T.fmt(n * 25000) + '</span><span class="muted" style="font-size:14px">$TOTEM, ' + n + ' of 4</span></div>';
   $('#lockStatus').textContent = n === 4 ? 'Full Totem. Every door is open.' : n === 0 ? 'Empty shell. Lock tokens to bring it back.' : (4 - n) + ' more piece' + (n === 3 ? '' : 's') + ' to a full Totem.';
-  $('#walletLine').textContent = 'Wallet: ' + T.fmt(S.wallet) + ' $TOTEM. Each piece is 25,000.';
-  const canAdd = n < 4 && S.wallet >= 25000, canTake = n > 0;
+  $('#walletLine').textContent = 'Wallet: ' + T.fmt(wallet) + ' $TOTEM. Each piece is 25,000.';
+  const canAdd = n < 4 && wallet >= 25000, canTake = n > 0;
   $('#addPiece').setAttribute('aria-disabled', !canAdd); $('#takePiece').setAttribute('aria-disabled', !canTake);
-  $('#addPiece').textContent = n < 4 && S.wallet < 25000 ? 'Need 25,000 in wallet' : 'Add a piece';
+  $('#addPiece').textContent = n < 4 && wallet < 25000 ? 'Need 25,000 in wallet' : 'Add a piece';
   const doors = [['Holder room', '1 piece', 1], ['Treasury room', '3 pieces', 3], ['Arena finals', 'Full Totem', 4]];
   $('#doors').innerHTML = doors.map((d) => '<div class="door"><span>' + d[0] + '<br><span class="muted" style="font-size:13px">' + d[1] + '</span></span><span class="chip ' + (n >= d[2] ? 'g' : '') + '">' + (n >= d[2] ? 'Open' : 'Locked') + '</span></div>').join('');
 }
-// These used to move 25,000 $TOTEM between two numbers in this browser. Locking is
-// recorded by the Totem API against the Totem you actually own, which the profile shows
-// and which the Arena reads. It is a platform record rather than an on-chain hook, and the
-// page says so rather than implying a transfer happened.
-const piece = async (method, label) => {
+// Locking is a real transfer into the collection, signed by the holder. The tokens leave
+// the wallet and the contract credits them to that Totem, so the NFT holds the money
+// rather than the person holding it. Taking them out is the only way to get them back, and
+// it costs the Totem its standing, which is the whole mechanism.
+const PIECE_UNITS = '25000000000000000000000';
+const piece = async (mode) => {
   const held = T.holdings;
   if (!held) { T.toast('Connect your NEAR wallet first'); const b = document.querySelector('#connectBtn'); if (b) b.click(); return; }
   if (!held.totemTokenId) { T.toast('Claim a Totem on your profile first'); location.hash = '#profile'; return; }
   try {
-    await window.totemApi.request('/api/v1/totems/' + encodeURIComponent(held.totemTokenId) + '/pieces', { authenticated: true, method });
-    T.toast(label);
-    await T.refreshHoldings();
+    const transaction = mode === 'lock'
+      ? { receiverId: held.tokenContractId, actions: [{ type: 'FunctionCall', params: { methodName: 'ft_transfer_call', args: { receiver_id: held.nftContractId, amount: PIECE_UNITS, msg: JSON.stringify({ action: 'add_piece', token_id: String(held.totemTokenId) }) }, gas: '100000000000000', deposit: '1' } }] }
+      : { receiverId: held.nftContractId, actions: [{ type: 'FunctionCall', params: { methodName: 'withdraw_piece', args: { token_id: String(held.totemTokenId), pieces: 1 }, gas: '100000000000000', deposit: '1' } }] };
+    const outcome = await T.wallet.signAndSendTransaction(transaction);
+    T.toast((mode === 'lock' ? 'Locked a piece into ' : 'Took a piece out of ') + T.myTotemLabel() + '. ' + (outcome && outcome.transaction ? outcome.transaction.hash : ''));
+    if (T.refreshHoldings) await T.refreshHoldings();
     paintLock();
   } catch (error) { T.toast(error && error.message ? error.message : 'That did not work'); }
 };
-$('#addPiece').addEventListener('click', () => piece('POST', 'Piece locked and recorded by the Totem API'));
-$('#takePiece').addEventListener('click', () => piece('DELETE', 'Piece released and recorded by the Totem API'));
+$('#addPiece').addEventListener('click', () => piece('lock'));
+$('#takePiece').addEventListener('click', () => piece('withdraw'));
 T.modules.lock = { enter: paintLock };
 
 /* ---------- totem account + 3D viewer ---------- */

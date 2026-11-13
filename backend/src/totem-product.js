@@ -479,14 +479,35 @@ export class TotemProductService {
       ])
       const whole = BigInt(balanceRaw) / 10n ** BigInt(decimals)
       const possible = whole / BigInt(PIECE_TOKENS)
+
+      // Pieces are what the Totem holds, not what its owner could afford to lock. The
+      // collection keeps the tokens, so this asks the collection. A wallet balance is what
+      // you could lock; standing is what you did lock, and the two are deliberately
+      // different numbers.
+      let lockedRaw = '0'
+      let lockedPieces = 0
+      if (totemTokenId && nftContractId) {
+        try {
+          const [held, pieces] = await Promise.all([
+            rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'locked_of', args: { token_id: String(totemTokenId) } }),
+            rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'pieces_of', args: { token_id: String(totemTokenId) } })
+          ])
+          lockedRaw = String(held)
+          lockedPieces = Number(pieces)
+        } catch (error) { lockedRaw = '0'; lockedPieces = 0 }
+      }
       return {
         source: 'chain',
         tokenContractId,
         nftContractId: nftContractId ?? null,
         balance: String(balanceRaw),
         balanceWhole: whole.toString(),
-        // What the balance is worth in pieces, capped at a full Totem.
-        pieces: Number(possible > BigInt(MAX_PIECES) ? BigInt(MAX_PIECES) : possible),
+        // Standing: what the Totem actually holds inside it.
+        pieces: lockedPieces,
+        locked: lockedRaw,
+        lockedWhole: (BigInt(lockedRaw) / 10n ** BigInt(decimals)).toString(),
+        // What the wallet could still lock, which is a different thing and named as one.
+        walletPieces: Number(possible > BigInt(MAX_PIECES) ? BigInt(MAX_PIECES) : possible),
         piecesWorth: possible.toString(),
         totemTokenId: totemTokenId ?? null,
         observedAt: this.#now()

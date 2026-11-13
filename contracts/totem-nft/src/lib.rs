@@ -28,6 +28,15 @@ enum StorageKey {
     Inventory,
     Credentials,
     ArenaRecords,
+    Locked,
+}
+
+// A Totem holds money by holding it: tokens sent here with an add_piece message are
+// credited to one token id and stay in this contract until its owner withdraws them.
+// Withdrawing sends them back, so the contract needs the token's own transfer method.
+#[near_sdk::ext_contract(ext_ft)]
+trait FungibleToken {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
 }
 
 #[near(serializers = [borsh, json])]
@@ -88,6 +97,13 @@ pub struct TotemNft {
     inventory: LookupMap<TokenId, Vec<String>>,
     credentials: LookupMap<AccountId, Vec<String>>,
     arena_records: LookupMap<TokenId, ArenaRecord>,
+    // What each Totem holds inside it, in the smallest unit of the accepted token.
+    locked: LookupMap<TokenId, u128>,
+    // Only this token may be locked. Without it set, nothing can be locked at all, so a
+    // worthless token cannot be parked inside a Totem to fake its standing.
+    token_contract_id: Option<AccountId>,
+    piece_size: u128,
+    max_pieces: u8,
     next_token_id: u64,
     max_supply: u64,
     mint_price: u128,
@@ -146,6 +162,11 @@ impl TotemNft {
             inventory: LookupMap::new(StorageKey::Inventory),
             credentials: LookupMap::new(StorageKey::Credentials),
             arena_records: LookupMap::new(StorageKey::ArenaRecords),
+            locked: LookupMap::new(StorageKey::Locked),
+            token_contract_id: None,
+            // 25,000 tokens at 18 decimals, four of them to a full Totem.
+            piece_size: 25_000_000_000_000_000_000_000u128,
+            max_pieces: 4,
             next_token_id: 1,
             max_supply,
             mint_price: mint_price.0,
@@ -155,6 +176,145 @@ impl TotemNft {
             treasury_royalty_bps,
             treasury_royalty_receiver_id,
         }
+    }
+
+    /* ---------- holding: a Totem holds its own tokens ---------- */
+
+    // Borsh reads a struct by position, so adding fields makes the deployed state
+    // undeserialisable. This reads the old layout once and writes the new one, which is why
+    // Totem #1 and everything minted before this survive the upgrade.
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        #[derive(near_sdk::borsh::BorshDeserialize)]
+        #[borsh(crate = "near_sdk::borsh")]
+        struct Old {
+            tokens: NonFungibleToken,
+            metadata: LazyOption<NFTContractMetadata>,
+            owner_id: AccountId,
+            eligibility: LookupMap<AccountId, EligibilityPermit>,
+            token_by_owner: LookupMap<AccountId, TokenId>,
+            evolution: LookupMap<TokenId, Evolution>,
+            votes: LookupMap<String, bool>,
+            tallies: LookupMap<String, (u64, u64)>,
+            inventory: LookupMap<TokenId, Vec<String>>,
+            credentials: LookupMap<AccountId, Vec<String>>,
+            arena_records: LookupMap<TokenId, ArenaRecord>,
+            next_token_id: u64,
+            max_supply: u64,
+            mint_price: u128,
+            primary_sale_receiver_id: AccountId,
+            creator_royalty_bps: u16,
+            creator_royalty_receiver_id: AccountId,
+            treasury_royalty_bps: u16,
+            treasury_royalty_receiver_id: AccountId,
+        }
+        let old: Old = env::state_read().expect("No existing state to migrate");
+        Self {
+            tokens: old.tokens,
+            metadata: old.metadata,
+            owner_id: old.owner_id,
+            eligibility: old.eligibility,
+            token_by_owner: old.token_by_owner,
+            evolution: old.evolution,
+            votes: old.votes,
+            tallies: old.tallies,
+            inventory: old.inventory,
+            credentials: old.credentials,
+            arena_records: old.arena_records,
+            locked: LookupMap::new(StorageKey::Locked),
+            token_contract_id: None,
+            piece_size: 25_000_000_000_000_000_000_000u128,
+            max_pieces: 4,
+            next_token_id: old.next_token_id,
+            max_supply: old.max_supply,
+            mint_price: old.mint_price,
+            primary_sale_receiver_id: old.primary_sale_receiver_id,
+            creator_royalty_bps: old.creator_royalty_bps,
+            creator_royalty_receiver_id: old.creator_royalty_receiver_id,
+            treasury_royalty_bps: old.treasury_royalty_bps,
+            treasury_royalty_receiver_id: old.treasury_royalty_receiver_id,
+        }
+    }
+
+    // Set once, by the owner, so the collection accepts exactly one token.
+    pub fn set_locking(&mut self, token_contract_id: AccountId, piece_size: U128, max_pieces: u8) {
+        self.assert_owner();
+        require!(piece_size.0 > 0, "Piece size must be positive");
+        require!(max_pieces > 0 && max_pieces <= 16, "Max pieces must be between 1 and 16");
+        self.token_contract_id = Some(token_contract_id);
+        self.piece_size = piece_size.0;
+        self.max_pieces = max_pieces;
+    }
+
+    pub fn locked_of(&self, token_id: TokenId) -> U128 { U128(self.locked.get(&token_id).unwrap_or(0)) }
+
+    pub fn pieces_of(&self, token_id: TokenId) -> u8 {
+        let held = self.locked.get(&token_id).unwrap_or(0);
+        u8::try_from(held / self.piece_size).unwrap_or(u8::MAX).min(self.max_pieces)
+    }
+
+    pub fn locking_config(&self) -> HashMap<String, String> {
+        HashMap::from([
+            ("token_contract_id".into(), self.token_contract_id.as_ref().map(|a| a.to_string()).unwrap_or_default()),
+            ("piece_size".into(), self.piece_size.to_string()),
+            ("max_pieces".into(), self.max_pieces.to_string()),
+        ])
+    }
+
+    // NEP-141 calls this when tokens are sent here with ft_transfer_call. Whatever is not
+    // used is returned, and the token contract refunds it, so sending more than a Totem can
+    // hold never loses the difference.
+    pub fn ft_on_transfer(&mut self, sender_id: AccountId, amount: U128, msg: String) -> PromiseOrValue<U128> {
+        let token = self.token_contract_id.clone().expect("This collection is not accepting a token yet");
+        require!(env::predecessor_account_id() == token, "Only the accepted token may be locked");
+
+        let parsed: near_sdk::serde_json::Value =
+            near_sdk::serde_json::from_str(&msg).unwrap_or(near_sdk::serde_json::Value::Null);
+        let action = parsed.get("action").and_then(|v| v.as_str()).unwrap_or("");
+        require!(action == "add_piece", "msg must be {\"action\":\"add_piece\",\"token_id\":\"<id>\"}");
+        let token_id: TokenId = parsed
+            .get("token_id")
+            .and_then(|v| v.as_str())
+            .expect("msg needs a token_id")
+            .to_string();
+        require!(self.tokens.owner_by_id.get(&token_id).is_some(), "That Totem does not exist");
+
+        let held = self.locked.get(&token_id).unwrap_or(0);
+        let capacity = (self.piece_size * u128::from(self.max_pieces)).saturating_sub(held);
+        let used = amount.0.min(capacity);
+        require!(used > 0, "That Totem is already full");
+        self.locked.insert(&token_id, &(held + used));
+
+        env::log_str(&format!(
+            "{{\"event\":\"piece_locked\",\"token_id\":\"{}\",\"by\":\"{}\",\"amount\":\"{}\",\"locked\":\"{}\"}}",
+            token_id, sender_id, used, held + used
+        ));
+        PromiseOrValue::Value(U128(amount.0 - used))
+    }
+
+    // Taking tokens out is what costs a Totem its standing, so only its owner may do it.
+    #[payable]
+    pub fn withdraw_piece(&mut self, token_id: TokenId, pieces: u8) -> Promise {
+        near_sdk::assert_one_yocto();
+        let token = self.token_contract_id.clone().expect("This collection is not accepting a token yet");
+        let owner = self.tokens.owner_by_id.get(&token_id).expect("That Totem does not exist");
+        require!(env::predecessor_account_id() == owner, "Only the owner of a Totem may take tokens out of it");
+        require!(pieces > 0, "Withdraw at least one piece");
+
+        let held = self.locked.get(&token_id).unwrap_or(0);
+        let amount = self.piece_size * u128::from(pieces);
+        require!(held >= amount, "That Totem does not hold that many pieces");
+        self.locked.insert(&token_id, &(held - amount));
+
+        env::log_str(&format!(
+            "{{\"event\":\"piece_withdrawn\",\"token_id\":\"{}\",\"to\":\"{}\",\"amount\":\"{}\",\"locked\":\"{}\"}}",
+            token_id, owner, amount, held - amount
+        ));
+        ext_ft::ext(token)
+            .with_attached_deposit(NearToken::from_yoctonear(1))
+            .with_static_gas(near_sdk::Gas::from_tgas(10))
+            .ft_transfer(owner, U128(amount), Some(format!("Totem {} withdrawal", token_id)))
     }
 
     pub fn launch_config(&self) -> HashMap<String, String> {

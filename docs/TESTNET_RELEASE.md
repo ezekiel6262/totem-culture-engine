@@ -4,7 +4,7 @@
 
 | Contract | Account | Deployed | Code hash |
 | --- | --- | --- | --- |
-| Totem NFT, NEP-171 | `nft.totemtest.testnet` | 2026-11-12 | `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz` |
+| Totem NFT, NEP-171 | `nft.totemtest.testnet` | 2026-11-12 | `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv` |
 | Totem token, NEP-141 | `token.totemtest.testnet` | 2026-11-13 | `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j` |
 | Player-owned market | `market.totemtest.testnet` | 2026-11-13 | `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV` |
 | Culture Agent | `agent.totemtest.testnet` | 2026-11-13 | `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh` |
@@ -176,7 +176,7 @@ Reproducible artifact hashes, which the backend's deployment gate already expect
 | Contract | SHA-256 |
 | --- | --- |
 | `totem_token.wasm` | `2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E` |
-| `totem_nft.wasm` | `9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929` |
+| `totem_nft.wasm` | `BCE70A87CC289AA60C5DE3099B9C89FFB0F6D330638A37BC75713FE4B6997667` |
 
 After the deploy, repoint the stack parameters `TotemTokenContractId` and
 `TotemNftContractId` at the new accounts. They are CloudFormation parameters, so no code

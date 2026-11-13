@@ -17,7 +17,7 @@ Parameters:
   CustomDomainName: {Type: String, Default: ''}
   CustomDomainCertificateArn: {Type: String, Default: ''}
   TokenArtifactSha256: {Type: String, Default: 2A1E7AA0902619272226ACDEFB06D51FD3BDF0196FBCC94C3F45CA9FFCECED9E}
-  NftArtifactSha256: {Type: String, Default: 9FBB3EF2F7E4E3682784035A466FF02CAAF766526516A6F4386DC72039587929}
+  NftArtifactSha256: {Type: String, Default: BCE70A87CC289AA60C5DE3099B9C89FFB0F6D330638A37BC75713FE4B6997667}
 Conditions:
   UseCustomDomain: !Not [!Equals [!Ref CustomDomainName, '']]
 Globals:
