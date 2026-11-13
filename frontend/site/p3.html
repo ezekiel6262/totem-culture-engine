@@ -10,7 +10,7 @@ const G = '#00B97F', W = '#FFFFFF', K = '#000000', E = '#FF5A1F', Y = '#FFF09A',
 
 /* ---------- demo state ---------- */
 const KEY = 'totem-demo-state-1';
-const defaults = { pieces: 3, wallet: 45000, connected: false, account: 'ada.near', prizes: [], games: [], races: 0, rented: null, launches: [], bought: [], items: [], mute: false, lowPower: false, best: {}, fishDay: 0, bag: { streak: 0, today: [] }, clashEntry: null, operator: false, delivered: 0, ghost: null, ghostT: 0, email: '', listing: null,
+const defaults = { pieces: 3, wallet: 45000, connected: false, account: 'ada.testnet', prizes: [], games: [], races: 0, rented: null, launches: [], bought: [], items: [], mute: false, lowPower: false, best: {}, fishDay: 0, bag: { streak: 0, today: [] }, clashEntry: null, operator: false, delivered: 0, ghost: null, ghostT: 0, email: '', listing: null,
   ledger: [
     { w: 'Yesterday', t: 'Meme Clash prize, round 1', a: '+40 NEAR', c: 'g' },
     { w: '3 days ago', t: 'Locked a piece', a: '+25,000 $TOTEM', c: 'g' },
@@ -124,7 +124,7 @@ $('#closeSheet').addEventListener('click', closeSheet);
 function paintConnect(){ $('#connectBtn').textContent = S.connected ? S.account : 'Connect'; }
 $('#connectBtn').addEventListener('click', () => {
   if (S.connected) { S.connected = false; save(); paintConnect(); toast('Disconnected'); return; }
-  S.connected = true; save(); paintConnect(); toast('Connected as ada.near (demo wallet)');
+  S.connected = true; save(); paintConnect(); toast('Connected as ada.testnet (demo wallet)');
 });
 paintConnect();
 

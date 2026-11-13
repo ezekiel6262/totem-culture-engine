@@ -36,7 +36,7 @@ function paintLaunch(){
   $('#lTitle').textContent = tok ? 'Your token' : 'Your collection and its new token';
   $('#lF1').textContent = tok ? 'Token contract' : 'NFT collection';
   $('#lF2').textContent = tok ? 'Collection name' : 'New token ticker';
-  $('#lV1').value = tok ? 'yourtoken.near' : 'yourcollection.near';
+  $('#lV1').value = tok ? 'yourtoken.testnet' : 'yourcollection.testnet';
   $('#lV2').value = tok ? 'Your collection' : 'TICKER';
   $('#lNote').textContent = tok ? 'Holders mint by locking your token. Nothing is airdropped, so every NFT is backed from day one. This is how $TOTEM launched.' : 'Each NFT in your collection becomes an account. Your new token lands inside every NFT, not in wallets, so each one starts with pieces filled.';
   $('#lFull').textContent = T.fmt(lSize * 4) + ' ' + tick;
@@ -112,10 +112,10 @@ T.modules.totem = {
 /* ---------- rooms ---------- */
 let room = 'holder'; const votes = {};
 const posts = [
-  ['kofi.near', 'Full Totem', '2m', 'Meme Kart finals tonight. Prize is a Totem with 1 piece already inside.', T.G],
-  ['weaver.near', '3 pieces', '18m', 'Gold Wings are live. Equip them and 10% of item sales go to the maker Totem.', T.GOLD],
-  ['tunde.near', '1 piece', '1h', 'Need 2 more for a Ritual Raid squad. Anyone with 2 pieces or more.', '#FFFFFF'],
-  ['creator.near', 'Creator', '3h', 'Treasury vote on Arena prize funding closes Friday.', T.E]
+  ['kofi.testnet', 'Full Totem', '2m', 'Meme Kart finals tonight. Prize is a Totem with 1 piece already inside.', T.G],
+  ['weaver.testnet', '3 pieces', '18m', 'Gold Wings are live. Equip them and 10% of item sales go to the maker Totem.', T.GOLD],
+  ['tunde.testnet', '1 piece', '1h', 'Need 2 more for a Ritual Raid squad. Anyone with 2 pieces or more.', '#FFFFFF'],
+  ['creator.testnet', 'Creator', '3h', 'Treasury vote on Arena prize funding closes Friday.', T.E]
 ];
 const props = [
   { id: 'p1', t: 'Fund 6 more prize Totems for Meme Kart', b: 'Prefill 6 Totems with 1 piece each from the treasury, as prizes for next week’s races.', y: 214, n: 61, e: 'Ends Friday' },
@@ -135,7 +135,7 @@ function paintRooms(){
       posts.map((p) => '<div class="card" style="display:flex;gap:14px;padding:16px"><span style="width:40px;height:40px;flex-shrink:0;border-radius:12px;background:' + p[4] + ';border:1.5px solid #000"></span><div><span style="font-size:14px"><strong>' + p[0] + '</strong> <span class="muted">' + p[1] + ', ' + p[2] + '</span></span><p style="font-size:16px">' + p[3] + '</p></div></div>').join('') +
       '<label style="display:flex;gap:10px"><span class="sr">Message</span><input type="text" placeholder="Write to the holder room" id="roomMsg"><button class="btn" type="button" id="roomSend">Send</button></label></div>';
     $('#claimDrop').addEventListener('click', () => T.toast('Gold Wings added to Totem #0417'));
-    $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.near', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
+    $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.testnet', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
   } else {
     $('#roomBody').innerHTML = '<div class="grid g3" style="margin-bottom:14px"><div class="card" style="background:#000;color:#fff;border-color:#000"><span style="color:#B5B5AD">Treasury</span><div class="big">8,420 NEAR</div><span style="color:#B5B5AD;font-size:14px">from resale royalties</span></div><div class="card"><span class="muted">Locked in Totems</span><div class="big">31.2M</div><span class="muted" style="font-size:14px">$TOTEM out of circulation</span></div><div class="card"><span class="muted">Your votes</span><div class="big">' + S.pieces + '</div><span class="muted" style="font-size:14px">one per piece</span></div></div>' +
       props.map((p) => { const v = votes[p.id], y = p.y + (v === 'y' ? S.pieces : 0), n = p.n + (v === 'n' ? S.pieces : 0);

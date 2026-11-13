@@ -97,7 +97,7 @@ function nearest(pos, from){
   for (let k = -40; k <= 40; k++) { const i = (from + k + NS) % NS; const d = (P[i].x - pos.x) ** 2 + (P[i].z - pos.z) ** 2; if (d < bd) { bd = d; best = i; } }
   return best;
 }
-const AI_DEF = [['kofi.near', 'cat', '#FFFFFF'], ['bark.near', '#FF5A1F', '#FF5A1F'], ['weaver.near', '#FFD23F', '#FFF09A'], ['sol:4kQ..9z', '#7CC6FF', '#E3F1F4'], ['tunde.near', '#00B97F', '#DCF6EC']];
+const AI_DEF = [['kofi.testnet', 'cat', '#FFFFFF'], ['bark.testnet', '#FF5A1F', '#FF5A1F'], ['weaver.testnet', '#FFD23F', '#FFF09A'], ['sol:4kQ..9z', '#7CC6FF', '#E3F1F4'], ['tunde.testnet', '#00B97F', '#DCF6EC']];
 function reset(){
   [player, ...ais].forEach((k) => { if (k && k.g) scene.remove(k.g); });
   if (!getChars().some((x) => x.id === charId)) charId = 'totem';

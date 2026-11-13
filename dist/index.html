@@ -388,7 +388,7 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <div class="card" style="display:flex;flex-direction:column;gap:14px">
 <h2 style="font-size:30px" id="lTitle">Your token</h2>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-<label class="f"><span id="lF1">Token contract</span><input type="text" id="lV1" value="yourtoken.near"></label>
+<label class="f"><span id="lF1">Token contract</span><input type="text" id="lV1" value="yourtoken.testnet"></label>
 <label class="f"><span id="lF2">Collection name</span><input type="text" id="lV2" value="Your collection"></label>
 </div>
 <p style="font-size:15px;color:var(--body)" id="lNote">Holders mint by locking $TOTEM. Nothing is airdropped, so every Totem is backed from day one.</p>
@@ -666,7 +666,7 @@ const G = '#00B97F', W = '#FFFFFF', K = '#000000', E = '#FF5A1F', Y = '#FFF09A',
 
 /* ---------- demo state ---------- */
 const KEY = 'totem-demo-state-1';
-const defaults = { pieces: 3, wallet: 45000, connected: false, account: 'ada.near', prizes: [], games: [], races: 0, rented: null, launches: [], bought: [], items: [], mute: false, lowPower: false, best: {}, fishDay: 0, bag: { streak: 0, today: [] }, clashEntry: null, operator: false, delivered: 0, ghost: null, ghostT: 0, email: '', listing: null,
+const defaults = { pieces: 3, wallet: 45000, connected: false, account: 'ada.testnet', prizes: [], games: [], races: 0, rented: null, launches: [], bought: [], items: [], mute: false, lowPower: false, best: {}, fishDay: 0, bag: { streak: 0, today: [] }, clashEntry: null, operator: false, delivered: 0, ghost: null, ghostT: 0, email: '', listing: null,
   ledger: [
     { w: 'Yesterday', t: 'Meme Clash prize, round 1', a: '+40 NEAR', c: 'g' },
     { w: '3 days ago', t: 'Locked a piece', a: '+25,000 $TOTEM', c: 'g' },
@@ -780,7 +780,7 @@ $('#closeSheet').addEventListener('click', closeSheet);
 function paintConnect(){ $('#connectBtn').textContent = S.connected ? S.account : 'Connect'; }
 $('#connectBtn').addEventListener('click', () => {
   if (S.connected) { S.connected = false; save(); paintConnect(); toast('Disconnected'); return; }
-  S.connected = true; save(); paintConnect(); toast('Connected as ada.near (demo wallet)');
+  S.connected = true; save(); paintConnect(); toast('Connected as ada.testnet (demo wallet)');
 });
 paintConnect();
 
@@ -952,7 +952,7 @@ function paintLaunch(){
   $('#lTitle').textContent = tok ? 'Your token' : 'Your collection and its new token';
   $('#lF1').textContent = tok ? 'Token contract' : 'NFT collection';
   $('#lF2').textContent = tok ? 'Collection name' : 'New token ticker';
-  $('#lV1').value = tok ? 'yourtoken.near' : 'yourcollection.near';
+  $('#lV1').value = tok ? 'yourtoken.testnet' : 'yourcollection.testnet';
   $('#lV2').value = tok ? 'Your collection' : 'TICKER';
   $('#lNote').textContent = tok ? 'Holders mint by locking your token. Nothing is airdropped, so every NFT is backed from day one. This is how $TOTEM launched.' : 'Each NFT in your collection becomes an account. Your new token lands inside every NFT, not in wallets, so each one starts with pieces filled.';
   $('#lFull').textContent = T.fmt(lSize * 4) + ' ' + tick;
@@ -1028,10 +1028,10 @@ T.modules.totem = {
 /* ---------- rooms ---------- */
 let room = 'holder'; const votes = {};
 const posts = [
-  ['kofi.near', 'Full Totem', '2m', 'Meme Kart finals tonight. Prize is a Totem with 1 piece already inside.', T.G],
-  ['weaver.near', '3 pieces', '18m', 'Gold Wings are live. Equip them and 10% of item sales go to the maker Totem.', T.GOLD],
-  ['tunde.near', '1 piece', '1h', 'Need 2 more for a Ritual Raid squad. Anyone with 2 pieces or more.', '#FFFFFF'],
-  ['creator.near', 'Creator', '3h', 'Treasury vote on Arena prize funding closes Friday.', T.E]
+  ['kofi.testnet', 'Full Totem', '2m', 'Meme Kart finals tonight. Prize is a Totem with 1 piece already inside.', T.G],
+  ['weaver.testnet', '3 pieces', '18m', 'Gold Wings are live. Equip them and 10% of item sales go to the maker Totem.', T.GOLD],
+  ['tunde.testnet', '1 piece', '1h', 'Need 2 more for a Ritual Raid squad. Anyone with 2 pieces or more.', '#FFFFFF'],
+  ['creator.testnet', 'Creator', '3h', 'Treasury vote on Arena prize funding closes Friday.', T.E]
 ];
 const props = [
   { id: 'p1', t: 'Fund 6 more prize Totems for Meme Kart', b: 'Prefill 6 Totems with 1 piece each from the treasury, as prizes for next week’s races.', y: 214, n: 61, e: 'Ends Friday' },
@@ -1051,7 +1051,7 @@ function paintRooms(){
       posts.map((p) => '<div class="card" style="display:flex;gap:14px;padding:16px"><span style="width:40px;height:40px;flex-shrink:0;border-radius:12px;background:' + p[4] + ';border:1.5px solid #000"></span><div><span style="font-size:14px"><strong>' + p[0] + '</strong> <span class="muted">' + p[1] + ', ' + p[2] + '</span></span><p style="font-size:16px">' + p[3] + '</p></div></div>').join('') +
       '<label style="display:flex;gap:10px"><span class="sr">Message</span><input type="text" placeholder="Write to the holder room" id="roomMsg"><button class="btn" type="button" id="roomSend">Send</button></label></div>';
     $('#claimDrop').addEventListener('click', () => T.toast('Gold Wings added to Totem #0417'));
-    $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.near', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
+    $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.testnet', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
   } else {
     $('#roomBody').innerHTML = '<div class="grid g3" style="margin-bottom:14px"><div class="card" style="background:#000;color:#fff;border-color:#000"><span style="color:#B5B5AD">Treasury</span><div class="big">8,420 NEAR</div><span style="color:#B5B5AD;font-size:14px">from resale royalties</span></div><div class="card"><span class="muted">Locked in Totems</span><div class="big">31.2M</div><span class="muted" style="font-size:14px">$TOTEM out of circulation</span></div><div class="card"><span class="muted">Your votes</span><div class="big">' + S.pieces + '</div><span class="muted" style="font-size:14px">one per piece</span></div></div>' +
       props.map((p) => { const v = votes[p.id], y = p.y + (v === 'y' ? S.pieces : 0), n = p.n + (v === 'n' ? S.pieces : 0);
@@ -1361,7 +1361,7 @@ function nearest(pos, from){
   for (let k = -40; k <= 40; k++) { const i = (from + k + NS) % NS; const d = (P[i].x - pos.x) ** 2 + (P[i].z - pos.z) ** 2; if (d < bd) { bd = d; best = i; } }
   return best;
 }
-const AI_DEF = [['kofi.near', 'cat', '#FFFFFF'], ['bark.near', '#FF5A1F', '#FF5A1F'], ['weaver.near', '#FFD23F', '#FFF09A'], ['sol:4kQ..9z', '#7CC6FF', '#E3F1F4'], ['tunde.near', '#00B97F', '#DCF6EC']];
+const AI_DEF = [['kofi.testnet', 'cat', '#FFFFFF'], ['bark.testnet', '#FF5A1F', '#FF5A1F'], ['weaver.testnet', '#FFD23F', '#FFF09A'], ['sol:4kQ..9z', '#7CC6FF', '#E3F1F4'], ['tunde.testnet', '#00B97F', '#DCF6EC']];
 function reset(){
   [player, ...ais].forEach((k) => { if (k && k.g) scene.remove(k.g); });
   if (!getChars().some((x) => x.id === charId)) charId = 'totem';
@@ -1647,9 +1647,9 @@ T.modules.paint = {
 
 /* =========================== RENT =========================== */
 const listings = [
-  { id: '1201', owner: 'kofi.near', pieces: 4, items: 'Gold Wings, Ember Crown', race: 2, week: 9, fill: '#00B97F' },
-  { id: '0088', owner: 'weaver.near', pieces: 4, items: 'Kente Wings', race: 1.5, week: 7, fill: '#00B97F' },
-  { id: '0533', owner: 'tunde.near', pieces: 3, items: 'Vault key', race: 1, week: 5, fill: '#00B97F' },
+  { id: '1201', owner: 'kofi.testnet', pieces: 4, items: 'Gold Wings, Ember Crown', race: 2, week: 9, fill: '#00B97F' },
+  { id: '0088', owner: 'weaver.testnet', pieces: 4, items: 'Kente Wings', race: 1.5, week: 7, fill: '#00B97F' },
+  { id: '0533', owner: 'tunde.testnet', pieces: 3, items: 'Vault key', race: 1, week: 5, fill: '#00B97F' },
   { id: '2140', owner: 'sol:4kQ..9z', pieces: 4, items: 'Island flag', race: 2.5, week: 11, fill: '#00B97F' }
 ];
 let rtab = 'rent';
@@ -1759,9 +1759,9 @@ const INDEX = [
   ['Game', 'Hold the Line', 'Keep your Totem full for 7 days', '#arena'],
   ['Game', 'Meme Clash', 'Holder-voted meme tournament', '#arena'],
   ['NFT', 'Totem #0417', 'Yours. Gold Wings, holds $TOTEM', '#nft-0417'],
-  ['NFT', 'Totem #1201', 'Full Totem, for rent by kofi.near', '#nft-1201'],
-  ['NFT', 'Totem #0088', 'Full Totem, for rent by weaver.near', '#nft-0088'],
-  ['NFT', 'Totem #0533', '3 pieces, for rent by tunde.near', '#nft-0533'],
+  ['NFT', 'Totem #1201', 'Full Totem, for rent by kofi.testnet', '#nft-1201'],
+  ['NFT', 'Totem #0088', 'Full Totem, for rent by weaver.testnet', '#nft-0088'],
+  ['NFT', 'Totem #0533', '3 pieces, for rent by tunde.testnet', '#nft-0533'],
   ['NFT', 'Totem #2140', 'Full Totem, for rent', '#nft-2140'],
   ['NFT', 'Totem #1999', 'Full Totem, for sale', '#nft-1999'],
   ['Game', 'Ritual Raid', 'Co-op, five onchain steps', '#raid'],
@@ -1774,9 +1774,9 @@ const INDEX = [
   ['Page', 'Totem market', 'Buy whole Totems with tokens inside', '#market'],
   ['Page', 'Season leaderboard', 'Houses, players and Meme Kart times', '#season'],
   ['Page', 'Rules and fairness', 'Prizes, anti-bot rules, rentals', '#rules'],
-  ['Player', 'kofi.near', 'Meme Kart leader, Moss house', '#play'],
-  ['Player', 'weaver.near', 'Made the Gold Wings item', '#rooms'],
-  ['Player', 'tunde.near', 'Raid squad leader', '#rooms'],
+  ['Player', 'kofi.testnet', 'Meme Kart leader, Moss house', '#play'],
+  ['Player', 'weaver.testnet', 'Made the Gold Wings item', '#rooms'],
+  ['Player', 'tunde.testnet', 'Raid squad leader', '#rooms'],
   ['Page', 'Claim a free starter', 'No wallet or NEAR needed', '#claim'],
   ['Page', 'Launch a collection', 'For token and NFT teams', '#launch'],
   ['Page', 'Builders', 'Attach a game to an Arena', '#build']
@@ -1814,7 +1814,7 @@ function paintExplore(){
   const alpha = [
     ['Today', 'Prize vault restocked. The treasury voted in 6 more prize Totems for Meme Kart.'],
     ['Today', 'Rental demand is up. Full Totems are renting at about 2 NEAR per race.'],
-    ['Yesterday', 'Ghost to beat: kofi.near set 1:38.2 in Meme Kart.'],
+    ['Yesterday', 'Ghost to beat: kofi.testnet set 1:38.2 in Meme Kart.'],
     ['Friday', 'Season 2 game vote opens for $TOTEM holders. Ritual Raid and Bagwork are on the ballot.'],
     ['Next week', 'Applications open for the second community Arena on Totem.']
   ];
@@ -2132,13 +2132,13 @@ $('#tourChain').addEventListener('click', () => {
 /* ======================= DATA FOR NFT PAGES AND MARKET ======================= */
 const NFTS = {
   '0417': () => ({ owner: S.account, pieces: S.pieces, items: ['Gold Wings', 'Red Moon relic', 'Vault key'].concat(S.items || []), creds: ['Founding mark', 'Raid squad'].concat(S.prizes.filter((p) => !/^Prize Totem/.test(p))), race: S.ghostT ? fmtT(S.ghostT) : 'No race yet', rent: S.listing ? 'Listed for rent' : 'Not listed', mine: true }),
-  '1201': () => ({ owner: 'kofi.near', pieces: 4, items: ['Gold Wings', 'Ember Crown'], creds: ['Meme Kart champion'], race: '1:38.2', rent: 'For rent, 2 NEAR per race' }),
-  '0088': () => ({ owner: 'weaver.near', pieces: 4, items: ['Kente Wings'], creds: ['Item maker'], race: '1:44.9', rent: 'For rent, 1.5 NEAR per race' }),
-  '0533': () => ({ owner: 'tunde.near', pieces: 3, items: ['Vault key'], creds: ['Raid leader'], race: '1:51.0', rent: 'For rent, 1 NEAR per race' }),
+  '1201': () => ({ owner: 'kofi.testnet', pieces: 4, items: ['Gold Wings', 'Ember Crown'], creds: ['Meme Kart champion'], race: '1:38.2', rent: 'For rent, 2 NEAR per race' }),
+  '0088': () => ({ owner: 'weaver.testnet', pieces: 4, items: ['Kente Wings'], creds: ['Item maker'], race: '1:44.9', rent: 'For rent, 1.5 NEAR per race' }),
+  '0533': () => ({ owner: 'tunde.testnet', pieces: 3, items: ['Vault key'], creds: ['Raid leader'], race: '1:51.0', rent: 'For rent, 1 NEAR per race' }),
   '2140': () => ({ owner: 'sol:4kQ..9z', pieces: 4, items: ['Island flag'], creds: ['Arrived via Intents'], race: '1:47.3', rent: 'For rent, 2.5 NEAR per race' }),
-  '0731': () => ({ owner: 'ife.near', pieces: 2, items: [], creds: [], race: 'No race yet', rent: 'Not listed' }),
-  '1999': () => ({ owner: 'moremi.near', pieces: 4, items: ['Ember Crown', 'Harbor hat'], creds: ['Hold the Line finisher'], race: '1:41.6', rent: 'Not listed' }),
-  '0062': () => ({ owner: 'zeal.near', pieces: 1, items: [], creds: [], race: 'No race yet', rent: 'Not listed' })
+  '0731': () => ({ owner: 'ife.testnet', pieces: 2, items: [], creds: [], race: 'No race yet', rent: 'Not listed' }),
+  '1999': () => ({ owner: 'moremi.testnet', pieces: 4, items: ['Ember Crown', 'Harbor hat'], creds: ['Hold the Line finisher'], race: '1:41.6', rent: 'Not listed' }),
+  '0062': () => ({ owner: 'zeal.testnet', pieces: 1, items: [], creds: [], race: 'No race yet', rent: 'Not listed' })
 };
 function fmtT(ms){ const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); }
 T.nftData = NFTS;
@@ -2179,8 +2179,8 @@ let sTab = 'houses';
 T.modules.season = { enter(){
   const root = $('#seasonRoot');
   const you = 120 + (S.races || 0) * 40 + S.prizes.length * 60 + (S.best.stack || 0) * 5 + (S.best.run || 0);
-  const players = [['kofi.near', 'Moss', 1840], ['weaver.near', 'Gold', 1510], ['tunde.near', 'Ember', 1322], ['moremi.near', 'Moss', 1190], ['sol:4kQ..9z', 'Gold', 980], [S.account + ' (you)', 'Moss', you], ['ife.near', 'Ember', 640], ['zeal.near', 'Ember', 420]].sort((a, b) => b[2] - a[2]);
-  const kart = [['kofi.near', 98200], ['moremi.near', 101600], ['weaver.near', 104900], ['sol:4kQ..9z', 107300], ['tunde.near', 111000]].concat(S.ghostT ? [[S.account + ' (you)', S.ghostT]] : []).sort((a, b) => a[1] - b[1]);
+  const players = [['kofi.testnet', 'Moss', 1840], ['weaver.testnet', 'Gold', 1510], ['tunde.testnet', 'Ember', 1322], ['moremi.testnet', 'Moss', 1190], ['sol:4kQ..9z', 'Gold', 980], [S.account + ' (you)', 'Moss', you], ['ife.testnet', 'Ember', 640], ['zeal.testnet', 'Ember', 420]].sort((a, b) => b[2] - a[2]);
+  const kart = [['kofi.testnet', 98200], ['moremi.testnet', 101600], ['weaver.testnet', 104900], ['sol:4kQ..9z', 107300], ['tunde.testnet', 111000]].concat(S.ghostT ? [[S.account + ' (you)', S.ghostT]] : []).sort((a, b) => a[1] - b[1]);
   const tabs = [['houses', 'Houses'], ['players', 'Players'], ['kart', 'Meme Kart times']];
   let body = '';
   if (sTab === 'houses') body = '<div class="grid g3">' + [['Moss house', '#00B97F', 41820, 1], ['Gold house', '#FFD23F', 38410, 2], ['Ember house', '#FF5A1F', 35190, 3]].map((h) => '<div class="card" style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--serif);font-size:32px">' + h[0] + '</span><span style="font-family:var(--serif);font-size:44px">' + h[3] + '</span></div><div style="height:12px;border-radius:999px;background:#F6F6F2;border:1px solid #000;overflow:hidden"><div style="height:100%;width:' + Math.round(h[2] / 420) + '%;background:' + h[1] + '"></div></div><span class="muted">' + T.fmt(h[2]) + ' points' + (h[0] === 'Moss house' ? ', your house' : '') + '</span></div>').join('') + '</div>';
@@ -2212,9 +2212,9 @@ T.modules.lock = { enter(){
   card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:32px">Merge and split</h2><button class="btn small ghost" type="button" id="sharePiece">Share my Totem</button></div>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:12px">' +
     '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Merge into #0417</strong><span class="muted" style="font-size:14px">Combine another Totem you own. Its pieces and items move in, up to a full Totem.</span>' + (others.length ? '<label class="f" style="width:100%"><span class="sr">Totem to merge</span><select id="mergeFrom">' + others.map((o, i) => '<option value="' + i + '">Totem #' + o.id + ', ' + o.pieces + ' piece' + (o.pieces > 1 ? 's' : '') + '</option>').join('') + '</select></label><button class="btn small" type="button" id="mergeBtn"' + (S.pieces >= 4 ? ' aria-disabled="true"' : '') + '>' + (S.pieces >= 4 ? 'Already full' : 'Merge') + '</button>' : '<span class="muted" style="font-size:14px">You own only one Totem. Win a prize or buy one on the market to merge.</span>') + '</div>' +
-    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Gift a piece</strong><span class="muted" style="font-size:14px">Split one piece off into a new Totem for a friend.</span><label class="f" style="width:100%"><span class="sr">Friend’s account</span><input type="text" id="splitTo" placeholder="friend.near"></label><button class="btn small" type="button" id="splitBtn"' + (S.pieces < 1 ? ' aria-disabled="true"' : '') + '>Send 1 piece</button></div></div>';
+    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Gift a piece</strong><span class="muted" style="font-size:14px">Split one piece off into a new Totem for a friend.</span><label class="f" style="width:100%"><span class="sr">Friend’s account</span><input type="text" id="splitTo" placeholder="friend.testnet"></label><button class="btn small" type="button" id="splitBtn"' + (S.pieces < 1 ? ' aria-disabled="true"' : '') + '>Send 1 piece</button></div></div>';
   const mb = $('#mergeBtn'); if (mb) mb.addEventListener('click', () => { if (S.pieces >= 4) return; const o = others[+$('#mergeFrom').value]; const add = Math.min(4 - S.pieces, o.pieces); S.pieces += add; if (o.prize) S.prizes.splice(S.prizes.indexOf(o.prize), 1); else S.bought = S.bought.filter((b) => b.id !== o.id); T.log('Merged Totem #' + o.id, '+' + add + ' piece' + (add > 1 ? 's' : ''), 'g'); T.save(); T.calls.merge(o.id); T.sfx('piece'); T.toast('Merged. Totem #0417 now has ' + S.pieces + ' pieces.'); T.modules.lock.enter(); });
-  $('#splitBtn').addEventListener('click', () => { const to = $('#splitTo').value.trim(); if (S.pieces < 1) return; if (!/^[a-z0-9._-]+\.near$/.test(to)) { T.toast('Enter a NEAR account like friend.near'); return; } S.pieces--; T.log('Gifted a piece to ' + to, '-25,000 $TOTEM', 'e'); T.save(); T.calls.split(to); T.sfx('drop'); T.toast('Sent. ' + to + ' now owns a 1-piece Totem.'); T.modules.lock.enter(); });
+  $('#splitBtn').addEventListener('click', () => { const to = $('#splitTo').value.trim(); if (S.pieces < 1) return; if (!/^[a-z0-9._-]+\.near$/.test(to)) { T.toast('Enter a NEAR account like friend.testnet'); return; } S.pieces--; T.log('Gifted a piece to ' + to, '-25,000 $TOTEM', 'e'); T.save(); T.calls.split(to); T.sfx('drop'); T.toast('Sent. ' + to + ' now owns a 1-piece Totem.'); T.modules.lock.enter(); });
   $('#sharePiece').addEventListener('click', () => T.share({ title: S.pieces === 4 ? 'My Totem is full' : 'My Totem has ' + S.pieces + ' pieces', stat: T.fmt(S.pieces * 25000) + ' $TOTEM inside', line: 'Totem #0417 on NEAR' }));
 }, leave(){ if (baseLock.leave) baseLock.leave(); } };
 
@@ -2264,7 +2264,7 @@ function memeArt(id, top, bottom){
   const svg = id === 'says' ? T.svgTotem(4, 120, 'wings') : id === 'before' ? '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(0, 80) + T.svgTotem(4, 80) + '</div>' : '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(4, 80) + T.svgTotem(4, 80).replace(/#00B97F/g, '#FF5A1F') + '</div>';
   return '<div class="meme"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:' + (id === 'houses' ? '#FFFBE0' : '#F6F6F2') + '">' + svg + '</div><div class="t" style="top:10px">' + esc(top) + '</div><div class="t" style="bottom:10px">' + esc(bottom) + '</div></div>';
 }
-const ENTRIES = [['kofi.near', 'says', 'POV: the chart is red', 'my Totem is still full', 241], ['weaver.near', 'houses', 'Moss house painting', 'Ember house sleeping', 198], ['tunde.near', 'before', 'Holding tokens', 'Holding a whole account', 164], ['moremi.near', 'says', 'They said sell', 'I said add a piece', 122]];
+const ENTRIES = [['kofi.testnet', 'says', 'POV: the chart is red', 'my Totem is still full', 241], ['weaver.testnet', 'houses', 'Moss house painting', 'Ember house sleeping', 198], ['tunde.testnet', 'before', 'Holding tokens', 'Holding a whole account', 164], ['moremi.testnet', 'says', 'They said sell', 'I said add a piece', 122]];
 function paintClash(){
   const root = $('#clashRoot');
   const head = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Meme Clash</h1></div><div class="seg" role="group" aria-label="Stage">' + [['make', '1 Make'], ['vote', '2 Vote'], ['results', '3 Results']].map((p) => '<button type="button" data-cp="' + p[0] + '" aria-pressed="' + (p[0] === clashPhase) + '">' + p[1] + '</button>').join('') + '</div></div>';
@@ -2303,7 +2303,7 @@ function paintClash(){
 T.modules.clash = { enter(){ if (gate()) paintClash(); } };
 
 /* ======================= RITUAL RAID ======================= */
-const SQUAD = [{ n: 'kofi.near', relic: true }, { n: 'weaver.near', relic: true }, { n: 'sol:4kQ..9z', relic: false, bridge: true }, { n: 'tunde.near', relic: false }];
+const SQUAD = [{ n: 'kofi.testnet', relic: true }, { n: 'weaver.testnet', relic: true }, { n: 'sol:4kQ..9z', relic: false, bridge: true }, { n: 'tunde.testnet', relic: false }];
 let raid = null, raidTimer = 0;
 function raidReset(){ raid = { joined: false, step: 0, left: 120, done: false, fail: false, picks: [] }; }
 function raidStep(){
@@ -2352,7 +2352,7 @@ function paintBag(){
   const all = tasks.every((t) => done(t[0]));
   $('#bagRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena, daily</span><h1>Bagwork</h1></div><span class="chip g">Streak: ' + b.streak + ' of 14 days</span></div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div style="flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:10px">' +
-    tasks.map((t) => '<div class="door" style="' + (done(t[0]) ? 'background:var(--green-tint);border-color:transparent' : '') + '"><span><strong>' + t[1] + '</strong><br><span class="muted" style="font-size:13px">' + t[2] + '</span></span>' + (done(t[0]) ? '<span class="chip g">Done</span>' : t[0] === 'recruit' ? '<span style="display:flex;gap:6px"><label><span class="sr">Their account</span><input type="text" id="bagFriend" placeholder="friend.near" style="min-height:40px;width:140px"></label><button class="btn small" type="button" data-bag="recruit">Check</button></span>' : '<button class="btn small" type="button" data-bag="' + t[0] + '">' + (t[0] === 'post' ? 'Post' : 'Open Meme Clash') + '</button>') + '</div>').join('') +
+    tasks.map((t) => '<div class="door" style="' + (done(t[0]) ? 'background:var(--green-tint);border-color:transparent' : '') + '"><span><strong>' + t[1] + '</strong><br><span class="muted" style="font-size:13px">' + t[2] + '</span></span>' + (done(t[0]) ? '<span class="chip g">Done</span>' : t[0] === 'recruit' ? '<span style="display:flex;gap:6px"><label><span class="sr">Their account</span><input type="text" id="bagFriend" placeholder="friend.testnet" style="min-height:40px;width:140px"></label><button class="btn small" type="button" data-bag="recruit">Check</button></span>' : '<button class="btn small" type="button" data-bag="' + t[0] + '">' + (t[0] === 'post' ? 'Post' : 'Open Meme Clash') + '</button>') + '</div>').join('') +
     (all ? '<div class="card ink"><strong>Today is done.</strong> Come back tomorrow to keep the streak.</div>' : '') +
     (b.streak >= 14 ? '<div class="card ink" style="display:flex;flex-direction:column;gap:10px"><h2 style="font-size:32px">14 days. You earned a Totem shell.</h2>' + (b.claimed ? '<p class="muted">Claimed. It’s in your Profile, ready to fill.</p>' : '<button class="btn green" type="button" id="bagClaim" style="align-self:flex-start">Claim my Totem shell</button>') + '</div>' : '') +
     '<button class="btn small ghost" type="button" id="bagNext" style="align-self:flex-start">Skip to tomorrow (demo)</button></div>' +
@@ -2361,7 +2361,7 @@ function paintBag(){
     const k = x.dataset.bag;
     if (k === 'post') window.open('https://x.com/intent/post?text=' + encodeURIComponent('Doing my bagwork in Totem Arena. NFTs that hold the meme, on NEAR. $TOTEM'), '_blank', 'noopener');
     if (k === 'remix') { location.hash = '#clash'; }
-    if (k === 'recruit') { const v = ($('#bagFriend').value || '').trim(); if (!/^[a-z0-9._-]+\.near$/.test(v)) { T.toast('Enter their NEAR account, like friend.near'); return; } }
+    if (k === 'recruit') { const v = ($('#bagFriend').value || '').trim(); if (!/^[a-z0-9._-]+\.near$/.test(v)) { T.toast('Enter their NEAR account, like friend.testnet'); return; } }
     b.today.push(k); if (tasks.every((t) => b.today.includes(t[0]))) { b.streak = Math.min(14, b.streak + 1); T.sfx('win'); T.chain('Bagwork day ' + b.streak, [{ receiver: 'arena.totemtest.testnet', method: 'record_streak', args: { day: b.streak } }]); } else T.sfx('piece');
     T.save(); if (k !== 'remix') paintBag();
   }));

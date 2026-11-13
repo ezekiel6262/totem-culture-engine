@@ -28,7 +28,7 @@ function memeArt(id, top, bottom){
   const svg = id === 'says' ? T.svgTotem(4, 120, 'wings') : id === 'before' ? '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(0, 80) + T.svgTotem(4, 80) + '</div>' : '<div style="display:flex;gap:30px;align-items:center">' + T.svgTotem(4, 80) + T.svgTotem(4, 80).replace(/#00B97F/g, '#FF5A1F') + '</div>';
   return '<div class="meme"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:' + (id === 'houses' ? '#FFFBE0' : '#F6F6F2') + '">' + svg + '</div><div class="t" style="top:10px">' + esc(top) + '</div><div class="t" style="bottom:10px">' + esc(bottom) + '</div></div>';
 }
-const ENTRIES = [['kofi.near', 'says', 'POV: the chart is red', 'my Totem is still full', 241], ['weaver.near', 'houses', 'Moss house painting', 'Ember house sleeping', 198], ['tunde.near', 'before', 'Holding tokens', 'Holding a whole account', 164], ['moremi.near', 'says', 'They said sell', 'I said add a piece', 122]];
+const ENTRIES = [['kofi.testnet', 'says', 'POV: the chart is red', 'my Totem is still full', 241], ['weaver.testnet', 'houses', 'Moss house painting', 'Ember house sleeping', 198], ['tunde.testnet', 'before', 'Holding tokens', 'Holding a whole account', 164], ['moremi.testnet', 'says', 'They said sell', 'I said add a piece', 122]];
 function paintClash(){
   const root = $('#clashRoot');
   const head = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Meme Clash</h1></div><div class="seg" role="group" aria-label="Stage">' + [['make', '1 Make'], ['vote', '2 Vote'], ['results', '3 Results']].map((p) => '<button type="button" data-cp="' + p[0] + '" aria-pressed="' + (p[0] === clashPhase) + '">' + p[1] + '</button>').join('') + '</div></div>';
@@ -67,7 +67,7 @@ function paintClash(){
 T.modules.clash = { enter(){ if (gate()) paintClash(); } };
 
 /* ======================= RITUAL RAID ======================= */
-const SQUAD = [{ n: 'kofi.near', relic: true }, { n: 'weaver.near', relic: true }, { n: 'sol:4kQ..9z', relic: false, bridge: true }, { n: 'tunde.near', relic: false }];
+const SQUAD = [{ n: 'kofi.testnet', relic: true }, { n: 'weaver.testnet', relic: true }, { n: 'sol:4kQ..9z', relic: false, bridge: true }, { n: 'tunde.testnet', relic: false }];
 let raid = null, raidTimer = 0;
 function raidReset(){ raid = { joined: false, step: 0, left: 120, done: false, fail: false, picks: [] }; }
 function raidStep(){
@@ -116,7 +116,7 @@ function paintBag(){
   const all = tasks.every((t) => done(t[0]));
   $('#bagRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena, daily</span><h1>Bagwork</h1></div><span class="chip g">Streak: ' + b.streak + ' of 14 days</span></div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div style="flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:10px">' +
-    tasks.map((t) => '<div class="door" style="' + (done(t[0]) ? 'background:var(--green-tint);border-color:transparent' : '') + '"><span><strong>' + t[1] + '</strong><br><span class="muted" style="font-size:13px">' + t[2] + '</span></span>' + (done(t[0]) ? '<span class="chip g">Done</span>' : t[0] === 'recruit' ? '<span style="display:flex;gap:6px"><label><span class="sr">Their account</span><input type="text" id="bagFriend" placeholder="friend.near" style="min-height:40px;width:140px"></label><button class="btn small" type="button" data-bag="recruit">Check</button></span>' : '<button class="btn small" type="button" data-bag="' + t[0] + '">' + (t[0] === 'post' ? 'Post' : 'Open Meme Clash') + '</button>') + '</div>').join('') +
+    tasks.map((t) => '<div class="door" style="' + (done(t[0]) ? 'background:var(--green-tint);border-color:transparent' : '') + '"><span><strong>' + t[1] + '</strong><br><span class="muted" style="font-size:13px">' + t[2] + '</span></span>' + (done(t[0]) ? '<span class="chip g">Done</span>' : t[0] === 'recruit' ? '<span style="display:flex;gap:6px"><label><span class="sr">Their account</span><input type="text" id="bagFriend" placeholder="friend.testnet" style="min-height:40px;width:140px"></label><button class="btn small" type="button" data-bag="recruit">Check</button></span>' : '<button class="btn small" type="button" data-bag="' + t[0] + '">' + (t[0] === 'post' ? 'Post' : 'Open Meme Clash') + '</button>') + '</div>').join('') +
     (all ? '<div class="card ink"><strong>Today is done.</strong> Come back tomorrow to keep the streak.</div>' : '') +
     (b.streak >= 14 ? '<div class="card ink" style="display:flex;flex-direction:column;gap:10px"><h2 style="font-size:32px">14 days. You earned a Totem shell.</h2>' + (b.claimed ? '<p class="muted">Claimed. It’s in your Profile, ready to fill.</p>' : '<button class="btn green" type="button" id="bagClaim" style="align-self:flex-start">Claim my Totem shell</button>') + '</div>' : '') +
     '<button class="btn small ghost" type="button" id="bagNext" style="align-self:flex-start">Skip to tomorrow (demo)</button></div>' +
@@ -125,7 +125,7 @@ function paintBag(){
     const k = x.dataset.bag;
     if (k === 'post') window.open('https://x.com/intent/post?text=' + encodeURIComponent('Doing my bagwork in Totem Arena. NFTs that hold the meme, on NEAR. $TOTEM'), '_blank', 'noopener');
     if (k === 'remix') { location.hash = '#clash'; }
-    if (k === 'recruit') { const v = ($('#bagFriend').value || '').trim(); if (!/^[a-z0-9._-]+\.near$/.test(v)) { T.toast('Enter their NEAR account, like friend.near'); return; } }
+    if (k === 'recruit') { const v = ($('#bagFriend').value || '').trim(); if (!/^[a-z0-9._-]+\.near$/.test(v)) { T.toast('Enter their NEAR account, like friend.testnet'); return; } }
     b.today.push(k); if (tasks.every((t) => b.today.includes(t[0]))) { b.streak = Math.min(14, b.streak + 1); T.sfx('win'); T.chain('Bagwork day ' + b.streak, [{ receiver: 'arena.totemtest.testnet', method: 'record_streak', args: { day: b.streak } }]); } else T.sfx('piece');
     T.save(); if (k !== 'remix') paintBag();
   }));
