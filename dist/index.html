@@ -2406,7 +2406,8 @@ T.modules.rules = { enter(){
     sec('Stopping bots and farming', ['One free starter per person per day, checked by device and account, with a cap per Arena.', 'Free starters can’t be sold or lent for 7 days.', 'Game servers can only report results for their own game, using a limited NEAR key.', 'Suspicious results are held and reviewed by the Arena’s operators before settling.']) +
     sec('Rentals', ['A renter’s key can play games and enter rooms. It can never withdraw tokens, sell, transfer or change items.', 'Rental keys expire on their own after the race or the period paid for.']) +
     sec('Your Totem', ['Tokens inside your Totem are yours. You can take a piece out at any time, and the top piece comes off.', 'Selling the NFT sells everything inside it, including future royalties.']) +
-    sec('What is live in this demo', ['Everything on this site is simulated in your browser: wallets, balances, results, rentals and prizes.', 'The onchain log shows the NEAR calls a live version would make. Contract names are planned.']) + '</div>';
+    sec('What is live on NEAR testnet', ['Five contracts are deployed and named here: nft, token, market and agent under totemtest.testnet, and the launchpad at launch.totemtest.testnet.', 'Wallet connect is real. Locking, withdrawing, minting, listing and buying are transactions you sign yourself.', 'A Totem holds $TOTEM itself: locked_of and pieces_of read it, and Arena entry is decided by what the Totem holds, not by what your wallet holds.', 'Arena prizes are paid on chain from a prize account, under a cap per game per day that the contract enforces by refusing anything above it.']) +
+    sec('What is not live yet', ['Gameplay and scores run in your browser and are self reported, so a result is not proof of anything.', 'Room contents, rentals, merge and split, and the season leaderboard are illustrative. The room entry gate is real; what is inside a room is not.', 'The agent shop spends a stored balance rather than moving tokens.']) + '</div>';
 } };
 
 /* ======================= MERGE AND SPLIT on the lock page ======================= */
@@ -2976,10 +2977,10 @@ T.modules.rules = { enter(){
     '<h2 style="font-size:30px;margin:0">What is live right now ' + (T.api.live ? liveChip : '<span class="chip e">Offline</span>') + '</h2>' +
     (T.api.live
       ? '<ul style="margin:0;padding-left:20px;line-height:1.7">' +
-        '<li>The Totem API is reachable. Arenas, entry rules, seasons, the market and public Totem pages are read from it and labelled live.</li>' +
-        '<li>Everything else on this site, including wallets, balances, games and prizes, is still simulated in your browser.</li>' +
-        '<li>Writing to the API needs a connected NEAR wallet, so the demo buttons do not change server state.</li></ul>'
-      : '<ul style="margin:0;padding-left:20px;line-height:1.7"><li>The Totem API is not reachable from here, so everything on this page is simulated in your browser.</li></ul>'));
+        '<li>The Totem API is reachable. Arenas, entry rules, seasons, the market and public Totem pages are read from it and from NEAR, and labelled live.</li>' +
+        '<li>Five contracts are live on NEAR testnet. Connecting a wallet, locking $TOTEM into a Totem, withdrawing it, minting, listing and claiming a prize are real transactions you sign.</li>' +
+        '<li>Gameplay and scores still run in your browser and are self reported. Room contents, rentals and the season leaderboard are illustrative, though the entry gate that guards them is read from the chain.</li></ul>'
+      : '<ul style="margin:0;padding-left:20px;line-height:1.7"><li>The Totem API is not reachable from here, so nothing on this page is being read live. The contracts are still on NEAR testnet: nft.totemtest.testnet and token.totemtest.testnet can be read directly with any NEAR RPC.</li></ul>'));
 } };
 
 /* ---------- probe once, then repaint if the open screen has a live section ---------- */

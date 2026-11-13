@@ -192,10 +192,10 @@ T.modules.rules = { enter(){
     '<h2 style="font-size:30px;margin:0">What is live right now ' + (T.api.live ? liveChip : '<span class="chip e">Offline</span>') + '</h2>' +
     (T.api.live
       ? '<ul style="margin:0;padding-left:20px;line-height:1.7">' +
-        '<li>The Totem API is reachable. Arenas, entry rules, seasons, the market and public Totem pages are read from it and labelled live.</li>' +
-        '<li>Everything else on this site, including wallets, balances, games and prizes, is still simulated in your browser.</li>' +
-        '<li>Writing to the API needs a connected NEAR wallet, so the demo buttons do not change server state.</li></ul>'
-      : '<ul style="margin:0;padding-left:20px;line-height:1.7"><li>The Totem API is not reachable from here, so everything on this page is simulated in your browser.</li></ul>'));
+        '<li>The Totem API is reachable. Arenas, entry rules, seasons, the market and public Totem pages are read from it and from NEAR, and labelled live.</li>' +
+        '<li>Five contracts are live on NEAR testnet. Connecting a wallet, locking $TOTEM into a Totem, withdrawing it, minting, listing and claiming a prize are real transactions you sign.</li>' +
+        '<li>Gameplay and scores still run in your browser and are self reported. Room contents, rentals and the season leaderboard are illustrative, though the entry gate that guards them is read from the chain.</li></ul>'
+      : '<ul style="margin:0;padding-left:20px;line-height:1.7"><li>The Totem API is not reachable from here, so nothing on this page is being read live. The contracts are still on NEAR testnet: nft.totemtest.testnet and token.totemtest.testnet can be read directly with any NEAR RPC.</li></ul>'));
 } };
 
 /* ---------- probe once, then repaint if the open screen has a live section ---------- */
