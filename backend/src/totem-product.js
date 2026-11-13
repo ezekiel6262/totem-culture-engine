@@ -133,18 +133,22 @@ export const callPlans = {
 export const CLAIM_LIMITS = Object.freeze({ claimsPerDevice: 1, claimsPerAddress: 3, claimsPerDay: 200 })
 
 export class TotemProductService {
+  #chain
   #repository
   #now
   #accounts
   #rateLimiter
   #limits
 
-  constructor({ repository, now = () => Date.now(), accounts = {}, rateLimiter = new MemoryRateLimiter(), limits = {} }) {
+  constructor({ repository, now = () => Date.now(), accounts = {}, rateLimiter = new MemoryRateLimiter(), limits = {}, chain = {} }) {
     invariant(repository, 'PRODUCT_REPOSITORY_REQUIRED', 'TotemProductService requires a repository')
     this.#repository = repository
     this.#now = now
     this.#rateLimiter = rateLimiter
     this.#limits = { ...CLAIM_LIMITS, ...limits }
+    // Reading the chain is optional so that tests and local runs work without a network,
+    // but when it is configured the product answers from it rather than from its own notes.
+    this.#chain = { decimals: 18, ...chain }
     // Every account hangs off the suffix, so a testnet deployment never shows mainnet names
     // in the call plans the UI displays. A null override falls back to the derived name.
     const suffix = accounts.suffix ?? 'totem.near'
@@ -247,9 +251,16 @@ export class TotemProductService {
     const totems = await this.#repository.listTotems({ owner: accountId })
     const rentals = await this.#repository.listRentals({ renter: accountId, activeAt: this.#now() })
     const rentedPieces = await Promise.all(rentals.map(async rental => (await this.#repository.getTotem(rental.totemId))?.pieces ?? 0))
-    const pieces = Math.max(0, ...totems.map(totem => totem.pieces), ...rentedPieces)
+    // Entry used to rest entirely on records this service wrote itself. Real $TOTEM held on
+    // chain now counts too, and the answer says which of the two let the account in, so a
+    // holder is never told they lack pieces they can prove they have.
+    const onChain = await this.onChainHoldings(accountId)
+    const chainPieces = onChain.source === 'chain' ? onChain.pieces : 0
+    const storedPieces = Math.max(0, ...totems.map(totem => totem.pieces), ...rentedPieces)
+    const pieces = Math.max(chainPieces, storedPieces)
     const decision = entryDecision({ arena, pieces })
-    return { ...decision, arenaId, accountId, calls: callPlans.entry({ arenaAccount: this.#accounts.arena, account: accountId, minPieces: decision.minPieces }) }
+    const qualifiedBy = !decision.allowed ? null : chainPieces >= decision.minPieces ? 'chain' : 'platform'
+    return { ...decision, arenaId, accountId, onChain, chainPieces, storedPieces, qualifiedBy, calls: callPlans.entry({ arenaAccount: this.#accounts.arena, account: accountId, minPieces: decision.minPieces }) }
   }
 
   async setArenaPaused({ arenaId, accountId, paused }) {
@@ -403,11 +414,48 @@ export class TotemProductService {
     return { account, created: true }
   }
 
+  // DynamoDB was the only source of truth here, so an account could hold tokens and a Totem
+  // on chain and still be told it had nothing. This reports what the chain says, with the
+  // block it was read at, and distinguishes "zero" from "could not read".
+  async onChainHoldings(accountId) {
+    const { rpc, tokenContractId, nftContractId, decimals } = this.#chain
+    if (!rpc || !tokenContractId) return { source: 'unavailable', reason: 'CHAIN_NOT_CONFIGURED' }
+    try {
+      const balance = await rpc.ftBalanceAtFinalBlock({ contractId: tokenContractId, accountId })
+      const whole = BigInt(balance.balance) / 10n ** BigInt(decimals)
+      const possible = whole / BigInt(PIECE_TOKENS)
+      let totemTokenId = null
+      if (nftContractId) {
+        try {
+          totemTokenId = await rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'get_token_for_owner', args: { account_id: accountId } })
+        } catch (error) { totemTokenId = null }
+      }
+      return {
+        source: 'chain',
+        tokenContractId,
+        nftContractId: nftContractId ?? null,
+        balance: balance.balance,
+        balanceWhole: whole.toString(),
+        // What the balance is worth in pieces, capped at a full Totem.
+        pieces: Number(possible > BigInt(MAX_PIECES) ? BigInt(MAX_PIECES) : possible),
+        piecesWorth: possible.toString(),
+        totemTokenId: totemTokenId ?? null,
+        blockHeight: balance.blockHeight,
+        observedAt: balance.observedAt
+      }
+    } catch (error) {
+      return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED' }
+    }
+  }
+
   async getAccount({ accountId }) {
     requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
     const account = await this.#repository.getAccount(accountId)
     const totems = await this.listTotems({ owner: accountId })
-    return { account, registered: Boolean(account), totems }
+    const onChain = await this.onChainHoldings(accountId)
+    const arena = await this.#repository.getArena('totem').catch(() => null)
+    const operates = Boolean(arena && arena.operator === accountId)
+    return { account, registered: Boolean(account), totems, onChain, operator: operates }
   }
 
   async claimStarter({ handle, ip = null, deviceId = null }) {
