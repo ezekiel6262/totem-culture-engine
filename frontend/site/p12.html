@@ -10,7 +10,10 @@ const T = window.TOTEM; const { $, $$, S } = T;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 const BASE = '/api/v1';
-const TIMEOUT = 6000;
+// Chain reads go through RPC and are slower than a database call. Six seconds was
+// shorter than a real answer, so the page declared the API unreachable while it was
+// replying correctly.
+const TIMEOUT = 15000;
 
 async function call(path, options){
   const controller = new AbortController();
@@ -82,13 +85,16 @@ const section = (route) => document.querySelector('[data-route="' + route + '"]'
 const append = (route, id, html) => {
   const page = section(route);
   if (!page) return;
+  // Same as the profile: the wrap carries the max width and side padding, so appended
+  // cards go inside it rather than full bleed against the window.
+  const host = page.querySelector('.wrap') || page;
   const existing = page.querySelector('#' + id);
   if (existing) existing.remove();
   const box = document.createElement('div');
   box.id = id;
   box.style.marginTop = '22px';
   box.innerHTML = html;
-  page.appendChild(box);
+  host.appendChild(box);
 };
 
 /* ---------- arenas: the real Arena record and the server's entry decision ---------- */

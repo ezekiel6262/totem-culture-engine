@@ -12,13 +12,17 @@ const section = (route) => document.querySelector('[data-route="' + route + '"]'
 const append = (route, id, html) => {
   const page = section(route);
   if (!page) return null;
+  // Content belongs inside the page's wrap, which carries the max width and the side
+  // padding. Appending to the section itself put it outside both, so cards ran to the
+  // window edges and headings were clipped off the left.
+  const host = page.querySelector('.wrap') || page;
   const existing = page.querySelector('#' + id);
   if (existing) existing.remove();
   const box = document.createElement('div');
   box.id = id;
   box.style.marginTop = '22px';
   box.innerHTML = html;
-  page.appendChild(box);
+  host.appendChild(box);
   return box;
 };
 

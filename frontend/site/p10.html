@@ -336,15 +336,31 @@ T.modules.lock = { enter(){
 const baseProf = T.modules.profile;
 T.modules.profile = { enter(){
   baseProf.enter();
-  const root = $('#profileBody'); if (!root || !S.connected) return;
-  const set = document.createElement('div'); set.className = 'card'; set.style.marginTop = '44px';
-  set.innerHTML = '<h2 style="font-size:32px;margin-bottom:10px">Settings</h2><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"><div class="door"><span>Sound and vibration</span><button class="btn small ghost" type="button" id="pfSound">' + (S.mute ? 'Turn on' : 'Turn off') + '</button></div><div class="door"><span>Low-power mode<br><span class="muted" style="font-size:13px">Lighter 3D for older phones</span></span><button class="btn small ghost" type="button" id="pfLP">' + (S.lowPower ? 'Turn off' : 'Turn on') + '</button></div><div class="door"><span>Guided tour</span><button class="btn small ghost" type="button" data-tour>Start</button></div><div class="door"><span>Reset demo data</span><button class="btn small ghost" type="button" id="pfReset">Reset</button></div></div>';
+  // This used to append a Settings card holding a guided tour and a Reset demo data button,
+  // and it decided whether to show them from S.connected, the old demo flag, which is still
+  // true in any browser that visited before wallet sign-in was real. A signed in holder saw
+  // demo controls at the top of their profile. It now waits for a real wallet and keeps only
+  // the two settings that do something: sound, and the lighter 3D for older phones.
+  const account = T.wallet && T.wallet.account ? T.wallet.account() : null;
+  const root = $('#profileBody');
+  if (!root || !account) return;
+  if (root.querySelector('#pfSettings')) return;
+
+  const set = document.createElement('div');
+  set.className = 'card';
+  set.id = 'pfSettings';
+  set.style.marginTop = '44px';
+  set.innerHTML = '<h2 style="font-size:28px;margin-bottom:10px">Settings</h2>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">' +
+    '<div class="door"><span>Sound and vibration</span><button class="btn small ghost" type="button" id="pfSound">' + (S.mute ? 'Turn on' : 'Turn off') + '</button></div>' +
+    '<div class="door"><span>Lighter 3D<br><span class="muted" style="font-size:13px">For older phones</span></span><button class="btn small ghost" type="button" id="pfLP">Toggle</button></div>' +
+    '</div>';
   root.appendChild(set);
-  if (S.bought.length) { const b = document.createElement('div'); b.style.marginTop = '14px'; b.innerHTML = '<h2 style="font-size:32px;margin:30px 0 12px">Bought on the market</h2><div class="grid g3">' + S.bought.map((x) => '<a class="card" href="#nft-' + x.id + '" style="text-decoration:none;display:flex;gap:14px;align-items:center">' + T.svgTotem(x.pieces, 50) + '<span><span style="font-family:var(--serif);font-size:26px">Totem #' + x.id + '</span><br><span class="muted" style="font-size:13px">' + T.fmt(x.pieces * 25000) + ' $TOTEM inside, live in Totem Arena</span></span></a>').join('') + '</div>'; root.insertBefore(b, root.children[3] || null); }
-  $('#pfSound').addEventListener('click', () => { S.mute = !S.mute; T.save(); paintSound(); T.modules.profile.enter(); });
-  $('#pfLP').addEventListener('click', () => $('#lowPowerBtn').click());
-  $('#pfReset').addEventListener('click', () => { try { localStorage.removeItem('totem-demo-state-1'); } catch (e) {} location.hash = '#home'; location.reload(); });
-  $$('[data-tour]', set).forEach((x) => x.addEventListener('click', T.tour));
+
+  const sound = $('#pfSound');
+  if (sound) sound.addEventListener('click', () => { S.mute = !S.mute; T.save(); sound.textContent = S.mute ? 'Turn on' : 'Turn off'; });
+  const lowPower = $('#pfLP');
+  if (lowPower) lowPower.addEventListener('click', () => { const b = $('#lowPowerBtn'); if (b) b.click(); });
 } };
 })();
 </script>

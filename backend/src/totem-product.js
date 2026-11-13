@@ -470,27 +470,26 @@ export class TotemProductService {
     const { rpc, tokenContractId, nftContractId, decimals } = this.#chain
     if (!rpc || !tokenContractId) return { source: 'unavailable', reason: 'CHAIN_NOT_CONFIGURED' }
     try {
-      const balance = await rpc.ftBalanceAtFinalBlock({ contractId: tokenContractId, accountId })
-      const whole = BigInt(balance.balance) / 10n ** BigInt(decimals)
+      // Both reads start together and neither waits on a separate block lookup.
+      const [balanceRaw, totemTokenId] = await Promise.all([
+        rpc.callFunctionFinal({ contractId: tokenContractId, methodName: 'ft_balance_of', args: { account_id: accountId } }),
+        nftContractId
+          ? rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'get_token_for_owner', args: { account_id: accountId } }).catch(() => null)
+          : Promise.resolve(null)
+      ])
+      const whole = BigInt(balanceRaw) / 10n ** BigInt(decimals)
       const possible = whole / BigInt(PIECE_TOKENS)
-      let totemTokenId = null
-      if (nftContractId) {
-        try {
-          totemTokenId = await rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'get_token_for_owner', args: { account_id: accountId } })
-        } catch (error) { totemTokenId = null }
-      }
       return {
         source: 'chain',
         tokenContractId,
         nftContractId: nftContractId ?? null,
-        balance: balance.balance,
+        balance: String(balanceRaw),
         balanceWhole: whole.toString(),
         // What the balance is worth in pieces, capped at a full Totem.
         pieces: Number(possible > BigInt(MAX_PIECES) ? BigInt(MAX_PIECES) : possible),
         piecesWorth: possible.toString(),
         totemTokenId: totemTokenId ?? null,
-        blockHeight: balance.blockHeight,
-        observedAt: balance.observedAt
+        observedAt: this.#now()
       }
     } catch (error) {
       return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED' }
@@ -541,8 +540,8 @@ export class TotemProductService {
       // What the owner holds is what gives a Totem its standing, so it is part of the page.
       let ownerBalanceWhole = null
       try {
-        const balance = await rpc.ftBalanceAtFinalBlock({ contractId: tokenContractId, accountId: token.owner_id })
-        ownerBalanceWhole = (BigInt(balance.balance) / 10n ** BigInt(decimals)).toString()
+        const raw = await rpc.callFunctionFinal({ contractId: tokenContractId, methodName: 'ft_balance_of', args: { account_id: token.owner_id } })
+        ownerBalanceWhole = (BigInt(raw) / 10n ** BigInt(decimals)).toString()
       } catch (error) { ownerBalanceWhole = null }
       return {
         source: 'chain', exists: true, tokenId: id, contractId: nftContractId,
@@ -561,10 +560,12 @@ export class TotemProductService {
 
   async getAccount({ accountId }) {
     requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
-    const account = await this.#repository.getAccount(accountId)
-    const totems = await this.listTotems({ owner: accountId })
-    const onChain = await this.onChainHoldings(accountId)
-    const arena = await this.#repository.getArena('totem').catch(() => null)
+    const [account, totems, onChain, arena] = await Promise.all([
+      this.#repository.getAccount(accountId),
+      this.listTotems({ owner: accountId }),
+      this.onChainHoldings(accountId),
+      this.#repository.getArena('totem').catch(() => null)
+    ])
     const operates = Boolean(arena && arena.operator === accountId)
     return { account, registered: Boolean(account), totems, onChain, operator: operates }
   }
