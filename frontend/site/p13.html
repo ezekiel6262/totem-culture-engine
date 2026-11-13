@@ -61,6 +61,11 @@ T.wallet = {
   async signOut(){
     if (!window.totemWallet) return;
     await window.totemWallet.signOut(await loadWallet());
+  },
+  // Sent from the holder's own wallet. Totem holds no key that could do this for them.
+  async signAndSendTransaction(transaction){
+    const options = await loadWallet();
+    return window.totemWallet.signAndSendTransaction(transaction, options);
   }
 };
 
@@ -96,6 +101,11 @@ async function paintWallet(){
 
   const owned = await T.api.get('/totems?owner=' + encodeURIComponent(account));
   const totems = owned.ok ? owned.data.totems : [];
+  // The account endpoint reads NEP-141 and NEP-171 state directly, so this is what the
+  // chain says about this wallet rather than what this platform remembers about it.
+  const live = await T.api.get('/accounts/' + encodeURIComponent(account));
+  const chain = live.ok ? live.data.onChain : null;
+  const operates = Boolean(live.ok && live.data.operator);
   const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
   const rows = ledger.ok ? ledger.data.ledger : [];
 
@@ -109,6 +119,27 @@ async function paintWallet(){
         '<button class="btn small ghost" type="button" data-unlock="' + esc(totem.id) + '"' + (totem.pieces < 1 ? ' aria-disabled="true"' : '') + '>Take one out</button></div></div>').join('')
     : '<div class="card"><p style="margin:0">This account holds no Totem on the server yet.</p></div>';
 
+  // An unreachable RPC and a zero balance are different facts, so they are shown
+  // differently. Nothing here is rendered from a stored number.
+  const onChainCard = !chain || chain.source !== 'chain'
+    ? '<div class="card"><span class="chip">On chain</span><p class="muted" style="margin:10px 0 0">Could not reach NEAR just now, so holdings are not shown. Nothing is guessed here.</p></div>'
+    : '<div class="card" style="display:flex;flex-direction:column;gap:12px">' +
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip g">On chain</span>' +
+      (operates ? '<span class="chip">Arena operator</span>' : '') +
+      '<span class="muted" style="font-size:12px">read at block ' + esc(String(chain.blockHeight)) + '</span></div>' +
+      '<div style="display:flex;gap:28px;flex-wrap:wrap">' +
+      '<div><div style="font-family:var(--serif);font-size:30px;line-height:1">' + T.fmt(Number(chain.balanceWhole)) + '</div><span class="muted" style="font-size:13px">$TOTEM held</span></div>' +
+      '<div><div style="font-family:var(--serif);font-size:30px;line-height:1">' + esc(String(chain.pieces)) + ' of 4</div><span class="muted" style="font-size:13px">pieces this buys</span></div>' +
+      '<div><div style="font-family:var(--serif);font-size:30px;line-height:1">' + (chain.totemTokenId ? '#' + esc(chain.totemTokenId) : 'none') + '</div><span class="muted" style="font-size:13px">Totem owned</span></div>' +
+      '</div>' +
+      '<span class="muted" style="font-family:var(--mono);font-size:12px;word-break:break-all">' + esc(chain.tokenContractId) + '</span>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="btn small green" type="button" id="claimTokens">Claim 25,000 $TOTEM</button>' +
+      (chain.totemTokenId ? '' : '<button class="btn small" type="button" id="claimPermit">Claim a mint permit</button><button class="btn small ghost" type="button" id="mintTotem">Mint my Totem</button>') +
+      '</div>' +
+      '<span class="muted" style="font-size:12px">The faucet sends one piece, which is the smallest amount a one piece Arena accepts. The permit is signed by Totem; the mint is signed by you.</span>' +
+      '</div>';
+
   const activity = rows.length
     ? '<div class="card" style="margin-top:14px"><span class="muted" style="font-size:13px">Activity on the server</span>' +
       rows.map((row) => '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px"><span>' + esc(row.title) + '</span><strong style="color:' + (row.tone === 'e' ? 'var(--ember-ink)' : 'var(--green-ink)') + '">' + esc(row.amount) + '</strong></div>').join('') + '</div>'
@@ -118,7 +149,8 @@ async function paintWallet(){
     '<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px">' +
     '<span style="font-family:var(--mono)">' + esc(account) + '</span>' +
     '<button class="btn ghost small" type="button" id="walletOut">Sign out</button></div>' +
-    '<div class="grid g3">' + cards + '</div>' + activity);
+    onChainCard +
+    '<div class="grid g3" style="margin-top:14px">' + cards + '</div>' + activity);
   if (!box) return;
 
   $('#walletOut').addEventListener('click', async () => {
@@ -141,6 +173,38 @@ async function paintWallet(){
       paintWallet();
     }
   };
+
+  const claimTokens = $('#claimTokens');
+  if (claimTokens) claimTokens.addEventListener('click', () => write(claimTokens,
+    () => authed('/api/v1/claims/tokens', { method: 'POST', body: JSON.stringify({}) }),
+    (result) => result.alreadyGranted
+      ? 'This account already claimed from the faucet.'
+      : 'Sent ' + T.fmt(result.whole) + ' $TOTEM. Transaction ' + result.transactionHash));
+
+  const claimPermit = $('#claimPermit');
+  if (claimPermit) claimPermit.addEventListener('click', () => write(claimPermit,
+    () => authed('/api/v1/claims/eligibility', { method: 'POST', body: JSON.stringify({}) }),
+    (result) => result.alreadyGranted
+      ? 'This account already has a mint permit. Press Mint my Totem.'
+      : 'Permit ' + result.number + ' of 1000 granted. ' + result.remaining + ' left. Now press Mint my Totem.'));
+
+  // The mint is sent from the holder's own wallet. Totem has no key that can mint for them,
+  // which is the point: the Totem that appears is the result of their signature.
+  const mintTotem = $('#mintTotem');
+  if (mintTotem) mintTotem.addEventListener('click', async () => {
+    if (mintTotem.getAttribute('aria-disabled') === 'true') return;
+    mintTotem.setAttribute('aria-disabled', 'true');
+    try {
+      const outcome = await T.wallet.signAndSendTransaction({
+        receiverId: chain.nftContractId,
+        actions: [{ type: 'FunctionCall', params: { methodName: 'mint', args: {}, gas: '60000000000000', deposit: '100000000000000000000000' } }]
+      });
+      T.toast('Minted. ' + (outcome && outcome.transaction ? outcome.transaction.hash : 'Check your wallet.'));
+    } catch (error) {
+      T.toast(error && error.message ? error.message : 'The mint was not sent');
+    }
+    paintWallet();
+  });
 
   $$('[data-lock]').forEach((button) => button.addEventListener('click', () => write(button,
     () => authed('/api/v1/totems/' + encodeURIComponent(button.dataset.lock) + '/pieces', { method: 'POST' }),
