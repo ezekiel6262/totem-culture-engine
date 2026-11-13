@@ -11,6 +11,10 @@ import { MemoryRateLimiter } from './rate-limit.js'
 
 export const PIECE_TOKENS = 25000
 export const MAX_PIECES = 4
+// An operator may set a generous prize but not an unbounded one. A full Totem is 100,000
+// $TOTEM, so a single race prize is capped there: enough to matter, not enough to empty
+// the prize account in a handful of runs.
+export const ARENA_PRIZE_CEILING = 100000
 export const DISPUTE_WINDOW_MS = 24 * 60 * 60 * 1000
 export const RENTAL_TERMS = Object.freeze({ race: { label: 'after 1 race', ms: 60 * 60 * 1000 }, week: { label: '7 days', ms: 7 * 24 * 60 * 60 * 1000 } })
 
@@ -278,6 +282,36 @@ export class TotemProductService {
     return { ...decision, arenaId, accountId, onChain, chainPieces, storedPieces, qualifiedBy, calls: callPlans.entry({ arenaAccount: this.#accounts.arena, account: accountId, minPieces: decision.minPieces }) }
   }
 
+  // What an Arena operator can actually change, and the bounds they can change it within.
+  // The operator runs a community, not the treasury, so a prize cannot be set to a number
+  // that would drain the prize account, and entry cannot be set beyond a full Totem.
+  async updateArena({ arenaId, accountId, entryPieces, prizeFirst, prizeOther, paused, name }) {
+    const arena = await this.getArena(arenaId)
+    invariant(arena.operator === accountId, 'ARENA_OPERATOR_MISMATCH', 'Only the Arena operator may do that')
+
+    const updated = { ...arena }
+    if (entryPieces !== undefined && entryPieces !== null) {
+      const pieces = Number(entryPieces)
+      invariant(Number.isInteger(pieces) && pieces >= 0 && pieces <= MAX_PIECES, 'ENTRY_PIECES_INVALID', `entryPieces must be between 0 and ${MAX_PIECES}`)
+      updated.entryPieces = pieces
+    }
+    for (const [field, value] of [['prizeFirst', prizeFirst], ['prizeOther', prizeOther]]) {
+      if (value === undefined || value === null) continue
+      const whole = Number(value)
+      invariant(Number.isInteger(whole) && whole >= 0 && whole <= ARENA_PRIZE_CEILING, 'PRIZE_INVALID', `${field} must be a whole number of $TOTEM between 0 and ${ARENA_PRIZE_CEILING.toLocaleString('en-US')}`)
+      updated[field] = whole
+    }
+    if (paused !== undefined && paused !== null) updated.paused = Boolean(paused)
+    if (name) {
+      invariant(typeof name === 'string' && name.trim().length >= 3 && name.length <= 48, 'ARENA_NAME_INVALID', 'name must be between 3 and 48 characters')
+      updated.name = name.trim()
+    }
+
+    await this.#repository.saveArena(updated)
+    await this.#ledger(accountId, { title: `Updated ${updated.name}`, amount: 'operator', tone: 'g' })
+    return { arena: updated }
+  }
+
   async setArenaPaused({ arenaId, accountId, paused }) {
     const arena = await this.getArena(arenaId)
     invariant(arena.operator === accountId, 'ARENA_OPERATOR_MISMATCH', 'Only the Arena operator may do that')
@@ -463,6 +497,37 @@ export class TotemProductService {
     }
   }
 
+  // One read of what this deployment actually is, for pages that would otherwise invent
+  // numbers. Everything here comes from the contracts, so it cannot drift from the chain.
+  async platformSummary() {
+    const { rpc, tokenContractId, nftContractId, decimals } = this.#chain
+    if (!rpc || !tokenContractId || !nftContractId) return { source: 'unavailable', reason: 'CHAIN_NOT_CONFIGURED' }
+    const whole = raw => (BigInt(raw) / 10n ** BigInt(decimals)).toString()
+    try {
+      const view = (contractId, methodName, args = {}) => rpc.callFunctionFinal({ contractId, methodName, args })
+      const [minted, config, supply, metadata] = await Promise.all([
+        view(nftContractId, 'nft_total_supply'),
+        view(nftContractId, 'launch_config'),
+        view(tokenContractId, 'ft_total_supply'),
+        view(nftContractId, 'nft_metadata')
+      ])
+      const suffix = this.#accounts.suffix
+      const holders = ['faucet', 'treasury', 'prizes'].map(name => name + '.' + suffix)
+      const balances = await Promise.all(holders.map(account => view(tokenContractId, 'ft_balance_of', { account_id: account }).catch(() => '0')))
+      return {
+        source: 'chain',
+        network: this.#chain.network ?? 'testnet',
+        collection: { name: metadata.name, symbol: metadata.symbol, contractId: nftContractId, minted: Number(minted), maxSupply: Number(config.max_supply), creatorRoyaltyBps: Number(config.creator_royalty_bps), treasuryRoyaltyBps: Number(config.treasury_royalty_bps) },
+        token: { contractId: tokenContractId, totalSupply: whole(supply), decimals },
+        allocations: holders.map((account, index) => ({ account, whole: whole(balances[index]) })),
+        piece: PIECE_TOKENS,
+        maxPieces: MAX_PIECES
+      }
+    } catch (error) {
+      return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED' }
+    }
+  }
+
   async getAccount({ accountId }) {
     requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
     const account = await this.#repository.getAccount(accountId)
@@ -575,7 +640,11 @@ export class TotemProductService {
     invariant(!already, 'PRIZE_ALREADY_PAID_TODAY', 'This account has already collected an Arena prize today')
     await this.#guardClaim({ ip, deviceId: null })
 
-    const whole = place === 1 ? prizeFirst : prizeOther
+    // The operator sets what their Arena pays. The deployment default is only the fallback.
+    const first = arena.prizeFirst ?? prizeFirst
+    const other = arena.prizeOther ?? prizeOther
+    const whole = place === 1 ? first : other
+    invariant(whole > 0, 'PRIZE_DISABLED', 'This Arena is not paying prizes for that placing')
     const amount = (BigInt(whole) * 10n ** BigInt(decimals)).toString()
 
     // The receiver may never have held $TOTEM, and NEP-141 refuses a transfer to an account

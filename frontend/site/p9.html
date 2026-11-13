@@ -5,36 +5,16 @@ const T = window.TOTEM; const { $, $$, S } = T;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* =========================== EXPLORE =========================== */
+// The search index names what exists. It used to list a Totem Genesis collection of 2,222,
+// four games and five Totems owned by invented accounts, none of which are on chain.
 const INDEX = [
-  ['Token', '$TOTEM', 'Flagship memecoin and governance token of the platform', '#lock'],
-  ['Collection', 'Totem Genesis', '2,222 NFTs with $TOTEM inside', '#totem'],
-  ['Arena', 'Totem Arena', 'Live, season 1, entry needs 1 piece', '#arenas'],
-  ['Game', 'Meme Kart', 'Race 3 laps, win a Totem with 25,000 $TOTEM inside', '#play'],
-  ['Game', 'Paint the Island', 'House territory war, 60 seconds', '#paint'],
-  ['Game', 'Hold the Line', 'Keep your Totem full for 7 days', '#arena'],
-  ['Game', 'Meme Clash', 'Holder-voted meme tournament', '#arena'],
-  ['NFT', 'Totem #0417', 'Yours. Gold Wings, holds $TOTEM', '#nft-0417'],
-  ['NFT', 'Totem #1201', 'Full Totem, for rent by kofi.testnet', '#nft-1201'],
-  ['NFT', 'Totem #0088', 'Full Totem, for rent by weaver.testnet', '#nft-0088'],
-  ['NFT', 'Totem #0533', '3 pieces, for rent by tunde.testnet', '#nft-0533'],
-  ['NFT', 'Totem #2140', 'Full Totem, for rent', '#nft-2140'],
-  ['NFT', 'Totem #1999', 'Full Totem, for sale', '#nft-1999'],
-  ['Game', 'Ritual Raid', 'Co-op, five onchain steps', '#raid'],
-  ['Game', 'Bagwork', 'Daily tasks, 14-day streak', '#bagwork'],
-  ['Game', 'Stack Attack', 'Quick stacking game', '#stack'],
-  ['Game', 'Red Day Run', 'Runner, coins are $TOTEM', '#run'],
-  ['Game', 'Vault Heist', 'Stealth, needs a Vault key', '#heist'],
-  ['Game', 'Fishing Pier', 'Three casts a day', '#fish'],
-  ['Page', 'Agent Bazaar', 'AI agents with NEAR accounts', '#agents'],
-  ['Page', 'Totem market', 'Buy whole Totems with tokens inside', '#market'],
-  ['Page', 'Season leaderboard', 'Houses, players and Meme Kart times', '#season'],
-  ['Page', 'Rules and fairness', 'Prizes, anti-bot rules, rentals', '#rules'],
-  ['Player', 'kofi.testnet', 'Meme Kart leader, Moss house', '#play'],
-  ['Player', 'weaver.testnet', 'Made the Gold Wings item', '#rooms'],
-  ['Player', 'tunde.testnet', 'Raid squad leader', '#rooms'],
-  ['Page', 'Claim a free starter', 'No wallet or NEAR needed', '#claim'],
-  ['Page', 'Launch a collection', 'For token and NFT teams', '#launch'],
-  ['Page', 'Builders', 'Attach a game to an Arena', '#build']
+  ['Token', '$TOTEM', 'NEP-141 at token.totemtest.testnet, 1,000,000,000 supply', '#explore'],
+  ['Collection', 'Totem', 'NEP-171 at nft.totemtest.testnet, 10,000 Totems', '#explore'],
+  ['Arena', 'Totem Arena', 'Entry is checked against the $TOTEM you hold on chain', '#arenas'],
+  ['Game', 'Meme Kart', 'Race 3 laps. Finishing pays a prize from the Arena prize account', '#play'],
+  ['Claim', 'Faucet', 'Sends 25,000 $TOTEM, one piece, to your wallet', '#profile'],
+  ['Claim', 'Mint permit', 'Totem signs the permit, you mint the Totem yourself', '#profile'],
+  ['Profile', 'Your holdings', 'Read from NEAR: balance, pieces and the Totem you own', '#profile']
 ];
 function searchPaint(q){
   const box = $('#exResults'); q = q.trim().toLowerCase();
@@ -46,42 +26,54 @@ function searchPaint(q){
 }
 $('#exSearch').addEventListener('input', (e) => searchPaint(e.target.value));
 function section(title, note, inner){ return '<section style="margin-top:44px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:14px"><h2 style="font-size:clamp(32px,4.5vw,44px);line-height:1">' + title + '</h2>' + (note ? '<span class="muted" style="font-size:14px">' + note + '</span>' : '') + '</div>' + inner + '</section>'; }
-function paintExplore(){
-  const opps = [
-    ['Free Totem starter', 'Claim with an email. Gas paid by Totem.', 'No wallet needed', 'Always on', '#claim', 'Claim free'],
-    ['Totem with 25,000 $TOTEM', 'Finish first in Meme Kart.', '3 minutes', 'Daily races', '#play', 'Race now'],
-    ['Share of 400 NEAR + Island flag', 'Help your house win Paint the Island.', '60 seconds', 'Rounds hourly', '#paint', 'Paint now'],
-    ['Crown item', 'Keep your Totem full for 7 days in Hold the Line.', 'Patience', 'Ends in 4 days', '#lock', 'Check my Totem'],
-    ['Rent income', 'Lend your Totem to players who want more speed and paint.', '1 minute to list', 'Ongoing', '#rent', 'Lend mine'],
-    ['Gold Wings, free', 'Claim the holder room drop this week.', 'Holder room', 'This week', '#rooms', 'Open room']
+// Explore used to advertise things that did not exist: a free starter claimed with an
+// email, a share of 400 NEAR, Gold Wings "this week", 1,312 players, 412 holders, 31.2M
+// locked, and a "Totem Genesis" collection of 2,222 NFTs when the deployed collection is
+// called Totem and holds 10,000. Every number here now comes from /api/v1/platform, which
+// reads the contracts, so the page cannot drift from the chain.
+async function paintExplore(){
+  const body = $('#exBody');
+  body.innerHTML = '<p class="muted" style="margin-top:24px">Reading the contracts...</p>';
+  const response = await T.api.get('/platform');
+  const p = response.ok ? response.data.platform : null;
+  if (!p || p.source !== 'chain') {
+    body.innerHTML = '<div class="card" style="max-width:760px;margin-top:24px"><p style="margin:0"><strong>NEAR could not be reached just now.</strong></p><p class="muted" style="margin:8px 0 0">Nothing is shown rather than a number that might be wrong.</p></div>';
+    return;
+  }
+  const arenaResponse = await T.api.get('/arenas/totem');
+  const arena = arenaResponse.ok ? arenaResponse.data.arena : null;
+  const full = p.piece * p.maxPieces;
+
+  const stat = (label, value, note) => '<div class="card" style="display:flex;flex-direction:column;gap:4px"><span class="muted" style="font-size:13px">' + label + '</span><span style="font-family:var(--serif);font-size:30px;line-height:1.05">' + value + '</span><span class="muted" style="font-size:13px">' + note + '</span></div>';
+
+  const whatItIs = '<div class="grid g4">' +
+    stat('Collection', esc(p.collection.name), T.fmt(p.collection.minted) + ' minted of ' + T.fmt(p.collection.maxSupply)) +
+    stat('Token supply', T.fmt(Number(p.token.totalSupply)), '$' + esc(p.collection.symbol) + ', ' + p.token.decimals + ' decimals') +
+    stat('A full Totem', T.fmt(full), p.maxPieces + ' pieces of ' + T.fmt(p.piece)) +
+    stat('Royalties', (p.collection.creatorRoyaltyBps / 100) + '% + ' + (p.collection.treasuryRoyaltyBps / 100) + '%', 'creator and treasury, on every sale') +
+    '</div>';
+
+  const allocations = '<div class="tbl"><table><thead><tr><th>Allocation</th><th>Account</th><th>$TOTEM held now</th></tr></thead><tbody>' +
+    p.allocations.map((a) => '<tr><td style="text-transform:capitalize">' + esc(a.account.split('.')[0]) + '</td><td style="font-family:var(--mono);font-size:13px;word-break:break-all">' + esc(a.account) + '</td><td>' + T.fmt(Number(a.whole)) + '</td></tr>').join('') +
+    '</tbody></table></div><p class="muted" style="font-size:13px;margin-top:8px">Query any of these yourself with ft_balance_of on ' + esc(p.token.contractId) + '.</p>';
+
+  const arenaHtml = !arena ? '' : '<a class="card ink" href="#arenas" style="text-decoration:none;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">' +
+    '<span style="display:flex;gap:16px;align-items:center"><span style="font-family:var(--serif);font-size:44px;line-height:1">1</span><span><span style="font-family:var(--serif);font-size:30px;line-height:1">' + esc(arena.name) + '</span><br><span class="muted" style="font-size:14px">' + (arena.paused ? 'Paused by its operator' : 'Open') + '</span></span></span>' +
+    '<span style="display:flex;gap:18px;flex-wrap:wrap;font-size:14px"><span>Entry <strong>' + (arena.entryPieces ?? 1) + '</strong> piece(s)</span><span><strong>' + T.fmt((arena.entryPieces ?? 1) * p.piece) + '</strong> $TOTEM to enter</span></span></a>';
+
+  const actions = [
+    ['Claim $TOTEM', 'The faucet sends ' + T.fmt(p.piece) + ', one piece, to your wallet on chain.', '#profile', 'Open profile'],
+    ['Claim a Totem', 'Totem signs a mint permit, then you mint it yourself from your own wallet.', '#profile', 'Open profile'],
+    ['Race for a prize', 'Finish Meme Kart and collect a prize paid from the Arena prize account.', '#play', 'Race now']
   ];
-  const oppHtml = '<div class="grid g3">' + opps.map((o) => '<a class="card" href="' + o[4] + '" style="text-decoration:none;display:flex;flex-direction:column;gap:10px"><span class="chip g" style="align-self:flex-start">' + o[3] + '</span><span style="font-family:var(--serif);font-size:30px;line-height:1.05">' + o[0] + '</span><span style="color:var(--body)">' + o[1] + '</span><span style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;gap:10px"><span class="muted" style="font-size:13px">' + o[2] + '</span><span class="btn small">' + o[5] + '</span></span></a>').join('') + '</div>';
-  const arenas = '<div class="grid" style="gap:10px">' +
-    '<a class="card ink" href="#arenas" style="text-decoration:none;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between"><span style="display:flex;gap:16px;align-items:center"><span style="font-family:var(--serif);font-size:44px;line-height:1">1</span><span><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem Arena</span><br><span class="muted" style="font-size:14px">' + (S.arenaPaused ? 'Paused by its operators' : 'Live, season 1') + '</span></span></span>' +
-    '<span style="display:flex;gap:18px;flex-wrap:wrap;font-size:14px"><span><strong>1,312</strong> playing</span><span><strong>' + Math.max(0, 14 - (S.delivered || 0)) + '</strong> prize Totems left</span><span><strong>4</strong> games live</span></span></a>' +
-    '<a class="card" href="#launch" style="text-decoration:none;border-style:dashed;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><span><span style="font-family:var(--serif);font-size:44px;line-height:1;color:var(--muted)">2</span> <span class="muted">This spot goes to the next community that launches its Arena</span></span><span class="btn small ghost">Launch</span></a></div>';
-  const tokens = '<div class="tbl"><table><thead><tr><th>#</th><th>Token</th><th>Locked inside NFTs</th><th>NFT holders</th><th>Arena</th><th>Players today</th></tr></thead><tbody>' +
-    '<tr><td>1</td><td><a href="#lock" style="font-weight:600">$TOTEM</a> <span class="chip" style="margin-left:6px">Flagship</span></td><td>31.2M</td><td>412</td><td><span class="chip g">Live</span></td><td>2,940</td></tr>' +
-    '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px">Tokens appear here once they launch an NFT collection on Totem.</td></tr></tbody></table></div>';
-  const cols = '<div class="grid g3"><a class="card" href="#totem" style="text-decoration:none;display:flex;gap:18px;align-items:center">' + T.svgTotem(4, 70) +
-    '<span style="display:flex;flex-direction:column;gap:6px"><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem Genesis</span><span class="muted" style="font-size:14px">2,222 NFTs, each holding up to 100,000 $TOTEM</span><span style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip g">Live Arena</span><span class="chip">Rentable</span><span class="chip">Free starters</span></span></span></a>' +
-    '<a class="card" href="#launch" style="text-decoration:none;border-style:dashed;display:flex;flex-direction:column;gap:8px;justify-content:center"><span style="font-family:var(--serif);font-size:28px;line-height:1.1">Your collection here</span><span class="muted" style="font-size:14px">Tokens that launch NFTs on Totem are listed with what their NFTs hold and where they play.</span></a></div>';
-  const alpha = [
-    ['Today', 'Prize vault restocked. The treasury voted in 6 more prize Totems for Meme Kart.'],
-    ['Today', 'Rental demand is up. Full Totems are renting at about 2 NEAR per race.'],
-    ['Yesterday', 'Ghost to beat: kofi.testnet set 1:38.2 in Meme Kart.'],
-    ['Friday', 'Season 2 game vote opens for $TOTEM holders. Ritual Raid and Bagwork are on the ballot.'],
-    ['Next week', 'Applications open for the second community Arena on Totem.']
-  ];
-  const alphaHtml = '<div class="grid" style="gap:8px;max-width:860px">' + alpha.map((a) => '<div class="door"><span><span class="muted" style="font-size:13px">' + a[0] + '</span><br>' + a[1] + '</span></div>').join('') + '</div>';
-  $('#exBody').innerHTML =
-    section('Earn free tokens and NFTs', 'Live now in Totem Arena', oppHtml) +
-    section('Trending Arenas', '', arenas) +
-    section('More to do', '', '<div class="grid g3">' + [['#market', 'Totem market', 'Buy whole Totems. See what each one holds before you pay.'], ['#season', 'Season 1 leaderboard', 'Houses, players and Meme Kart times. Ends in 23 days.'], ['#agents', 'Agent Bazaar', 'Ask the guide agent anything, shop the merchant, check results.']].map((c) => '<a class="card ink" href="' + c[0] + '" style="text-decoration:none;display:flex;flex-direction:column;gap:8px"><span style="font-family:var(--serif);font-size:30px;line-height:1.05">' + c[1] + '</span><span class="muted">' + c[2] + '</span></a>').join('') + '</div>') +
-    section('Trending tokens', '', tokens) +
-    section('NFTs with live tokens', '', cols) +
-    section('Alpha', 'From the Totem team and the Arena', alphaHtml) +
-    '<p class="muted" style="font-size:13px;margin-top:24px">Example data.</p>';
+  const actionHtml = '<div class="grid g3">' + actions.map((a) => '<a class="card" href="' + a[2] + '" style="text-decoration:none;display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1.05">' + a[0] + '</span><span style="color:var(--body)">' + a[1] + '</span><span class="btn small" style="align-self:flex-start;margin-top:auto">' + a[3] + '</span></a>').join('') + '</div>';
+
+  body.innerHTML =
+    section('What you can do', 'Every one of these writes to NEAR testnet', actionHtml) +
+    section('What Totem is, from the contracts', '', whatItIs) +
+    section('Where the supply sits', 'Read from ' + esc(p.token.contractId), allocations) +
+    (arenaHtml ? section('Arenas', '', '<div class="grid" style="gap:10px">' + arenaHtml + '</div>') : '') +
+    '<p class="muted" style="font-size:13px;margin-top:24px">Read live from ' + esc(p.collection.contractId) + ' and ' + esc(p.token.contractId) + ' on NEAR testnet.</p>';
   searchPaint($('#exSearch').value);
 }
 T.modules.explore = { enter: paintExplore };

@@ -107,6 +107,9 @@ async function paintWallet(){
   const chain = live.ok ? live.data.onChain : null;
   const operates = Boolean(live.ok && live.data.operator);
   T.holdings = chain && chain.source === 'chain' ? Object.assign({ accountId: account, operator: operates }, chain) : null;
+  // Only an operator needs the Arena's settings, so only an operator fetches them.
+  const arenaResponse = operates ? await T.api.get('/arenas/totem') : null;
+  const arena = arenaResponse && arenaResponse.ok ? arenaResponse.data.arena : null;
   const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
   const rows = ledger.ok ? ledger.data.ledger : [];
 
@@ -141,6 +144,28 @@ async function paintWallet(){
       '<span class="muted" style="font-size:12px">The faucet sends one piece, which is the smallest amount a one piece Arena accepts. The permit is signed by Totem; the mint is signed by you.</span>' +
       '</div>';
 
+  // The operator console. It appears only for the account the Arena actually names as its
+  // operator, and every control writes through an endpoint that checks that again on the
+  // server. Hiding it is presentation; the authorisation is the server's.
+  const operatorCard = !operates || !arena ? '' :
+    '<div class="card ink" style="display:flex;flex-direction:column;gap:14px;margin-top:14px">' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip e">Operator</span>' +
+    '<h3 style="font-size:26px;margin:0">' + esc(arena.name) + '</h3>' +
+    '<span class="chip' + (arena.paused ? '' : ' g') + '">' + (arena.paused ? 'Paused' : 'Live') + '</span></div>' +
+    '<p class="muted" style="margin:0;font-size:14px">You run this Arena. Entry is checked against $TOTEM held on chain, and prizes are paid from the Arena prize account.</p>' +
+    '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">' +
+    '<label style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">Entry, in pieces</span><input id="opEntry" type="number" min="0" max="4" step="1" value="' + esc(String(arena.entryPieces ?? 1)) + '" style="padding:10px;border:1.5px solid var(--line);border-radius:10px;font:inherit"></label>' +
+    '<label style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">Prize for a win</span><input id="opFirst" type="number" min="0" max="100000" step="500" value="' + esc(String(arena.prizeFirst ?? 5000)) + '" style="padding:10px;border:1.5px solid var(--line);border-radius:10px;font:inherit"></label>' +
+    '<label style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:13px">Prize for a place</span><input id="opOther" type="number" min="0" max="100000" step="250" value="' + esc(String(arena.prizeOther ?? 1000)) + '" style="padding:10px;border:1.5px solid var(--line);border-radius:10px;font:inherit"></label>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn small green" type="button" id="opSave">Save settings</button>' +
+    '<button class="btn small" type="button" id="opPause">' + (arena.paused ? 'Reopen the Arena' : 'Pause the Arena') + '</button>' +
+    '<button class="btn small ghost" type="button" id="opSettle">Settle results past the dispute window</button>' +
+    '</div>' +
+    '<span class="muted" style="font-size:12px">A prize is capped at 100,000 $TOTEM, one full Totem. Set a prize to 0 to stop paying for that placing.</span>' +
+    '</div>';
+
   const activity = rows.length
     ? '<div class="card" style="margin-top:14px"><span class="muted" style="font-size:13px">Activity on the server</span>' +
       rows.map((row) => '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px"><span>' + esc(row.title) + '</span><strong style="color:' + (row.tone === 'e' ? 'var(--ember-ink)' : 'var(--green-ink)') + '">' + esc(row.amount) + '</strong></div>').join('') + '</div>'
@@ -150,7 +175,7 @@ async function paintWallet(){
     '<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px">' +
     '<span style="font-family:var(--mono)">' + esc(account) + '</span>' +
     '<button class="btn ghost small" type="button" id="walletOut">Sign out</button></div>' +
-    onChainCard +
+    onChainCard + operatorCard +
     '<div class="grid g3" style="margin-top:14px">' + cards + '</div>' + activity);
   if (!box) return;
 
@@ -174,6 +199,25 @@ async function paintWallet(){
       paintWallet();
     }
   };
+
+  const opSave = $('#opSave');
+  if (opSave) opSave.addEventListener('click', () => write(opSave,
+    () => authed('/api/v1/arenas/totem/settings', { method: 'POST', body: JSON.stringify({
+      entryPieces: Number($('#opEntry').value),
+      prizeFirst: Number($('#opFirst').value),
+      prizeOther: Number($('#opOther').value)
+    }) }),
+    (result) => 'Saved. Entry ' + result.arena.entryPieces + ' piece(s), prizes ' + T.fmt(result.arena.prizeFirst) + ' and ' + T.fmt(result.arena.prizeOther) + ' $TOTEM.'));
+
+  const opPause = $('#opPause');
+  if (opPause) opPause.addEventListener('click', () => write(opPause,
+    () => authed('/api/v1/arenas/totem/pause', { method: 'POST', body: JSON.stringify({ paused: !arena.paused }) }),
+    (result) => result.arena.paused ? 'The Arena is paused. Nobody can enter.' : 'The Arena is open.'));
+
+  const opSettle = $('#opSettle');
+  if (opSettle) opSettle.addEventListener('click', () => write(opSettle,
+    () => authed('/api/v1/arenas/totem/settle', { method: 'POST', body: JSON.stringify({ game: 'meme-kart' }) }),
+    (result) => result.settled.length + ' result(s) settled, ' + result.pending + ' still inside the dispute window.'));
 
   const claimTokens = $('#claimTokens');
   if (claimTokens) claimTokens.addEventListener('click', () => write(claimTokens,

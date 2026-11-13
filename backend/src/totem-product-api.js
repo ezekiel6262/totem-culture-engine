@@ -69,9 +69,13 @@ export function createProductRouter({ product, auth = null, intents = null }) {
     route('POST', '/api/v1/totems/:id/lend', async ({ params, body, identity }) => product.setLending({ totemId: params.id, ownerId: actingAs(identity), listed: body?.listed !== false }), { auth: 'required' }),
 
     /* arenas */
+    // What this deployment actually is, read from the contracts.
+    route('GET', '/api/v1/platform', async () => ({ platform: await product.platformSummary() })),
     route('GET', '/api/v1/arenas', async () => ({ arenas: await product.listArenas() })),
     route('GET', '/api/v1/arenas/:id', async ({ params }) => ({ arena: await product.getArena(params.id) })),
     route('POST', '/api/v1/arenas/:id/entry', async ({ params, body, identity }) => product.checkEntry({ arenaId: params.id, accountId: identity?.accountId ?? body?.accountId })),
+    // The operator console. Only the Arena's operator may call it.
+    route('POST', '/api/v1/arenas/:id/settings', async ({ params, body, identity }) => product.updateArena({ arenaId: params.id, accountId: actingAs(identity), entryPieces: body?.entryPieces, prizeFirst: body?.prizeFirst, prizeOther: body?.prizeOther, paused: body?.paused, name: body?.name }), { auth: 'required' }),
     route('POST', '/api/v1/arenas/:id/pause', async ({ params, body, identity }) => product.setArenaPaused({ arenaId: params.id, accountId: actingAs(identity), paused: body?.paused !== false }), { auth: 'required' }),
 
     /* results and season */
