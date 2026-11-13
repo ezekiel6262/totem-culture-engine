@@ -58,6 +58,33 @@ illustrative. The Arena entry gate that guards them is real.
 - Public X post that says built at NEAR HACKATHON, tags `@NEARProtocol`, and includes
   `#NEARHackathon`.
 
+## X post, single
+
+The one to actually publish. The thread below is kept as a fallback.
+
+> Your memecoin is a number in your wallet. Your PFP is a picture you hope someone wants.
+> Neither one remembers anything you did.
+>
+> Totem makes them one object: a community binds an NFT collection to its token, and the NFT
+> holds the coins.
+>
+> Lock 25,000 $TOTEM into your Totem and the NFT's own balance goes up. Not a trait, not
+> metadata — a real NEP-141 balance. Totem #1 holds it on testnet right now:
+> locked_of("1") → 25,000
+>
+> Why NEAR: contracts are accounts, so ft_transfer_call hands the tokens to the NFT with a
+> callback in a single transaction, with no registry in between. And withdrawing asserts 1
+> yoctoNEAR, so an app key can never drain it. Only the owner, signing.
+>
+> The Arena then gates entry on what your Totem holds, not what your wallet holds.
+>
+> Demo: https://mytotem.buzz
+> Code: https://github.com/ezekiel6262/totem-culture-engine
+>
+> Would you gate your community on the NFT or the wallet? I want to hear where this breaks.
+>
+> Built at NEAR HACKATHON @NEARProtocol #NEARHackathon @NearBuilders
+
 ## X thread
 
 **1 / main post**
