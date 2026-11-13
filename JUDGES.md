@@ -76,12 +76,12 @@ below, or open `https://explorer.testnet.near.org/transactions/<hash>`.
 | --- | --- | --- |
 | 1. Gate the mint | `nft.approve_eligibility` for branch `meme-commander` | `5sXi3Twz9ZMy8DEWtx3YEwkGxzrHiUHJC46eH9jTDCQm` |
 | 2. Mint a Totem | `nft.mint` — emitted a NEP-171 `nft_mint` event for token `1` | `EYvswUA3SLXRoPj17sXugimRt7JGLdRc1BcyT6NmttEc` |
-| 3. Register for the token | `token.storage_deposit` for the recipient (NEP-145) | `J1vMv2pAY58LjUREqUBPLpaSWZjKcE74MNkEeZSYxsdu` |
-| 4. Move one piece | `token.ft_transfer` of 25,000 `$TOTEM`, NEP-141 `ft_transfer` event | `zLVnT2SxTWKSr5HgV9vgkm9BZ8GoN5xmvWLnqWbnZ8F` |
+| 3. Register for the token | `token.storage_deposit` for the recipient (NEP-145) | `C4LZYgj3DcuXSHn5HZYS3nYCTYbgCdJn7Jz6APJGeW7m` |
+| 4. Move one piece | `token.ft_transfer` of 25,000 `$TOTEM`, NEP-141 `ft_transfer` event | `EuextQ4mUzHMwurrf6VueWCVRrPPK49S9Cfw7uo9bpiG` |
 | 5. Approve the market | `nft.nft_approve` for `market.totemtest.testnet`, approval id 1 | `gnM7e6Ey5TpADpCYNq2RyXsV5Ze5ArGKsrYPx5GcyQK` |
 | 6. List it | `market.list` at 1 NEAR, listing `nft.totemtest.testnet:1` | `4Sh7itV2MjxcxGtFPygKgJjibRRPnnUDYHE3KZHDHfHF` |
-| 7. Pay a quest reward | `agent.pay_reward` 0.05 NEAR, action `quest_reward` | `FejmQ8Zv3cJ4RdVck59bJgL6kEsisxfJAeDcMvybURYo` |
-| 8. **Refused** over the cap | `agent.pay_reward` for 2 NEAR against a 1 NEAR cap — aborted, nothing paid | `Gwue4hLvfNyobKPVxdYpNsporJes4nBptzB4G1ZUf9Kq` |
+| 7. Pay a quest reward | `agent.pay_reward` 0.05 NEAR, action `quest_reward` | `21DuA8SsHHgMW7AYq4WKvHhw8vTua9CGDxc1F28cYQfC` |
+| 8. **Refused** over the cap | `agent.pay_reward` for 2 NEAR against a 1 NEAR cap — aborted, nothing paid | `4Bw35AJ6Z6WAK4SeeBP7LCZRaWsmfLwaJuQUKJQQftRd` |
 
 The resulting state, which anyone can query now:
 
@@ -96,7 +96,7 @@ near contract call-function as-read-only market.totemtest.testnet listings \
 # one listing: nft.totemtest.testnet:1, seller totemtest.testnet, price 1 NEAR
 
 near contract call-function as-read-only agent.totemtest.testnet get_reward \
-  json-args '{"quest_id":"demo-quest-1"}' network-config testnet now
+  json-args '{"quest_id":"totem-quest-1"}' network-config testnet now
 # the paid receipt: 0.05 NEAR, action quest_reward, with the day it counted against
 ```
 
@@ -107,7 +107,7 @@ agent for a quest it refused and for one it paid:
 
 ```sh
 near contract call-function as-read-only agent.totemtest.testnet get_reward \
-  json-args '{"quest_id":"demo-quest-overcap"}' network-config testnet now
+  json-args '{"quest_id":"totem-quest-overcap"}' network-config testnet now
 # null  -- the 2 NEAR attempt wrote no receipt and transferred nothing
 ```
 
