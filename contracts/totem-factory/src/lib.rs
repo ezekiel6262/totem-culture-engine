@@ -1,5 +1,6 @@
-use near_sdk::collections::LookupMap;
-use near_sdk::json_types::Base58CryptoHash;
+use near_sdk::collections::{LazyOption, LookupMap, Vector};
+use near_sdk::json_types::{Base58CryptoHash, Base64VecU8};
+use std::collections::HashMap;
 use near_sdk::serde_json::{self, Value};
 use near_sdk::{env, ext_contract, near, require, AccountId, BorshStorageKey, CryptoHash, Gas, NearToken, PanicOnDefault, Promise, PromiseError};
 
@@ -8,7 +9,7 @@ const CALLBACK_GAS: Gas = Gas::from_tgas(20);
 
 #[derive(BorshStorageKey)]
 #[near]
-enum StorageKey { Launches }
+enum StorageKey { Launches, Template, Staging }
 
 #[near(serializers=[borsh, json])]
 #[derive(Clone, PartialEq)]
@@ -41,6 +42,18 @@ pub struct TotemFactory {
     token_fee: NearToken,
     nft_fee: NearToken,
     launches: LookupMap<AccountId, LaunchRecord>,
+    // The collection template, stored here as bytes and deployed straight onto each new
+    // account. A global contract would be referenced instead of stored, but registering one
+    // costs 10 NEAR per 100KB and the amount is burnt rather than staked: about 35 NEAR for
+    // this template, which no testnet faucet provides. Storing it stakes roughly 4 NEAR,
+    // recoverable, and the trade is that each launched collection stakes its own copy.
+    //
+    // It is lazy on purpose. A 390KB blob in the struct would be deserialised on every call
+    // to this contract, including the read only ones.
+    template: LazyOption<Vec<u8>>,
+    template_hash: Option<Base58CryptoHash>,
+    // Uploads arrive in chunks because a transaction cannot carry the whole template.
+    staging: Vector<Vec<u8>>,
 }
 
 #[near]
@@ -48,7 +61,13 @@ impl TotemFactory {
     #[init]
     pub fn new(owner_id: AccountId, treasury_id: AccountId, token_code_hash: Base58CryptoHash, nft_code_hash: Base58CryptoHash, token_fee: NearToken, nft_fee: NearToken) -> Self {
         require!(!env::state_exists(), "Already initialized");
-        Self { owner_id, treasury_id, token_code_hash, nft_code_hash, token_fee, nft_fee, launches: LookupMap::new(StorageKey::Launches) }
+        Self {
+            owner_id, treasury_id, token_code_hash, nft_code_hash, token_fee, nft_fee,
+            launches: LookupMap::new(StorageKey::Launches),
+            template: LazyOption::new(StorageKey::Template, None),
+            template_hash: None,
+            staging: Vector::new(StorageKey::Staging),
+        }
     }
 
     pub fn quote(&self, template: TemplateKind, instance_deposit: NearToken) -> NearToken {
@@ -56,6 +75,42 @@ impl TotemFactory {
     }
 
     pub fn get_launch(&self, contract_id: AccountId) -> Option<LaunchRecord> { self.launches.get(&contract_id) }
+
+    /* ---------- the collection template ---------- */
+
+    // Chunks are appended, then committed in one go. The hash is returned so the uploader
+    // can check the bytes that landed are the artifact they meant to send.
+    pub fn append_template_chunk(&mut self, chunk: Base64VecU8) -> u64 {
+        self.assert_owner();
+        require!(!chunk.0.is_empty(), "Chunk is empty");
+        self.staging.push(&chunk.0);
+        self.staging.len()
+    }
+
+    pub fn commit_template(&mut self) -> Base58CryptoHash {
+        self.assert_owner();
+        require!(!self.staging.is_empty(), "Nothing has been uploaded");
+        let mut code: Vec<u8> = Vec::new();
+        for chunk in self.staging.iter() { code.extend_from_slice(&chunk); }
+        self.staging.clear();
+        let hash: CryptoHash = env::sha256_array(&code);
+        self.template.set(&code);
+        self.template_hash = Some(Base58CryptoHash::from(hash));
+        env::log_str(&format!("{{\"event\":\"template_committed\",\"bytes\":{}}}", code.len()));
+        Base58CryptoHash::from(hash)
+    }
+
+    pub fn discard_staged_template(&mut self) { self.assert_owner(); self.staging.clear(); }
+
+    pub fn template_status(&self) -> HashMap<String, String> {
+        HashMap::from([
+            ("ready".into(), self.template_hash.is_some().to_string()),
+            ("hash".into(), self.template_hash.map(|h| String::from(&h)).unwrap_or_default()),
+            ("staged_chunks".into(), self.staging.len().to_string()),
+        ])
+    }
+
+    fn assert_owner(&self) { require!(env::predecessor_account_id() == self.owner_id, "Owner only"); }
 
     #[payable]
     pub fn launch(&mut self, slug: String, template: TemplateKind, instance_deposit: NearToken, init_args: String) -> Promise {
@@ -71,11 +126,15 @@ impl TotemFactory {
         let required = instance_deposit.as_yoctonear().checked_add(service_fee.as_yoctonear()).expect("Deposit overflow");
         require!(attached.as_yoctonear() >= required, "Attached deposit does not cover launch quote");
         self.launches.insert(&contract_id, &LaunchRecord { creator_id: creator_id.clone(), contract_id: contract_id.clone(), template: template.clone(), attached_deposit: attached, instance_deposit, service_fee, status: "pending".into() });
-        let code_hash: CryptoHash = match template { TemplateKind::Token => (&self.token_code_hash).into(), TemplateKind::Nft => (&self.nft_code_hash).into() };
+        // Only collections launch here. A token is a different contract and launching one
+        // needs no factory: the repository's launch script deploys it directly, which is
+        // what put the flagship token on chain.
+        require!(template == TemplateKind::Nft, "This launchpad launches collections. Deploy a token directly with the launch script.");
+        let code = self.template.get().expect("No collection template has been committed yet");
         Promise::new(contract_id.clone())
             .create_account()
             .transfer(instance_deposit)
-            .use_global_contract(code_hash)
+            .deploy_contract(code)
             .function_call("new", init_args.into_bytes(), NearToken::from_yoctonear(0), INIT_GAS)
             .then(ext_self::ext(env::current_account_id()).with_static_gas(CALLBACK_GAS).finish_launch(contract_id))
     }
