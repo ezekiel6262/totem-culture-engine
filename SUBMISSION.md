@@ -18,7 +18,7 @@ development phase; outside it the API answers 403.
 - [x] Deploy the token: `token.totemtest.testnet`, total supply 1,000,000,000 at 18 decimals, 2.60 NEAR staked.
 - [x] Deploy the market and the Culture Agent: `market.totemtest.testnet`, `agent.totemtest.testnet`.
 - [x] Exercise the deployed contracts end to end on chain: mint, NEP-141 transfer, market listing, agent reward, and a refused over-cap payment. Eight transactions, listed in `JUDGES.md`.
-- [ ] Optional, after the deadline: deploy the launchpad factory. It was rewritten to deploy a stored template, so it needs about 6 NEAR staked rather than ~35 burned, but it has never been deployed and nothing here depends on it.
+- [x] Deploy the launchpad factory: `launch.totemtest.testnet`, template committed and hash-verified, and a collection launched through it.
 - [x] Record the deployed contract ids and code hashes here (see Deployed contracts below).
 - [x] Stack parameter `TotemNftContractId` already defaults to `nft.totemtest.testnet`, which is what was deployed. The others follow their own deploys.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).
@@ -51,7 +51,7 @@ development phase; outside it the API answers 403.
 | Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, 5.60 NEAR staked, **holds `$TOTEM` inside each Totem**: `locked_of("1")` is 25,000 and the collection's own NEP-141 balance is 25,000 because the tokens really moved, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
 | Totem token, NEP-141 | `token.totemtest.testnet` | testnet | `code_hash` `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j`, 2.60 NEAR staked, `ft_total_supply` 1,000,000,000 at 18 decimals, all held by `totemtest.testnet` |
 | Player-owned market | `market.totemtest.testnet` | testnet | `code_hash` `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`, 2.30 NEAR staked, 250 bps fee to the treasury, `listings` returns one live listing, Totem #1 at 1 NEAR |
-| Launchpad factory | `launch.totemtest.testnet` | **not deployed** | The account does not exist. The contract is written and compiles; nothing in this submission depends on it |
+| Launchpad factory | `launch.totemtest.testnet` | testnet | Holds the collection template as bytes, `template_status` reports hash `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`. `totemtest.testnet` launched `founders.launch.totemtest.testnet` through it for 6.3 NEAR; the record reads `deployed` |
 | Culture Agent | `agent.totemtest.testnet` | testnet | `code_hash` `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh`, 2.10 NEAR staked, `get_policy` reports 1 NEAR per payment, 5 NEAR daily, `paused` false; `available_budget` about 0.49 NEAR |
 
 First deployed 2026-11-12 with `npm run launch:testnet -- --only nft --execute`, and

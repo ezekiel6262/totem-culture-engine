@@ -196,17 +196,29 @@ No wallet needed for steps 1–3.
   5 NEAR daily cap and `paused: false`, all enforced in the contract. Note that
   `available_budget` is about 0.49 NEAR, since the account's balance is mostly staked for
   its own storage, so a larger payment fails on balance before it reaches the cap.
-- The launchpad factory is **written and compiles, and is not deployed**.
-  `launch.totemtest.testnet` does not exist, and nothing in this submission depends on it.
-  Its first design instantiated a launched collection from globally registered contract
-  code, which costs 10 NEAR per 100KB **burnt rather than staked**, about 35 NEAR for the
-  collection template, so it could not be deployed from a testnet faucet at all. It was
-  rewritten to store the template and deploy it directly, which stakes roughly 4 NEAR
-  instead and is recoverable, at the cost of each launched collection staking its own copy
-  of the code. That makes it deployable; it has not been deployed, and this is the only
-  part of Totem where the contract has never run on chain. Launching does not need it: the
-  repository's launch script deploys the same contracts directly, and is what put the four
-  live ones there.
+- **The launchpad is live and has launched a collection.** `launch.totemtest.testnet`
+  holds the collection template as bytes and deploys it straight onto each new account.
+  Its first design used globally registered contract code, which costs 10 NEAR per 100KB
+  **burnt rather than staked**, about 35 NEAR for this template, so it could not have been
+  deployed from a testnet faucet at all. Storing the template stakes roughly 4 NEAR and is
+  recoverable; the trade is that each launched collection stakes its own copy of the code
+  rather than referencing one shared one. For real volume a global contract is the better
+  economics, and this is the version that can exist.
+
+  Proven by a second account, not by the owner: `totemtest.testnet` called `launch`
+  with 6.3 NEAR and got `founders.launch.totemtest.testnet`, a working collection called
+  Totem Founders with 1,000 max supply and that account as its royalty receiver. Its
+  `code_hash` is `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, the same template the
+  factory committed and the same build running at `nft.totemtest.testnet`. The factory's
+  own record reads `deployed`: 4.3 NEAR went to the new account as its storage and the
+  2 NEAR fee went to the treasury.
+
+  ```sh
+  near contract call-function as-read-only launch.totemtest.testnet template_status \
+    json-args {} network-config testnet now
+  near contract call-function as-read-only founders.launch.totemtest.testnet nft_metadata \
+    json-args {} network-config testnet now
+  ```
   `docs/TESTNET_RELEASE.md` holds the per-contract cost and the exact deploy command.
   Launch quoting fails closed meanwhile, in `backend/src/launch-quotes.js`.
 - No mainnet deployment, no audit, and no yield or return claim.

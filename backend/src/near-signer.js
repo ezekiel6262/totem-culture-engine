@@ -72,6 +72,7 @@ export function privateKeyFromNear (secretKey) {
 
 export class NearSigner {
   #rpcUrl; #accountId; #publicKey; #privateKey; #fetch
+  #lastNonce = null
 
   constructor ({ rpcUrl, accountId, publicKey, secretKey, fetchImpl = fetch }) {
     invariant(/^https:\/\//.test(String(rpcUrl ?? '')), 'RPC_ENDPOINT_INVALID', 'The NEAR RPC endpoint must use HTTPS')
@@ -103,10 +104,18 @@ export class NearSigner {
 
   // The nonce and the block hash both come from the chain immediately before signing, so a
   // transaction is never built against stale state.
+  //
+  // A final-finality view of an access key lags a transaction that was just sent with it,
+  // which made the next call reuse a nonce and be rejected as InvalidNonce. This reads the
+  // key optimistically and also remembers the last nonce it used, so a run of calls on one
+  // key cannot collide with itself however fast they go out.
   async #context () {
-    const key = await this.#rpc('query', { request_type: 'view_access_key', finality: 'final', account_id: this.#accountId, public_key: this.#publicKey })
+    const key = await this.#rpc('query', { request_type: 'view_access_key', finality: 'optimistic', account_id: this.#accountId, public_key: this.#publicKey })
     const block = await this.#rpc('block', { finality: 'final' })
-    return { nonce: BigInt(key.nonce) + 1n, blockHash: block.header.hash }
+    const fromChain = BigInt(key.nonce) + 1n
+    const nonce = this.#lastNonce !== null && this.#lastNonce >= fromChain ? this.#lastNonce + 1n : fromChain
+    this.#lastNonce = nonce
+    return { nonce, blockHash: block.header.hash }
   }
 
   async call ({ receiverId, methodName, args = {}, gas = 30_000_000_000_000n, deposit = 0n }) {
