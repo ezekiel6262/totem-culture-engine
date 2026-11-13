@@ -558,12 +558,25 @@ export class TotemProductService {
     try {
       const token = await rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'nft_token', args: { token_id: id } })
       if (!token) return { source: 'chain', exists: false, tokenId: id, contractId: nftContractId }
-      // What the owner holds is what gives a Totem its standing, so it is part of the page.
-      let ownerBalanceWhole = null
-      try {
-        const raw = await rpc.callFunctionFinal({ contractId: tokenContractId, methodName: 'ft_balance_of', args: { account_id: token.owner_id } })
-        ownerBalanceWhole = (BigInt(raw) / 10n ** BigInt(decimals)).toString()
-      } catch (error) { ownerBalanceWhole = null }
+      // Two numbers that must never be conflated. What the Totem itself holds is the one
+      // Arena entry reads and the one this collection is about; what the owner happens to
+      // hold in their own wallet is context and nothing more. Deriving the first from the
+      // second, as this page once did, states the opposite of what the contract does.
+      const whole = (raw) => (BigInt(raw) / 10n ** BigInt(decimals)).toString()
+      const settled = await Promise.allSettled([
+        rpc.callFunctionFinal({ contractId: tokenContractId, methodName: 'ft_balance_of', args: { account_id: token.owner_id } }),
+        rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'locked_of', args: { token_id: id } }),
+        rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'pieces_of', args: { token_id: id } }),
+        rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'locking_config', args: {} })
+      ])
+      const settledValue = (at) => settled[at].status === 'fulfilled' ? settled[at].value : null
+      const asWhole = (at) => { try { const raw = settledValue(at); return raw === null ? null : whole(raw) } catch (error) { return null } }
+      const ownerBalanceWhole = asWhole(0)
+      const lockedWhole = asWhole(1)
+      const rawPieces = settledValue(2)
+      const pieces = rawPieces === null ? null : Number(rawPieces)
+      const config = settledValue(3)
+      const maxPieces = config && config.max_pieces !== undefined ? Number(config.max_pieces) : null
       return {
         source: 'chain', exists: true, tokenId: id, contractId: nftContractId,
         owner: token.owner_id,
@@ -572,7 +585,10 @@ export class TotemProductService {
         extra: token.metadata?.extra ?? null,
         issuedAt: token.metadata?.issued_at ?? null,
         approvals: Object.keys(token.approved_account_ids ?? {}),
-        ownerBalanceWhole
+        ownerBalanceWhole,
+        lockedWhole,
+        pieces,
+        maxPieces
       }
     } catch (error) {
       return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED' }

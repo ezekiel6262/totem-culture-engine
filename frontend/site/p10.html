@@ -238,7 +238,13 @@ T.modules.nft = { enter(){
     try { branch = JSON.parse(n.extra || '{}').branch || null; } catch (error) { branch = null; }
     const mine = Boolean(T.holdings && T.holdings.accountId === n.owner);
     const held = n.ownerBalanceWhole === null ? null : Number(n.ownerBalanceWhole);
-    const pieces = held === null ? null : Math.min(4, Math.floor(held / 25000));
+    // What this Totem holds, read from the collection itself through locked_of and
+    // pieces_of. It used to be inferred from the owner's wallet balance, which told the
+    // visitor the exact opposite of what the contract does: the tokens are held by the
+    // token, and the owner's own wallet has nothing to do with it.
+    const inside = n.lockedWhole === null || n.lockedWhole === undefined ? null : Number(n.lockedWhole);
+    const maxPieces = Number(n.maxPieces) > 0 ? Number(n.maxPieces) : 4;
+    const pieces = n.pieces === null || n.pieces === undefined ? null : Number(n.pieces);
 
     root.innerHTML = head +
       '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">' +
@@ -248,20 +254,20 @@ T.modules.nft = { enter(){
       '<span class="muted" style="font-family:var(--mono);font-size:13px;word-break:break-all">' + esc(n.contractId) + '</span></div>' +
       '<div style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px">' +
       '<div class="grid g4">' +
-      [['Owner', esc(n.owner)],
-       ['Owner holds', held === null ? 'unknown' : '<span class="mark">' + T.fmt(held) + ' $TOTEM</span>'],
-       ['Worth in pieces', pieces === null ? 'unknown' : pieces + ' of 4'],
+      [['Held inside this Totem', inside === null ? 'unknown' : '<span class="mark">' + T.fmt(inside) + ' $TOTEM</span>'],
+       ['Pieces locked', pieces === null ? 'unknown' : pieces + ' of ' + maxPieces],
+       ['Owner', esc(n.owner)],
        ['Branch', branch ? esc(branch) : 'not set']]
         .map((d) => '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="muted" style="font-size:12px">' + d[0] + '</span><strong style="font-size:15px;word-break:break-all">' + d[1] + '</strong></div>').join('') +
       '</div>' +
       (n.approvals.length ? '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Approved to transfer</strong><br><span class="muted" style="font-size:13px">' + n.approvals.map(esc).join(', ') + '</span></span></div>' : '') +
       (n.description ? '<div class="card"><span class="muted" style="font-size:13px">Description</span><p style="margin-top:6px">' + esc(n.description) + '</p></div>' : '') +
-      '<p class="muted" style="font-size:13px">Read live from ' + esc(n.contractId) + '. Check it yourself with nft_token on NEAR testnet.</p>' +
+      '<p class="muted" style="font-size:13px">The ' + (inside === null ? 'balance' : T.fmt(inside) + ' $TOTEM') + ' above is held by the Totem itself, not by its owner. ' + (held === null ? '' : 'Its owner separately holds ' + T.fmt(held) + ' $TOTEM in their own wallet, which gives this Totem nothing. ') + 'Read live from ' + esc(n.contractId) + ': check it yourself with <span style="font-family:var(--mono)">nft_token</span>, <span style="font-family:var(--mono)">locked_of</span> and <span style="font-family:var(--mono)">pieces_of</span> on NEAR testnet.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small ghost" type="button" id="nftShare">Share</button><a class="btn small ghost" href="#market">Market</a></div>' +
       '</div></div>';
 
     const share = $('#nftShare');
-    if (share) share.addEventListener('click', () => T.share({ title: 'Totem #' + id, stat: (held === null ? '' : T.fmt(held) + ' $TOTEM held by its owner'), line: 'Totem on NEAR testnet' }));
+    if (share) share.addEventListener('click', () => T.share({ title: 'Totem #' + id, stat: (inside === null ? '' : T.fmt(inside) + ' $TOTEM held inside the NFT itself'), line: 'Totem on NEAR testnet' }));
   })();
 } };
 
