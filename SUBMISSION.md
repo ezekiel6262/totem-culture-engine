@@ -51,7 +51,7 @@ development phase; outside it the API answers 403.
 | Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, 5.60 NEAR staked, **holds `$TOTEM` inside each Totem**: `locked_of("1")` is 25,000 and the collection's own NEP-141 balance is 25,000 because the tokens really moved, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
 | Totem token, NEP-141 | `token.totemtest.testnet` | testnet | `code_hash` `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j`, 2.60 NEAR staked, `ft_total_supply` 1,000,000,000 at 18 decimals, all held by `totemtest.testnet` |
 | Player-owned market | `market.totemtest.testnet` | testnet | `code_hash` `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`, 2.30 NEAR staked, 250 bps fee to the treasury, `listings` returns one live listing, Totem #1 at 1 NEAR |
-| Launchpad factory | `launch.totemtest.testnet` | testnet | Holds the collection template as bytes, `template_status` reports hash `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`. `totemtest.testnet` launched `founders.launch.totemtest.testnet` through it for 6.3 NEAR; the record reads `deployed` |
+| Launchpad factory | `launch.totemtest.testnet` | testnet | `code_hash` `FKu7XrLZtYbT1tyUkiVJW1Gupf9RzdLmae1EkJbfVaJ8`, the base58 of sha256 `D4DAFED65F1D776D93B52601E87BABBF7CCC7A345EF2B96B49422719E8933845`. Holds the collection template as bytes, `template_status` reports hash `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`. `totemtest.testnet` launched `founders.launch.totemtest.testnet` through it for 6.3 NEAR; the record reads `deployed` |
 | Culture Agent | `agent.totemtest.testnet` | testnet | `code_hash` `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh`, 2.10 NEAR staked, `get_policy` reports 1 NEAR per payment, 5 NEAR daily, `paused` false; `available_budget` about 0.49 NEAR |
 
 First deployed 2026-11-12 with `npm run launch:testnet -- --only nft --execute`, and
@@ -75,7 +75,7 @@ near contract call-function as-read-only nft.totemtest.testnet nft_metadata \
 
 ## Intended track ids
 
-`nfts`, `memecoins`, `games`, `security`, `agents`, `social`, `defi`
+`nfts`, `memecoins`, `games`, `security`, `agents`, `social`, `defi`, `open`
 
 Each is argued in one line in the README and mapped to code and tests in `JUDGES.md`. It
 remains one submission for one project.

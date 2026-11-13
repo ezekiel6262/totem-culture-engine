@@ -134,6 +134,7 @@ Product proof is a route on the live site. The page is one document with hash ro
 | `agents` Agent Economy | quest rewards paid inside those bounds | `contracts/totem-agent` | as above |
 | `social` Social Money | capped Sputnik or Trezu proposals, never executed by Totem | `backend/src/social-treasury.js` | `backend/test/social-treasury.test.js` |
 | `defi` Unstoppable DeFi | `#market` — 222 live solver assets across 12 chains routed to wNEAR | `backend/src/intents.js` | `backend/test/intents.test.js` |
+| `open` Open Innovation | `#explore`, `#lock` — a token only useful inside an NFT, and an NFT whose standing is what it holds | `contracts/totem-nft` `ft_on_transfer` and `withdraw_piece` | `backend/test/totem-product.test.js` |
 
 ## One complete product moment
 

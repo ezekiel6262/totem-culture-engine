@@ -191,6 +191,9 @@ mainnet with `dry: true` quotes. That is exactly what `backend/src/intents.js` d
   stays custodian and approver, and Totem never executes a community treasury itself.
 - **`defi` Unstoppable DeFi** — NEAR Intents routes value from 222 assets across 12 chains
   into NEAR to fund a position.
+- **`open` Open Innovation** — the reciprocal economy itself: a token that is only
+  useful inside an NFT, and an NFT whose standing is the token it holds. Neither side
+  works without the other, which is the whole design rather than a feature of it.
 
 ## Run locally
 
