@@ -65,18 +65,28 @@ The one to actually publish. The thread below is kept as a fallback.
 > Your memecoin is a number in your wallet. Your PFP is a picture you hope someone wants.
 > Neither one remembers anything you did.
 >
-> Totem makes them one object: a community binds an NFT collection to its token, and the NFT
-> holds the coins.
+> Totem makes them one object. A community binds an NFT collection to its token, and the NFT
+> stops being an image and becomes an account.
 >
-> Lock 25,000 $TOTEM into your Totem and the NFT's own balance goes up. Not a trait, not
-> metadata — a real NEP-141 balance. Totem #1 holds it on testnet right now:
-> locked_of("1") → 25,000
+> What that NFT actually does:
+> → holds the coins. Totem #1 holds 25,000 $TOTEM on testnet. locked_of("1") → 25,000
+> → carries an identity that changes: branch, tier, the items it has won
+> → decides access. Doors open on what it holds
+> → sells with everything inside it, on a player-owned market
+>
+> Then Arena is where a community plays for it. Every community gets its own: its own games,
+> its own entry rule, its own prizes, run by its own operator, named on chain. Meme Kart,
+> Paint the Island, Hold the Line, Ritual Raid.
+>
+> Entry doesn't ask your wallet. It asks your Totem.
+>
+> Prizes settle on chain from a prize account under a cap per game per day, and the cap is
+> enforced by refusal: ask for more and there is no receipt and nothing moves. (Scores are
+> still client side. The site says so on its own rules page.)
 >
 > Why NEAR: contracts are accounts, so ft_transfer_call hands the tokens to the NFT with a
 > callback in a single transaction, with no registry in between. And withdrawing asserts 1
 > yoctoNEAR, so an app key can never drain it. Only the owner, signing.
->
-> The Arena then gates entry on what your Totem holds, not what your wallet holds.
 >
 > Demo: https://mytotem.buzz
 > Code: https://github.com/ezekiel6262/totem-culture-engine
