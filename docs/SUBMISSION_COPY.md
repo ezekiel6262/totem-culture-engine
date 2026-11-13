@@ -84,9 +84,10 @@ The one to actually publish. The thread below is kept as a fallback.
 > enforced by refusal: ask for more and there is no receipt and nothing moves. (Scores are
 > still client side. The site says so on its own rules page.)
 >
-> Why NEAR: contracts are accounts, so ft_transfer_call hands the tokens to the NFT with a
-> callback in a single transaction, with no registry in between. And withdrawing asserts 1
-> yoctoNEAR, so an app key can never drain it. Only the owner, signing.
+> Why NEAR: an NFT can be an account here, so it holds the money itself instead of pointing
+> at a wallet somewhere else. Every community launches under its own named account. Fees are
+> small enough that paying out a prize after every game actually works. And nothing leaves a
+> Totem unless its owner signs for it — Totem can't move it for you.
 >
 > Demo: https://mytotem.buzz
 > Code: https://github.com/ezekiel6262/totem-culture-engine
