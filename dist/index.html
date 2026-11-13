@@ -439,7 +439,7 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <!-- LOCK -->
 <section class="page" data-route="lock" data-title="Lock and unlock">
 <div class="wrap" style="padding-bottom:64px">
-<div class="ph"><h1>Totem #0417</h1><span class="chip" style="font-family:var(--mono)">0417.totemtest.testnet</span></div>
+<div class="ph"><h1 data-my-totem="title">Your Totem</h1><span class="chip" style="font-family:var(--mono)" data-my-totem="account">connect a wallet</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
 <div class="card" style="flex:1 1 340px;display:flex;gap:28px;align-items:center;justify-content:center;background:var(--soft);min-height:340px" id="lockTotem"></div>
 <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
@@ -463,8 +463,8 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
 <div class="card ink" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:14px">
 <div class="viewer"><canvas id="viewerCanvas" role="img" aria-label="Your Totem in 3D, drag to turn it"></canvas></div>
-<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem #0417</span><span class="chip g" id="acctPieces">3 of 4</span></div>
-<span class="muted" style="font-family:var(--mono);font-size:13px">0417.totemtest.testnet</span>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1" data-my-totem="title">Your Totem</span><span class="chip g" id="acctPieces">3 of 4</span></div>
+<span class="muted" style="font-family:var(--mono);font-size:13px" data-my-totem="account">connect a wallet</span>
 <span class="muted" style="font-size:13px">Selling transfers the whole account: tokens, items, credentials and future royalties.</span>
 </div>
 <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
@@ -537,7 +537,7 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <h2 style="font-size:36px;margin-top:10px">In your game</h2>
 <pre><code><span class="k">import</span> { Totem } <span class="k">from</span> <span class="s">"@totem/arena"</span>;
 
-<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"0417.totemtest.testnet"</span>);
+<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"&lt;your-totem&gt;.totemtest.testnet"</span>);
 <span class="c">// { pieces: 3, items: ["gold-wings"], credentials: [...] }</span>
 <span class="k">const</span> kart = buildKart(player.pieces, player.items);
 
@@ -821,7 +821,7 @@ function paintHomeTotem(n){
 $('#homeRange').addEventListener('input', (e) => paintHomeTotem(+e.target.value));
 paintHomeTotem(3);
 const infra = [
-  ['Each Totem is a NEAR account', 'Totem #0417 lives at 0417.totemtest.testnet, so it can hold tokens, receive prizes and keep items.'],
+  ['Each Totem is a NEAR account', 'A Totem lives at its own sub-account of totemtest.testnet, so it can hold tokens, receive prizes and keep items.'],
   ['Standard tokens and NFTs', 'NEP-141 tokens sit inside NEP-171 NFTs. Wallets and markets already understand both.'],
   ['NEAR Intents', 'Arrive from Solana, Ethereum or Bitcoin and lock tokens into a Totem in one signature.'],
   ['Game keys with limits', 'Game servers get function-call keys that can only report results for their own game.'],
@@ -1088,7 +1088,7 @@ function paintRooms(){
       '<div class="card ink" style="background:#FFFBE0;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><span class="muted" style="font-size:13px">Pinned drop</span><br><span style="font-family:var(--serif);font-size:28px;line-height:1.1">Gold Wings, free to equip this week</span></span><button class="btn" type="button" id="claimDrop">Claim to my Totem</button></div>' +
       posts.map((p) => '<div class="card" style="display:flex;gap:14px;padding:16px"><span style="width:40px;height:40px;flex-shrink:0;border-radius:12px;background:' + p[4] + ';border:1.5px solid #000"></span><div><span style="font-size:14px"><strong>' + p[0] + '</strong> <span class="muted">' + p[1] + ', ' + p[2] + '</span></span><p style="font-size:16px">' + p[3] + '</p></div></div>').join('') +
       '<label style="display:flex;gap:10px"><span class="sr">Message</span><input type="text" placeholder="Write to the holder room" id="roomMsg"><button class="btn" type="button" id="roomSend">Send</button></label></div>';
-    $('#claimDrop').addEventListener('click', () => T.toast('Gold Wings added to Totem #0417'));
+    $('#claimDrop').addEventListener('click', () => T.toast('Gold Wings added to ' + T.myTotemLabel()));
     $('#roomSend').addEventListener('click', () => { const v = $('#roomMsg').value.trim(); if (!v) { T.toast('Write a message first'); return; } posts.unshift(['ada.testnet', S.pieces + ' pieces', 'now', v, T.G]); paintRooms(); });
   } else {
     $('#roomBody').innerHTML = '<div class="grid g3" style="margin-bottom:14px"><div class="card" style="background:#000;color:#fff;border-color:#000"><span style="color:#B5B5AD">Treasury</span><div class="big">8,420 NEAR</div><span style="color:#B5B5AD;font-size:14px">from resale royalties</span></div><div class="card"><span class="muted">Locked in Totems</span><div class="big">31.2M</div><span class="muted" style="font-size:14px">$TOTEM out of circulation</span></div><div class="card"><span class="muted">Your votes</span><div class="big">' + S.pieces + '</div><span class="muted" style="font-size:14px">one per piece</span></div></div>' +
@@ -1746,7 +1746,7 @@ function paintRent(){
   } else {
     const L = S.listing;
     body.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">' +
-      '<div class="card ink" style="flex:1 1 320px;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">' + T.svgTotem(S.pieces, 90, 'wings') + '<span style="font-family:var(--serif);font-size:32px;line-height:1">Totem #0417</span><span class="muted">' + S.pieces + ' pieces, Gold Wings</span>' + (L ? '<span class="chip g">Listed for rent</span>' : '<span class="chip">Not listed</span>') + '</div>' +
+      '<div class="card ink" style="flex:1 1 320px;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">' + T.svgTotem(S.pieces, 90, 'wings') + '<span style="font-family:var(--serif);font-size:32px;line-height:1">' + T.myTotemLabel() + '</span><span class="muted">' + S.pieces + ' pieces, Gold Wings</span>' + (L ? '<span class="chip g">Listed for rent</span>' : '<span class="chip">Not listed</span>') + '</div>' +
       '<div class="card" style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">' +
       '<label class="f">Price per race<select id="lpRace"><option>1 NEAR</option><option selected>2 NEAR</option><option>3 NEAR</option></select></label>' +
       '<label class="f">Price for 7 days<select id="lpWeek"><option>6 NEAR</option><option selected>9 NEAR</option><option>12 NEAR</option></select></label>' +
@@ -1754,8 +1754,8 @@ function paintRent(){
       ['Race in Meme Kart', 'Paint the Island', 'Enter the holder room'].map((x) => '<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#00B97F">' + x + '</label>').join('') +
       '<span class="muted" style="font-size:13px">Withdrawing, selling and transferring are always blocked for renters.</span></fieldset>' +
       '<button class="btn" type="button" id="listBtn">' + (L ? 'Stop lending' : 'List for rent') + '</button>' +
-      '<p class="muted" style="font-size:14px">' + (L ? 'Listed. Rent is paid into Totem #0417’s own account, next to its tokens.' : 'Rent is paid into the Totem’s own account, so whoever owns it later keeps the earnings history.') + '</p></div></div>';
-    $('#listBtn').addEventListener('click', () => { S.listing = S.listing ? null : { race: $('#lpRace').value, week: $('#lpWeek').value }; T.save(); paintRent(); T.toast(S.listing ? 'Totem #0417 is listed for rent' : 'Listing removed'); });
+      '<p class="muted" style="font-size:14px">' + (L ? 'Listed. Rent is paid into ' + T.myTotemLabel() + '’s own account, next to its tokens.' : 'Rent is paid into the Totem’s own account, so whoever owns it later keeps the earnings history.') + '</p></div></div>';
+    $('#listBtn').addEventListener('click', () => { S.listing = S.listing ? null : { race: $('#lpRace').value, week: $('#lpWeek').value }; T.save(); paintRent(); T.toast(S.listing ? T.myTotemLabel() + ' is listed for rent' : 'Listing removed'); });
   }
 }
 $$('[data-rt]').forEach((b) => b.addEventListener('click', () => { rtab = b.dataset.rt; paintRent(); }));
@@ -1947,7 +1947,8 @@ T.modules.explore = { enter: paintExplore };
 
 /* =========================== PROFILE =========================== */
 function nftsOwned(){
-  const list = [{ id: '0417', name: 'Totem #0417', pieces: S.pieces, how: 'Owned', items: ['Gold Wings'] }];
+  const owned = T.myTotemId();
+  const list = owned ? [{ id: owned, name: 'Totem #' + owned, pieces: (T.holdings && T.holdings.pieces) || 0, how: 'Owned', items: [] }] : [];
   S.prizes.filter((p) => /^Prize Totem/.test(p)).forEach((p) => list.push({ id: p.replace(/\D/g, ''), name: p.replace('Prize ', ''), pieces: 1, how: 'Won in the Arena', items: [] }));
   if (S.rented) list.push({ id: S.rented.id, name: S.rented.name, pieces: S.rented.pieces, how: 'Rented, ' + (S.rented.term === 'race' ? '1 race' : '7 days'), items: [], rented: true });
   return list;
@@ -1961,7 +1962,7 @@ function features(n){
   if (p >= 1) out.push('Opens the holder room'); else no.push('Needs 1 piece for the holder room');
   if (p >= 3 && !n.rented) out.push('Votes in the treasury room, ' + p + ' votes'); else if (!n.rented) no.push('Needs 3 pieces for the treasury room');
   if (p >= 4) out.push('Qualifies for Hold the Line'); else no.push('Needs a full Totem for Hold the Line');
-  if (!n.rented) out.push(S.listing && n.id === '0417' ? 'Listed for rent' : 'Can be lent out');
+  if (!n.rented) out.push(S.listing && n.id === T.myTotemId() ? 'Listed for rent' : 'Can be lent out');
   n.items.forEach((i) => out.push('Carries ' + i));
   return { out, no };
 }
@@ -2058,19 +2059,19 @@ T.chain = function(title, steps, quiet){
   const b = $('#chainBtn'); b.animate && !T.reduce && b.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 380 });
 };
 T.calls = {
-  addPiece: () => T.chain('Lock a piece', [{ receiver: 'token.totemtest.testnet', method: 'ft_transfer_call', args: { receiver_id: '0417.totemtest.testnet', amount: tokenUnits(25000), msg: '{"action":"add_piece"}' }, deposit: '1 yoctoNEAR' }]),
-  takePiece: () => T.chain('Take a piece out', [{ receiver: '0417.totemtest.testnet', method: 'withdraw_piece', args: { pieces: 1 }, deposit: '1 yoctoNEAR' }]),
+  addPiece: () => T.chain('Lock a piece', [{ receiver: 'token.totemtest.testnet', method: 'ft_transfer_call', args: { receiver_id: (T.myTotemAccount() || 'your-totem.totemtest.testnet'), amount: tokenUnits(25000), msg: '{"action":"add_piece"}' }, deposit: '1 yoctoNEAR' }]),
+  takePiece: () => T.chain('Take a piece out', [{ receiver: (T.myTotemAccount() || 'your-totem.totemtest.testnet'), method: 'withdraw_piece', args: { pieces: 1 }, deposit: '1 yoctoNEAR' }]),
   rent: (id, term, price) => T.chain('Rent Totem #' + id, [{ receiver: 'rent.totemtest.testnet', method: 'rent', args: { token_id: id, term }, deposit: price + ' NEAR' }, { who: 'Then rent.totemtest.testnet adds a limited key', receiver: id + '.totemtest.testnet', method: 'add_renter_key', args: { renter: S.connected ? S.account : 'you.testnet', allowed_receiver: 'arena.totemtest.testnet', methods: ['play', 'enter_room'], expires: term === 'race' ? 'after 1 race' : '7 days' } }]),
-  lend: (on) => T.chain(on ? 'List Totem #0417 for rent' : 'Stop lending Totem #0417', [{ receiver: 'rent.totemtest.testnet', method: on ? 'list' : 'delist', args: { token_id: '0417' } }]),
+  lend: (on) => T.chain(on ? 'List ' + T.myTotemLabel() + ' for rent' : 'Stop lending ' + T.myTotemLabel(), [{ receiver: 'rent.totemtest.testnet', method: on ? 'list' : 'delist', args: { token_id: (T.myTotemId() || 'your-totem') } }]),
   claim: (h, prize) => T.chain('Gasless claim', [{ who: 'Relayer pays the fee (NEAR meta-transaction)', receiver: 'relayer.totemtest.testnet', method: 'relay_delegate_action', args: { sender: h, actions: ['create_account', 'claim_' + (prize ? 'prize' : 'starter')] } }, { who: 'Executed for ' + h, receiver: 'arena.totemtest.testnet', method: prize ? 'claim_prize' : 'claim_starter', args: { account: h } }]),
   enter: () => T.chain('Enter Totem Arena', [{ who: 'Read only, no fee', receiver: 'arena.totemtest.testnet', method: 'check_entry', args: { account: S.connected ? S.account : 'you.testnet', rule: { min_pieces: S.entryPieces || 1 } } }]),
   result: (game, place, coins) => T.chain(game + ' result', [{ who: 'Signed by the game server key', receiver: 'arena.totemtest.testnet', method: 'report_result', args: { game, player: S.connected ? S.account : 'you.testnet', place, coins: tokenUnits(coins), proof: 'ed25519:...' } }, { who: 'After the 24 hour dispute window', receiver: 'arena.totemtest.testnet', method: 'settle', args: { game } }]),
   operator: (method, args) => T.chain('Operator: ' + method.replace(/_/g, ' '), [{ who: 'Signed by the Totem Arena admin key', receiver: 'arena.totemtest.testnet', method, args }]),
   deploy: (l) => T.chain('Launch ' + l.collection, [{ receiver: 'nft.totemtest.testnet', method: 'create_collection', args: { token: l.token, collection: l.collection, tokens_per_piece: tokenUnits(l.size), pieces: 4 }, deposit: 'Launch fee in $TOTEM' }, { receiver: 'nft.totemtest.testnet', method: 'create_arena', args: { collection: l.collection, status: 'pending_review' } }]),
-  merge: (from) => T.chain('Merge Totem #' + from + ' into #0417', [{ receiver: 'nft.totemtest.testnet', method: 'merge', args: { from_token_id: from, into_token_id: '0417' } }]),
-  split: (to) => T.chain('Gift a piece', [{ receiver: '0417.totemtest.testnet', method: 'split_piece', args: { receiver_id: to, pieces: 1 }, deposit: '0.01 NEAR for the new Totem account' }]),
+  merge: (from) => T.chain('Merge Totem #' + from + ' into ' + T.myTotemLabel(), [{ receiver: 'nft.totemtest.testnet', method: 'merge', args: { from_token_id: from, into_token_id: (T.myTotemId() || 'your-totem') } }]),
+  split: (to) => T.chain('Gift a piece', [{ receiver: (T.myTotemAccount() || 'your-totem.totemtest.testnet'), method: 'split_piece', args: { receiver_id: to, pieces: 1 }, deposit: '0.01 NEAR for the new Totem account' }]),
   buy: (id, price) => T.chain('Buy Totem #' + id, [{ receiver: 'market.totemtest.testnet', method: 'buy', args: { token_id: id }, deposit: price + ' NEAR' }, { who: 'Market transfers the whole Totem account', receiver: 'nft.totemtest.testnet', method: 'nft_transfer', args: { token_id: id, receiver_id: S.connected ? S.account : 'you.testnet' } }]),
-  vote: (id, side) => T.chain('Treasury vote', [{ receiver: 'treasury.totemtest.testnet', method: 'vote', args: { proposal: id, vote: side, weight_from: '0417.totemtest.testnet pieces' } }])
+  vote: (id, side) => T.chain('Treasury vote', [{ receiver: 'treasury.totemtest.testnet', method: 'vote', args: { proposal: id, vote: side, weight_from: (T.myTotemAccount() || 'your-totem.'+'totemtest.testnet') + ' pieces' } }])
 };
 $('#chainBtn').addEventListener('click', () => { const d = $('#chainDrawer'); const o = !d.classList.contains('open'); d.classList.toggle('open', o); $('#chainBtn').setAttribute('aria-expanded', o); });
 $('#chainClose').addEventListener('click', () => { $('#chainDrawer').classList.remove('open'); $('#chainBtn').setAttribute('aria-expanded', 'false'); });
@@ -2365,11 +2366,11 @@ T.modules.lock = { enter(){
   const others = S.bought.concat(S.prizes.filter((p) => /^Prize Totem/.test(p)).map((p) => ({ id: p.replace(/\D/g, ''), pieces: 1, prize: p })));
   card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h2 style="font-size:32px">Merge and split</h2><button class="btn small ghost" type="button" id="sharePiece">Share my Totem</button></div>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:12px">' +
-    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Merge into #0417</strong><span class="muted" style="font-size:14px">Combine another Totem you own. Its pieces and items move in, up to a full Totem.</span>' + (others.length ? '<label class="f" style="width:100%"><span class="sr">Totem to merge</span><select id="mergeFrom">' + others.map((o, i) => '<option value="' + i + '">Totem #' + o.id + ', ' + o.pieces + ' piece' + (o.pieces > 1 ? 's' : '') + '</option>').join('') + '</select></label><button class="btn small" type="button" id="mergeBtn"' + (S.pieces >= 4 ? ' aria-disabled="true"' : '') + '>' + (S.pieces >= 4 ? 'Already full' : 'Merge') + '</button>' : '<span class="muted" style="font-size:14px">You own only one Totem. Win a prize or buy one on the market to merge.</span>') + '</div>' +
+    '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Merge into ' + T.myTotemLabel() + '</strong><span class="muted" style="font-size:14px">Combine another Totem you own. Its pieces and items move in, up to a full Totem.</span>' + (others.length ? '<label class="f" style="width:100%"><span class="sr">Totem to merge</span><select id="mergeFrom">' + others.map((o, i) => '<option value="' + i + '">Totem #' + o.id + ', ' + o.pieces + ' piece' + (o.pieces > 1 ? 's' : '') + '</option>').join('') + '</select></label><button class="btn small" type="button" id="mergeBtn"' + (S.pieces >= 4 ? ' aria-disabled="true"' : '') + '>' + (S.pieces >= 4 ? 'Already full' : 'Merge') + '</button>' : '<span class="muted" style="font-size:14px">You own only one Totem. Win a prize or buy one on the market to merge.</span>') + '</div>' +
     '<div class="door" style="flex-direction:column;align-items:flex-start;gap:10px"><strong>Gift a piece</strong><span class="muted" style="font-size:14px">Split one piece off into a new Totem for a friend.</span><label class="f" style="width:100%"><span class="sr">Friend’s account</span><input type="text" id="splitTo" placeholder="friend.testnet"></label><button class="btn small" type="button" id="splitBtn"' + (S.pieces < 1 ? ' aria-disabled="true"' : '') + '>Send 1 piece</button></div></div>';
-  const mb = $('#mergeBtn'); if (mb) mb.addEventListener('click', () => { if (S.pieces >= 4) return; const o = others[+$('#mergeFrom').value]; const add = Math.min(4 - S.pieces, o.pieces); S.pieces += add; if (o.prize) S.prizes.splice(S.prizes.indexOf(o.prize), 1); else S.bought = S.bought.filter((b) => b.id !== o.id); T.log('Merged Totem #' + o.id, '+' + add + ' piece' + (add > 1 ? 's' : ''), 'g'); T.save(); T.calls.merge(o.id); T.sfx('piece'); T.toast('Merged. Totem #0417 now has ' + S.pieces + ' pieces.'); T.modules.lock.enter(); });
+  const mb = $('#mergeBtn'); if (mb) mb.addEventListener('click', () => { if (S.pieces >= 4) return; const o = others[+$('#mergeFrom').value]; const add = Math.min(4 - S.pieces, o.pieces); S.pieces += add; if (o.prize) S.prizes.splice(S.prizes.indexOf(o.prize), 1); else S.bought = S.bought.filter((b) => b.id !== o.id); T.log('Merged Totem #' + o.id, '+' + add + ' piece' + (add > 1 ? 's' : ''), 'g'); T.save(); T.calls.merge(o.id); T.sfx('piece'); T.toast('Merged. ' + T.myTotemLabel() + ' now has ' + S.pieces + ' pieces.'); T.modules.lock.enter(); });
   $('#splitBtn').addEventListener('click', () => { const to = $('#splitTo').value.trim(); if (S.pieces < 1) return; if (!/^[a-z0-9._-]+\.near$/.test(to)) { T.toast('Enter a NEAR account like friend.testnet'); return; } S.pieces--; T.log('Gifted a piece to ' + to, '-25,000 $TOTEM', 'e'); T.save(); T.calls.split(to); T.sfx('drop'); T.toast('Sent. ' + to + ' now owns a 1-piece Totem.'); T.modules.lock.enter(); });
-  $('#sharePiece').addEventListener('click', () => T.share({ title: S.pieces === 4 ? 'My Totem is full' : 'My Totem has ' + S.pieces + ' pieces', stat: T.fmt(S.pieces * 25000) + ' $TOTEM inside', line: 'Totem #0417 on NEAR' }));
+  $('#sharePiece').addEventListener('click', () => T.share({ title: S.pieces === 4 ? 'My Totem is full' : 'My Totem has ' + S.pieces + ' pieces', stat: T.fmt(S.pieces * 25000) + ' $TOTEM inside', line: T.myTotemLabel() + ' on NEAR' }));
 }, leave(){ if (baseLock.leave) baseLock.leave(); } };
 
 /* profile: owned bought Totems + share buttons */
@@ -2581,7 +2582,7 @@ function paintAgents(){
   $('#agentsRoot').innerHTML = '<div class="ph"><div><span class="muted">Totem Arena</span><h1>Agent Bazaar</h1></div></div><p style="font-size:18px;color:var(--body);max-width:760px;margin-bottom:22px">These island characters are AI agents with their own NEAR accounts. They hold inventory, trade with players and check results.</p>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">' +
     '<div class="card ink" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Ife, the guide</span><span class="muted" style="font-family:var(--mono);font-size:12px">guide.agents.totemtest.testnet</span><div id="chatLog" style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto">' + chat.map((m) => '<div style="padding:10px 12px;border-radius:14px;max-width:90%;' + (m.who === 'You' ? 'align-self:flex-end;background:#000;color:#fff' : 'background:#F6F6F2') + '">' + esc(m.t) + '</div>').join('') + '</div><label style="display:flex;gap:8px"><span class="sr">Ask Ife</span><input type="text" id="chatIn" placeholder="How do pieces work?"><button class="btn" type="button" id="chatSend"' + (chatBusy ? ' aria-disabled="true"' : '') + '>' + (chatBusy ? 'Thinking' : 'Ask') + '</button></label></div>' +
-    '<div class="card" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Moss, the merchant</span><span class="muted" style="font-family:var(--mono);font-size:12px">merchant.agents.totemtest.testnet</span>' + SHOP.map((s) => '<div class="door"><span><strong>' + s[0] + '</strong><br><span class="muted" style="font-size:13px">' + s[2] + '</span></span>' + (S.items.includes(s[0]) ? '<span class="chip g">Owned</span>' : '<button class="btn small" type="button" data-buy-item="' + s[0] + '">' + T.fmt(s[1]) + ' $TOTEM</button>') + '</div>').join('') + '<span class="muted" style="font-size:13px">Paid from your wallet. Items go into Totem #0417.</span></div>' +
+    '<div class="card" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Moss, the merchant</span><span class="muted" style="font-family:var(--mono);font-size:12px">merchant.agents.totemtest.testnet</span>' + SHOP.map((s) => '<div class="door"><span><strong>' + s[0] + '</strong><br><span class="muted" style="font-size:13px">' + s[2] + '</span></span>' + (S.items.includes(s[0]) ? '<span class="chip g">Owned</span>' : '<button class="btn small" type="button" data-buy-item="' + s[0] + '">' + T.fmt(s[1]) + ' $TOTEM</button>') + '</div>').join('') + '<span class="muted" style="font-size:13px">Paid from your wallet. Items go into ' + T.myTotemLabel() + '.</span></div>' +
     '<div class="card" style="display:flex;flex-direction:column;gap:10px"><span style="font-family:var(--serif);font-size:30px">Ade, the referee</span><span class="muted" style="font-family:var(--mono);font-size:12px">referee.agents.totemtest.testnet</span><p class="muted">Checks game results before prizes settle. Runs in verifiable hardware so nobody can tamper with it.</p><button class="btn ghost" type="button" id="refCheck">Check my last Meme Kart result</button><div id="refOut"></div></div></div>';
   const send = async () => {
     const inp = $('#chatIn'); const q = inp.value.trim(); if (!q || chatBusy) return;
@@ -2592,7 +2593,7 @@ function paintAgents(){
     chat.push({ who: 'Ife', t: ans || fallback(q) }); chatBusy = false; paintAgents(); const log = $('#chatLog'); if (log) log.scrollTop = log.scrollHeight;
   };
   $('#chatSend').addEventListener('click', send); $('#chatIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
-  $$('[data-buy-item]').forEach((b) => b.addEventListener('click', () => { const s = SHOP.find((x) => x[0] === b.dataset.buyItem); if (S.wallet < s[1]) { T.toast('Not enough $TOTEM in your wallet'); return; } S.wallet -= s[1]; S.items.push(s[0]); T.log('Bought ' + s[0] + ' from Moss', '-' + T.fmt(s[1]) + ' $TOTEM', 'e'); T.save(); T.chain('Buy from an agent', [{ receiver: 'token.totemtest.testnet', method: 'ft_transfer_call', args: { receiver_id: 'merchant.agents.totemtest.testnet', amount: s[1] + '000000000000000000000000', msg: '{"buy":"' + s[0] + '","deliver_to":"0417.totemtest.testnet"}' }, deposit: '1 yoctoNEAR' }]); T.sfx('coin'); paintAgents(); }));
+  $$('[data-buy-item]').forEach((b) => b.addEventListener('click', () => { const s = SHOP.find((x) => x[0] === b.dataset.buyItem); if (S.wallet < s[1]) { T.toast('Not enough $TOTEM in your wallet'); return; } S.wallet -= s[1]; S.items.push(s[0]); T.log('Bought ' + s[0] + ' from Moss', '-' + T.fmt(s[1]) + ' $TOTEM', 'e'); T.save(); T.chain('Buy from an agent', [{ receiver: 'token.totemtest.testnet', method: 'ft_transfer_call', args: { receiver_id: 'merchant.agents.totemtest.testnet', amount: s[1] + '000000000000000000000000', msg: '{"buy":"' + s[0] + '","deliver_to":' + (T.myTotemAccount() || 'your-totem.totemtest.testnet') + '"}' }, deposit: '1 yoctoNEAR' }]); T.sfx('coin'); paintAgents(); }));
   $('#refCheck').addEventListener('click', () => { $('#refOut').innerHTML = S.ghostT ? '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span>Signature from kart-server.totemtest.testnet: valid</span><span>Lap times within human range: yes</span><span>Best run ' + (Math.floor(S.ghostT / 60000)) + ':' + ((S.ghostT / 1000) % 60).toFixed(1).padStart(4, '0') + ': approved</span></div>' : '<p class="muted">No race found yet. Race in Meme Kart first.</p>'; });
 }
 T.modules.agents = { enter(){ if (gate()) paintAgents(); } };
@@ -2783,6 +2784,26 @@ T.refreshHoldings = async () => {
 };
 document.addEventListener('totem:session', () => { T.refreshHoldings(); });
 
+// The Totem this wallet owns. Pages used to hard code Totem #0417, an NFT that exists in
+// no collection, as a stand-in for whatever the visitor owned. These return null when
+// nobody is signed in or the wallet owns none, so a page can ask for one rather than
+// name one that is not there.
+T.myTotemId = () => (T.holdings && T.holdings.totemTokenId) || null;
+T.myTotemAccount = () => { const id = T.myTotemId(); return id ? id + '.totemtest.testnet' : null; };
+T.myTotemLabel = () => { const id = T.myTotemId(); return id ? 'Totem #' + id : 'your Totem'; };
+
+// Static markup carries these attributes instead of a baked in id, and this fills them
+// from the chain whenever the session changes or a page is entered.
+T.paintMyTotem = () => {
+  const id = T.myTotemId();
+  document.querySelectorAll('[data-my-totem]').forEach((node) => {
+    const kind = node.dataset.myTotem;
+    if (kind === 'title') node.textContent = id ? 'Totem #' + id : 'Your Totem';
+    else if (kind === 'account') node.textContent = id ? id + '.totemtest.testnet' : 'connect a wallet';
+  });
+};
+document.addEventListener('totem:session', () => { setTimeout(T.paintMyTotem, 0); });
+
 // Every Arena game pays through here, so winning anything is a transfer from the Arena
 // prize account to the player's wallet rather than a number added to this browser. The
 // server decides the amount from the Arena's settings, checks the player owns a Totem, and
@@ -2895,7 +2916,7 @@ const baseNft = T.modules.nft;
 T.modules.nft = { enter(){
   baseNft.enter();
   if (!T.api.live) return;
-  const id = String(T.param.nft || '0417').replace(/^0+/, '') || '0';
+  const id = String(T.param.nft || T.myTotemId() || '1').replace(/^0+/, '') || '1';
   (async () => {
     const result = await T.api.get('/totems/' + encodeURIComponent(id));
     if (!result.ok) return;

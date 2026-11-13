@@ -228,7 +228,7 @@
 <!-- LOCK -->
 <section class="page" data-route="lock" data-title="Lock and unlock">
 <div class="wrap" style="padding-bottom:64px">
-<div class="ph"><h1>Totem #0417</h1><span class="chip" style="font-family:var(--mono)">0417.totemtest.testnet</span></div>
+<div class="ph"><h1 data-my-totem="title">Your Totem</h1><span class="chip" style="font-family:var(--mono)" data-my-totem="account">connect a wallet</span></div>
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
 <div class="card" style="flex:1 1 340px;display:flex;gap:28px;align-items:center;justify-content:center;background:var(--soft);min-height:340px" id="lockTotem"></div>
 <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
@@ -252,8 +252,8 @@
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
 <div class="card ink" style="flex:1 1 320px;max-width:400px;display:flex;flex-direction:column;gap:14px">
 <div class="viewer"><canvas id="viewerCanvas" role="img" aria-label="Your Totem in 3D, drag to turn it"></canvas></div>
-<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1">Totem #0417</span><span class="chip g" id="acctPieces">3 of 4</span></div>
-<span class="muted" style="font-family:var(--mono);font-size:13px">0417.totemtest.testnet</span>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-family:var(--serif);font-size:30px;line-height:1" data-my-totem="title">Your Totem</span><span class="chip g" id="acctPieces">3 of 4</span></div>
+<span class="muted" style="font-family:var(--mono);font-size:13px" data-my-totem="account">connect a wallet</span>
 <span class="muted" style="font-size:13px">Selling transfers the whole account: tokens, items, credentials and future royalties.</span>
 </div>
 <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
@@ -326,7 +326,7 @@
 <h2 style="font-size:36px;margin-top:10px">In your game</h2>
 <pre><code><span class="k">import</span> { Totem } <span class="k">from</span> <span class="s">"@totem/arena"</span>;
 
-<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"0417.totemtest.testnet"</span>);
+<span class="k">const</span> player = <span class="k">await</span> Totem.load(<span class="s">"&lt;your-totem&gt;.totemtest.testnet"</span>);
 <span class="c">// { pieces: 3, items: ["gold-wings"], credentials: [...] }</span>
 <span class="k">const</span> kart = buildKart(player.pieces, player.items);
 

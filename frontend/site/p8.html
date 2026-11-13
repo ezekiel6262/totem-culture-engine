@@ -161,7 +161,7 @@ function paintRent(){
   } else {
     const L = S.listing;
     body.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">' +
-      '<div class="card ink" style="flex:1 1 320px;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">' + T.svgTotem(S.pieces, 90, 'wings') + '<span style="font-family:var(--serif);font-size:32px;line-height:1">Totem #0417</span><span class="muted">' + S.pieces + ' pieces, Gold Wings</span>' + (L ? '<span class="chip g">Listed for rent</span>' : '<span class="chip">Not listed</span>') + '</div>' +
+      '<div class="card ink" style="flex:1 1 320px;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">' + T.svgTotem(S.pieces, 90, 'wings') + '<span style="font-family:var(--serif);font-size:32px;line-height:1">' + T.myTotemLabel() + '</span><span class="muted">' + S.pieces + ' pieces, Gold Wings</span>' + (L ? '<span class="chip g">Listed for rent</span>' : '<span class="chip">Not listed</span>') + '</div>' +
       '<div class="card" style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">' +
       '<label class="f">Price per race<select id="lpRace"><option>1 NEAR</option><option selected>2 NEAR</option><option>3 NEAR</option></select></label>' +
       '<label class="f">Price for 7 days<select id="lpWeek"><option>6 NEAR</option><option selected>9 NEAR</option><option>12 NEAR</option></select></label>' +
@@ -169,8 +169,8 @@ function paintRent(){
       ['Race in Meme Kart', 'Paint the Island', 'Enter the holder room'].map((x) => '<label style="display:flex;gap:10px;align-items:center;min-height:36px"><input type="checkbox" checked style="width:20px;height:20px;accent-color:#00B97F">' + x + '</label>').join('') +
       '<span class="muted" style="font-size:13px">Withdrawing, selling and transferring are always blocked for renters.</span></fieldset>' +
       '<button class="btn" type="button" id="listBtn">' + (L ? 'Stop lending' : 'List for rent') + '</button>' +
-      '<p class="muted" style="font-size:14px">' + (L ? 'Listed. Rent is paid into Totem #0417’s own account, next to its tokens.' : 'Rent is paid into the Totem’s own account, so whoever owns it later keeps the earnings history.') + '</p></div></div>';
-    $('#listBtn').addEventListener('click', () => { S.listing = S.listing ? null : { race: $('#lpRace').value, week: $('#lpWeek').value }; T.save(); paintRent(); T.toast(S.listing ? 'Totem #0417 is listed for rent' : 'Listing removed'); });
+      '<p class="muted" style="font-size:14px">' + (L ? 'Listed. Rent is paid into ' + T.myTotemLabel() + '’s own account, next to its tokens.' : 'Rent is paid into the Totem’s own account, so whoever owns it later keeps the earnings history.') + '</p></div></div>';
+    $('#listBtn').addEventListener('click', () => { S.listing = S.listing ? null : { race: $('#lpRace').value, week: $('#lpWeek').value }; T.save(); paintRent(); T.toast(S.listing ? T.myTotemLabel() + ' is listed for rent' : 'Listing removed'); });
   }
 }
 $$('[data-rt]').forEach((b) => b.addEventListener('click', () => { rtab = b.dataset.rt; paintRent(); }));

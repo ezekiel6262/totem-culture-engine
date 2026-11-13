@@ -76,7 +76,8 @@ T.modules.explore = { enter: paintExplore };
 
 /* =========================== PROFILE =========================== */
 function nftsOwned(){
-  const list = [{ id: '0417', name: 'Totem #0417', pieces: S.pieces, how: 'Owned', items: ['Gold Wings'] }];
+  const owned = T.myTotemId();
+  const list = owned ? [{ id: owned, name: 'Totem #' + owned, pieces: (T.holdings && T.holdings.pieces) || 0, how: 'Owned', items: [] }] : [];
   S.prizes.filter((p) => /^Prize Totem/.test(p)).forEach((p) => list.push({ id: p.replace(/\D/g, ''), name: p.replace('Prize ', ''), pieces: 1, how: 'Won in the Arena', items: [] }));
   if (S.rented) list.push({ id: S.rented.id, name: S.rented.name, pieces: S.rented.pieces, how: 'Rented, ' + (S.rented.term === 'race' ? '1 race' : '7 days'), items: [], rented: true });
   return list;
@@ -90,7 +91,7 @@ function features(n){
   if (p >= 1) out.push('Opens the holder room'); else no.push('Needs 1 piece for the holder room');
   if (p >= 3 && !n.rented) out.push('Votes in the treasury room, ' + p + ' votes'); else if (!n.rented) no.push('Needs 3 pieces for the treasury room');
   if (p >= 4) out.push('Qualifies for Hold the Line'); else no.push('Needs a full Totem for Hold the Line');
-  if (!n.rented) out.push(S.listing && n.id === '0417' ? 'Listed for rent' : 'Can be lent out');
+  if (!n.rented) out.push(S.listing && n.id === T.myTotemId() ? 'Listed for rent' : 'Can be lent out');
   n.items.forEach((i) => out.push('Carries ' + i));
   return { out, no };
 }

@@ -51,6 +51,26 @@ T.refreshHoldings = async () => {
 };
 document.addEventListener('totem:session', () => { T.refreshHoldings(); });
 
+// The Totem this wallet owns. Pages used to hard code Totem #0417, an NFT that exists in
+// no collection, as a stand-in for whatever the visitor owned. These return null when
+// nobody is signed in or the wallet owns none, so a page can ask for one rather than
+// name one that is not there.
+T.myTotemId = () => (T.holdings && T.holdings.totemTokenId) || null;
+T.myTotemAccount = () => { const id = T.myTotemId(); return id ? id + '.totemtest.testnet' : null; };
+T.myTotemLabel = () => { const id = T.myTotemId(); return id ? 'Totem #' + id : 'your Totem'; };
+
+// Static markup carries these attributes instead of a baked in id, and this fills them
+// from the chain whenever the session changes or a page is entered.
+T.paintMyTotem = () => {
+  const id = T.myTotemId();
+  document.querySelectorAll('[data-my-totem]').forEach((node) => {
+    const kind = node.dataset.myTotem;
+    if (kind === 'title') node.textContent = id ? 'Totem #' + id : 'Your Totem';
+    else if (kind === 'account') node.textContent = id ? id + '.totemtest.testnet' : 'connect a wallet';
+  });
+};
+document.addEventListener('totem:session', () => { setTimeout(T.paintMyTotem, 0); });
+
 // Every Arena game pays through here, so winning anything is a transfer from the Arena
 // prize account to the player's wallet rather than a number added to this browser. The
 // server decides the amount from the Arena's settings, checks the player owns a Totem, and
@@ -163,7 +183,7 @@ const baseNft = T.modules.nft;
 T.modules.nft = { enter(){
   baseNft.enter();
   if (!T.api.live) return;
-  const id = String(T.param.nft || '0417').replace(/^0+/, '') || '0';
+  const id = String(T.param.nft || T.myTotemId() || '1').replace(/^0+/, '') || '1';
   (async () => {
     const result = await T.api.get('/totems/' + encodeURIComponent(id));
     if (!result.ok) return;
