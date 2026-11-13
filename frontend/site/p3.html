@@ -121,11 +121,31 @@ window.addEventListener('hashchange', () => { closeSheet(); go(routeFromHash());
 function closeSheet(){ $('#sheet').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); }
 $('#menuBtn').addEventListener('click', () => { $('#sheet').classList.add('open'); $('#menuBtn').setAttribute('aria-expanded', 'true'); $('#closeSheet').focus(); });
 $('#closeSheet').addEventListener('click', closeSheet);
-function paintConnect(){ $('#connectBtn').textContent = S.connected ? S.account : 'Connect'; }
-$('#connectBtn').addEventListener('click', () => {
-  if (S.connected) { S.connected = false; save(); paintConnect(); toast('Disconnected'); return; }
-  S.connected = true; save(); paintConnect(); toast('Connected as ada.testnet (demo wallet)');
+// The real wallet lives in a later part, so it is read at click time rather than captured.
+function walletApi(){ return window.TOTEM && window.TOTEM.wallet ? window.TOTEM.wallet : null; }
+function signedIn(){ const w = walletApi(); return w && w.account ? w.account() : null; }
+function paintConnect(){ $('#connectBtn').textContent = signedIn() || 'Connect'; }
+$('#connectBtn').addEventListener('click', async () => {
+  const wallet = walletApi();
+  if (!wallet) { toast('The wallet is still loading'); return; }
+  const button = $('#connectBtn');
+  if (signedIn()) {
+    await wallet.signOut();
+    document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId: null } }));
+    paintConnect(); toast('Signed out'); return;
+  }
+  button.textContent = 'Opening wallet...';
+  try {
+    const accountId = await wallet.connect();
+    if (!accountId) { toast('The wallet was not connected'); paintConnect(); return; }
+    document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId } }));
+    paintConnect(); toast('Signed in as ' + accountId);
+  } catch (error) {
+    toast(error && error.message ? error.message : 'Could not connect the wallet');
+    paintConnect();
+  }
 });
+document.addEventListener('totem:session', paintConnect);
 paintConnect();
 
 window.TOTEM = { param: T_param, $, $$, S, save, log, toast, svgTotem, fmt, hasGL, makeRenderer, fitRenderer, ink, mat, lights, makeTotem3D, modules, go, reduce, isTouch, G, W, K, E, Y, GOLD };

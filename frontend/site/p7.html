@@ -4,15 +4,21 @@
 const T = window.TOTEM; const { $, $$, S } = T;
 const CP = [[0, 0], [45, -8], [80, 8], [92, 46], [70, 78], [34, 70], [12, 96], [-30, 92], [-60, 60], [-52, 22], [-30, 4]];
 const NS = 700, HW = 7, LAPS = 3;
-const chars = [
-  { id: 'totem', name: 'Totem #0417', sub: 'Your NFT', color: '#00B97F', kind: 'totem', note: 'Stats come from your Totem. More pieces, more top speed. Gold Wings help handling.' },
-  { id: 'cat', name: 'Totem Cat', sub: '$TOTEM mascot', color: '#FFFFFF', kind: 'cat', note: 'Quick off the line. A community character every $TOTEM holder can drive.' },
-  { id: 'glyph', name: 'Ember Runner', sub: 'Ember house mascot', color: '#FF5A1F', kind: 'glyph', note: 'Highest top speed, harder to turn. Free for every Totem holder in Ember house.' }
-];
-function getChars(){ return S.rented ? chars.concat([{ id: 'rented', name: S.rented.name, sub: 'Rented from ' + S.rented.owner, color: '#00B97F', kind: 'rented', note: 'A rented full Totem. Its key can race, but it can never withdraw or sell.' }]) : chars; }
+// You race the Totem you own. There is no mascot every holder can drive, because a free
+// character makes owning one pointless, and nothing here is a stand-in for an NFT that the
+// connected wallet does not actually hold on chain.
+function ownedTotem(){ return (window.TOTEM && window.TOTEM.holdings && window.TOTEM.holdings.totemTokenId) ? window.TOTEM.holdings : null; }
+function getChars(){
+  const held = ownedTotem();
+  const list = held
+    ? [{ id: 'totem', name: 'Totem #' + held.totemTokenId, sub: 'Owned by ' + held.accountId, color: '#00B97F', kind: 'totem', note: 'Your Totem on NEAR testnet. More $TOTEM held, more top speed.' }]
+    : [];
+  return S.rented ? list.concat([{ id: 'rented', name: S.rented.name, sub: 'Rented from ' + S.rented.owner, color: '#00B97F', kind: 'rented', note: 'A rented full Totem. Its key can race, but it can never withdraw or sell.' }]) : list;
+}
 function stats(c){
   if (c.id === 'rented') return { speed: 0.5 + S.rented.pieces * 0.11, accel: 0.8, handling: 0.85 };
-  if (c.id === 'totem') return { speed: 0.5 + S.pieces * 0.11 + ((S.items || []).includes('Speed decal') ? 0.06 : 0), accel: 0.75, handling: 0.82 };
+  // Speed comes from the $TOTEM the wallet actually holds, not from a stored number.
+  if (c.id === 'totem') { const held = ownedTotem(); return { speed: 0.5 + (held ? held.pieces : 0) * 0.11, accel: 0.75, handling: 0.82 }; }
   if (c.id === 'cat') return { speed: 0.72, accel: 0.95, handling: 0.75 };
   return { speed: 0.9, accel: 0.7, handling: 0.55 };
 }

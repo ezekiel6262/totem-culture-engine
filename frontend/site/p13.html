@@ -80,7 +80,7 @@ async function paintWallet(){
       '<div class="card" style="display:flex;flex-direction:column;gap:12px;max-width:720px">' +
       '<p style="margin:0">Sign in with a NEAR wallet to use the live Totem API. Signing is a gas free NEP-413 message, not a transaction, and it proves the account is yours.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="walletConnect">Connect NEAR wallet</button></div>' +
-      '<p class="muted" style="font-size:13px;margin:0">The demo wallet above is separate and changes nothing on the server.</p></div>');
+      '<p class="muted" style="font-size:13px;margin:0">Your holdings, the Arenas you can enter and anything you operate are read from NEAR once you sign in.</p></div>');
     if (!box) return;
     $('#walletConnect').addEventListener('click', async (event) => {
       const button = event.currentTarget;
@@ -106,6 +106,7 @@ async function paintWallet(){
   const live = await T.api.get('/accounts/' + encodeURIComponent(account));
   const chain = live.ok ? live.data.onChain : null;
   const operates = Boolean(live.ok && live.data.operator);
+  T.holdings = chain && chain.source === 'chain' ? Object.assign({ accountId: account, operator: operates }, chain) : null;
   const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
   const rows = ledger.ok ? ledger.data.ledger : [];
 

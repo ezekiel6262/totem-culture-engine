@@ -34,6 +34,21 @@ T.api = {
   post: (path, body) => call(path, { method: 'POST', body: JSON.stringify(body || {}) })
 };
 
+// What the chain says about whoever is signed in. Parts read this rather than fetching
+// separately or falling back to a stored number, and it is null when nobody is signed in
+// or when NEAR could not be reached, which are both different from a balance of zero.
+T.holdings = null;
+T.refreshHoldings = async () => {
+  const accountId = T.wallet && T.wallet.account ? T.wallet.account() : null;
+  if (!accountId) { T.holdings = null; return null; }
+  const response = await T.api.get('/accounts/' + encodeURIComponent(accountId));
+  const chain = response.ok ? response.data.onChain : null;
+  T.holdings = chain && chain.source === 'chain' ? Object.assign({ accountId, operator: Boolean(response.data.operator) }, chain) : null;
+  return T.holdings;
+};
+document.addEventListener('totem:session', () => { T.refreshHoldings(); });
+
+
 const liveChip = '<span class="chip g">Live</span>';
 const section = (route) => document.querySelector('[data-route="' + route + '"]');
 const append = (route, id, html) => {
