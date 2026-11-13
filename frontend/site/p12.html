@@ -178,24 +178,11 @@ T.modules.market = { enter(){
   })();
 } };
 
-/* ---------- public Totem page: the real record when the server knows it ---------- */
-const baseNft = T.modules.nft;
-T.modules.nft = { enter(){
-  baseNft.enter();
-  if (!T.api.live) return;
-  const id = String(T.param.nft || T.myTotemId() || '1').replace(/^0+/, '') || '1';
-  (async () => {
-    const result = await T.api.get('/totems/' + encodeURIComponent(id));
-    if (!result.ok) return;
-    const totem = result.data.totem;
-    append('nft', 'liveNft', '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
-      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-family:var(--serif);font-size:30px">On the Totem API</span>' + liveChip + '</div>' +
-      '<div class="grid g4">' +
-      [['Owner', esc(totem.owner)], ['Pieces', totem.pieces + ' of 4'], ['Holds', T.fmt(totem.holds) + ' $TOTEM'], ['Account', esc(totem.account)]]
-        .map((cell) => '<div class="card"><span class="muted" style="font-size:13px">' + cell[0] + '</span><div style="font-size:20px;font-weight:600;margin-top:4px">' + cell[1] + '</div></div>').join('') +
-      '</div><p class="muted" style="font-size:13px;margin:0">Items: ' + (totem.items.length ? totem.items.map(esc).join(', ') : 'None yet') + '</p></div>');
-  })();
-} };
+/* ---------- public Totem page ----------
+   This appended a second card to the Totem page from the Totem API's own totems table,
+   from the days when that table was the only record of a Totem. The page reads nft_token
+   from the collection now, so the extra call added nothing and answered 400 for every
+   chain minted Totem, because the table has no row for one. */
 
 /* ---------- rules: keep the claim about what is simulated accurate ---------- */
 const baseRules = T.modules.rules;
