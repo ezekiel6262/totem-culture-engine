@@ -58,6 +58,20 @@ illustrative. The Arena entry gate that guards them is real.
 - Public X post that says built at NEAR HACKATHON, tags `@NEARProtocol`, and includes
   `#NEARHackathon`.
 
+## Submission form: "What did you build?"
+
+Pastes into the form as is. 1,902 of the 2,000 characters allowed.
+
+> The problem: a memecoin is a number in a wallet; a PFP is a picture beside it. Both run on community, and neither one carries any of it.
+>
+> What I built: Totem binds an NFT collection to a meme token so they become one object. A community launches a collection against its token, every holder mints their own NFT, and tokens locked into that NFT are held by the NFT itself — a real NEP-141 balance, not a trait or metadata. Totem #1 is live on NEAR testnet holding 25,000 $TOTEM: call locked_of {"token_id":"1"} on nft.totemtest.testnet and it returns 25000000000000000000000.
+>
+> That balance is what Arena reads. Each community gets an Arena with its own games, entry rule, prizes, and an operator named on chain. Entry checks what the player's Totem holds, not what their wallet holds. Prizes settle on chain from a prize account under a cap per game per day, and the cap is enforced by refusal: a request above it produces no receipt and moves nothing. The launchpad stores the collection template on chain and deploys it onto a fresh account, so a community launches in one call — founders.launch.totemtest.testnet was created through it.
+>
+> How NEAR fits: an NFT can be an account, so it holds the tokens itself instead of pointing at a wallet elsewhere, and ft_transfer_call hands them over in a single transaction. Withdrawal asserts one yoctoNEAR, so only the owner's signature can move what is inside, never the app or a session key. Prize payouts are signed with function-call access keys restricted to named methods on one contract, so the backend settles a game with custody of nothing. Named sub-accounts give each launched collection a readable address, and fees are low enough to pay a prize after every game.
+>
+> Five contracts are deployed on testnet with every code hash published in the repo. Gameplay and scores run in the browser and are self-reported, as the site states on its rules page.
+
 ## X post, single
 
 The one to actually publish. The thread below is kept as a fallback.
