@@ -745,7 +745,7 @@ function makeTotem3D(opts){
 const routes = ['home', 'explore', 'arenas', 'profile', 'nft', 'market', 'season', 'rules', 'clash', 'raid', 'bagwork', 'fish', 'agents', 'stack', 'run', 'heist', 'launch', 'lock', 'totem', 'rooms', 'arena', 'play', 'build', 'paint', 'rent', 'claim'];
 const modules = {};
 let current = null, busy = false;
-function routeFromHash(){ const h = (location.hash || '').replace('#', ''); const m = /^nft-(\d{3,4})$/.exec(h); if (m) { T_param.nft = m[1]; return 'nft'; } return routes.includes(h) && h !== 'nft' ? h : 'home'; }
+function routeFromHash(){ const h = (location.hash || '').replace('#', ''); const m = /^nft-(\d{1,10})$/.exec(h); if (m) { T_param.nft = m[1]; return 'nft'; } return routes.includes(h) && h !== 'nft' ? h : 'home'; }
 const T_param = {};
 function show(route){
   if (current && modules[current] && modules[current].leave) modules[current].leave();
