@@ -74,12 +74,12 @@ illustrative. The Arena entry gate that guards them is real.
 
 **2 / the idea, in one example**
 
-> Imagine BONK had a collection bound to the token.
+> Imagine Nearkat ($KAT) had a collection bound to the token.
 >
-> Every holder mints their own PFP. Every one of them is different. Every one of them still
+> Every holder mints their own cat. Every one of them is different. Every one of them still
 > represents a single memecoin.
 >
-> And every one of them holds BONK inside it.
+> And every one of them holds $KAT inside it.
 >
 > Custom identity, one coin.
 
