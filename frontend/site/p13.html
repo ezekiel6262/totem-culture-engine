@@ -62,6 +62,23 @@ T.wallet = {
     if (!window.totemWallet) return;
     await window.totemWallet.signOut(await loadWallet());
   },
+  // Every wallet this build can sign in with, so the page can offer them directly instead
+  // of relying on a modal that does not draw all of them.
+  async options(){
+    // loadWallet has to finish before window.totemWallet exists. Reading the method off it
+    // in the same expression as the await resolved the member first, on an undefined
+    // object, so this always threw and the page silently showed no wallets.
+    try {
+      const options = await loadWallet();
+      return await window.totemWallet.options(options);
+    } catch (error) { return []; }
+  },
+  // Sign in with one named wallet, skipping the modal.
+  async connectWith(walletId){
+    const options = await loadWallet();
+    const identity = await window.totemWallet.connectWith(walletId, options);
+    return identity ? identity.accountId : null;
+  },
   // Sent from the holder's own wallet. Totem holds no key that could do this for them.
   async signAndSendTransaction(transaction){
     const options = await loadWallet();
@@ -80,8 +97,36 @@ async function paintWallet(){
       '<div class="card" style="display:flex;flex-direction:column;gap:12px;max-width:720px">' +
       '<p style="margin:0">Sign in with a NEAR wallet to use the live Totem API. Signing is a gas free NEP-413 message, not a transaction, and it proves the account is yours.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="walletConnect">Connect NEAR wallet</button></div>' +
+      '<div id="walletChoices" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
       '<p class="muted" style="font-size:13px;margin:0">Your holdings, the Arenas you can enter and anything you operate are read from NEAR once you sign in.</p></div>');
     if (!box) return;
+
+    // The modal cannot draw an instant-link wallet, and the Meteor web wallet is one, so a
+    // visitor already signed in to it was shown a list that did not include the wallet they
+    // were using. Each available wallet gets its own button here.
+    T.wallet.options().then((wallets) => {
+      const choices = $('#walletChoices');
+      if (!choices || !wallets.length) return;
+      choices.innerHTML = '<span class="muted" style="font-size:13px;width:100%">Or go straight to one:</span>' +
+        wallets.map((w) => '<button class="btn small ghost" type="button" data-wallet="' + esc(w.id) + '">' + esc(w.name) + '</button>').join('');
+      $$('[data-wallet]').forEach((button) => button.addEventListener('click', async () => {
+        button.setAttribute('aria-disabled', 'true');
+        const label = button.textContent;
+        button.textContent = 'Opening...';
+        try {
+          const accountId = await T.wallet.connectWith(button.dataset.wallet);
+          if (!accountId) { T.toast('The wallet was not connected'); paintWallet(); return; }
+          T.toast('Signed in as ' + accountId);
+          document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId } }));
+          paintWallet();
+        } catch (error) {
+          T.toast(error && error.message ? error.message : 'Could not open that wallet');
+          button.removeAttribute('aria-disabled');
+          button.textContent = label;
+        }
+      }));
+    });
+
     $('#walletConnect').addEventListener('click', async (event) => {
       const button = event.currentTarget;
       button.textContent = 'Opening wallet...'; button.setAttribute('aria-disabled', 'true');

@@ -528,6 +528,37 @@ export class TotemProductService {
     }
   }
 
+  // One Totem, as the chain has it. The public Totem page used to be served from a map of
+  // six invented NFTs owned by invented accounts, which contradicted the collection the
+  // moment anyone looked it up.
+  async nftToken(tokenId) {
+    const { rpc, nftContractId, tokenContractId, decimals } = this.#chain
+    if (!rpc || !nftContractId) return { source: 'unavailable', reason: 'CHAIN_NOT_CONFIGURED' }
+    const id = String(tokenId)
+    try {
+      const token = await rpc.callFunctionFinal({ contractId: nftContractId, methodName: 'nft_token', args: { token_id: id } })
+      if (!token) return { source: 'chain', exists: false, tokenId: id, contractId: nftContractId }
+      // What the owner holds is what gives a Totem its standing, so it is part of the page.
+      let ownerBalanceWhole = null
+      try {
+        const balance = await rpc.ftBalanceAtFinalBlock({ contractId: tokenContractId, accountId: token.owner_id })
+        ownerBalanceWhole = (BigInt(balance.balance) / 10n ** BigInt(decimals)).toString()
+      } catch (error) { ownerBalanceWhole = null }
+      return {
+        source: 'chain', exists: true, tokenId: id, contractId: nftContractId,
+        owner: token.owner_id,
+        title: token.metadata?.title ?? null,
+        description: token.metadata?.description ?? null,
+        extra: token.metadata?.extra ?? null,
+        issuedAt: token.metadata?.issued_at ?? null,
+        approvals: Object.keys(token.approved_account_ids ?? {}),
+        ownerBalanceWhole
+      }
+    } catch (error) {
+      return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED' }
+    }
+  }
+
   async getAccount({ accountId }) {
     requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
     const account = await this.#repository.getAccount(accountId)

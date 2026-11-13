@@ -7,6 +7,8 @@ import { Buffer } from 'buffer'
 import { setupWalletSelector } from '@near-wallet-selector/core'
 import { setupModal } from '@near-wallet-selector/modal-ui-js'
 import { setupMeteorWallet } from '@near-wallet-selector/meteor-wallet'
+import { setupMeteorWalletApp } from '@near-wallet-selector/meteor-wallet-app'
+import { setupMyNearWallet } from '@near-wallet-selector/my-near-wallet'
 import '@near-wallet-selector/modal-ui-js/styles.css'
 
 globalThis.Buffer = Buffer
@@ -15,7 +17,19 @@ let ready = null
 
 function start({ network, contractId }) {
   if (!ready) ready = (async () => {
-    const selector = await setupWalletSelector({ network, modules: [setupMeteorWallet()] })
+    // Three ways in, because one was not enough. setupMeteorWallet is the browser
+    // extension: without it installed there was nothing to connect through, which is why a
+    // visitor already signed in to the Meteor web wallet got a modal that went nowhere.
+    // setupMeteorWalletApp is that web wallet, and MyNearWallet is a second web wallet so
+    // nobody is required to install anything to use Totem.
+    const selector = await setupWalletSelector({
+      network,
+      modules: [
+        setupMeteorWallet(),
+        setupMeteorWalletApp({ contractId }),
+        setupMyNearWallet()
+      ]
+    })
     const modal = setupModal(selector, { contractId, theme: 'light', description: 'Connect to Totem and sign a gas free NEP-413 message. Signing proves the account is yours and costs nothing.' })
     return { selector, modal }
   })()
@@ -46,6 +60,29 @@ window.totemWallet = {
     return accountOf(selector)
   },
 
+  // Which wallets this build can actually sign in with, for a UI that wants to offer them
+  // directly. The modal lists the ones it can draw; an instant-link wallet like the Meteor
+  // web wallet is registered but never appears there, so it needs its own way in.
+  async options(options) {
+    const { selector } = await start(options)
+    // The selector has no getAvailableWallets; the registered modules live in its store.
+    return (selector.store.getState().modules || [])
+      .filter(module => module && module.metadata && module.metadata.available !== false)
+      .map(module => ({ id: module.id, name: module.metadata.name, type: module.metadata.type }))
+  },
+
+  // Signs in with one named wallet, skipping the modal. This is how the Meteor web wallet
+  // is reached: modal-ui-js does not draw instant-link wallets, so a visitor already signed
+  // in to it was shown a list that did not include the wallet they were using.
+  async connectWith(walletId, options) {
+    const { selector } = await start(options)
+    const wallet = await selector.wallet(walletId)
+    await wallet.signIn({ contractId: options.contractId, accounts: [] })
+    const accountId = await waitForAccount(selector)
+    if (!accountId) return null
+    return window.totemWallet.finish(accountId, options)
+  },
+
   // Opens the modal when needed, then signs the server's challenge.
   // Returns the identity, or null if the user closed the modal.
   async connect(options) {
@@ -56,6 +93,13 @@ window.totemWallet = {
       accountId = await waitForAccount(selector)
       if (!accountId) return null
     }
+    return window.totemWallet.finish(accountId, options)
+  },
+
+  // The NEP-413 exchange, shared by every way in. Signing proves the account without a
+  // transaction, so it costs nothing and moves nothing.
+  async finish(accountId, options) {
+    const { selector } = await start(options)
     const restored = await window.totemApi.restore()
     if (restored && restored.accountId === accountId) return restored
 

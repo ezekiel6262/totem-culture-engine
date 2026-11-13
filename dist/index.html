@@ -2152,19 +2152,60 @@ T.nftData = NFTS;
 const MARKET = [{ id: '0731', price: 9 }, { id: '1999', price: 26 }, { id: '0062', price: 4.5 }];
 
 /* ======================= PUBLIC NFT PAGE ======================= */
+// The public Totem page reads the collection. It was served from a map of six invented
+// Totems owned by accounts that do not exist: kofi.testnet with a 1:38.2 lap, a holder at
+// sol:4kQ..9z, and so on. Anyone who looked one of them up on chain found nothing. A page
+// now shows the token the contract actually has, and says plainly when an id was never
+// minted rather than inventing a holder for it.
 T.modules.nft = { enter(){
-  const id = T.param.nft || '0417'; const f = NFTS[id] ? NFTS[id]() : (S.bought.find((b) => b.id === id) ? { owner: S.account, pieces: S.bought.find((b) => b.id === id).pieces, items: [], creds: [], race: 'No race yet', rent: 'Not listed', mine: true } : null);
   const root = $('#nftRoot');
-  if (!f) { root.innerHTML = '<div class="ph"><h1>Totem #' + esc(id) + '</h1></div><div class="card">This Totem isn’t in the demo yet. <a href="#explore">Search Explore</a>.</div>'; return; }
-  const mine = f.mine || f.owner === S.account;
-  root.innerHTML = '<div class="ph"><div><span class="muted">Public page</span><h1>Totem #' + id + '</h1></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="nftShare">Share</button>' + (mine ? '<a class="btn" href="#lock">Manage</a>' : f.rent.indexOf('For rent') === 0 ? '<a class="btn" href="#rent">Rent it</a>' : '<a class="btn" href="#market">See the market</a>') + '</div></div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start"><div class="card ink" style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">' + T.svgTotem(f.pieces, 150, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<span class="chip g">' + f.pieces + ' of 4 pieces</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + id + '.totemtest.testnet</span></div>' +
-    '<div style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px"><div class="grid g4">' +
-    [['Owner', esc(f.owner)], ['Holds', '<span class="mark">' + T.fmt(f.pieces * 25000) + ' $TOTEM</span>'], ['Best Meme Kart', f.race], ['Rental', f.rent]].map((s) => '<div class="card"><span class="muted" style="font-size:13px">' + s[0] + '</span><div style="font-size:20px;font-weight:600;margin-top:4px">' + s[1] + '</div></div>').join('') + '</div>' +
-    '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Live Arenas</strong><br>' + (f.pieces >= (S.entryPieces || 1) ? 'Totem Arena, season 1' : 'None. Totem Arena needs ' + (S.entryPieces || 1) + ' pieces.') + '</span></div>' +
-    '<div class="card"><span class="muted" style="font-size:13px">Items</span><p style="margin-top:6px">' + (f.items.length ? f.items.map(esc).join(', ') : 'None yet') + '</p><span class="muted" style="font-size:13px;display:block;margin-top:12px">Credentials</span><p style="margin-top:6px">' + (f.creds.length ? f.creds.map(esc).join(', ') : 'None yet') + '</p></div>' +
-    '<p class="muted" style="font-size:13px">Anyone can open this page. Example data for Totems other than yours.</p></div></div>';
-  $('#nftShare').addEventListener('click', () => T.share({ title: 'Totem #' + id, stat: 'Holds ' + T.fmt(f.pieces * 25000) + ' $TOTEM', line: f.pieces + ' of 4 pieces, ' + (f.items[0] || 'no items yet'), pieces: f.pieces }));
+  const id = String(T.param.nft || '1');
+  root.innerHTML = '<div class="ph"><div><span class="muted">Public page</span><h1>Totem #' + esc(id) + '</h1></div></div><p class="muted">Reading the collection...</p>';
+  (async () => {
+    const response = await T.api.get('/nfts/' + encodeURIComponent(id));
+    const n = response.ok ? response.data.nft : null;
+    const head = '<div class="ph"><div><span class="muted">Public page</span><h1>Totem #' + esc(id) + '</h1></div></div>';
+
+    if (!n || n.source !== 'chain') {
+      root.innerHTML = head + '<div class="card" style="max-width:720px"><p style="margin:0"><strong>NEAR could not be reached just now.</strong></p><p class="muted" style="margin:8px 0 0">Nothing is shown rather than a holder who might not exist.</p></div>';
+      return;
+    }
+    if (!n.exists) {
+      root.innerHTML = head + '<div class="card" style="max-width:720px"><p style="margin:0"><strong>Totem #' + esc(id) + ' has not been minted.</strong></p>' +
+        '<p class="muted" style="margin:8px 0 0">The collection holds 10,000 Totems and they are minted one at a time. Claim a mint permit on your profile and mint the next one from your own wallet.</p>' +
+        '<div style="display:flex;gap:8px;margin-top:12px"><a class="btn small" href="#profile">Open profile</a><a class="btn small ghost" href="#explore">What is on Totem</a></div></div>';
+      return;
+    }
+
+    let branch = null;
+    try { branch = JSON.parse(n.extra || '{}').branch || null; } catch (error) { branch = null; }
+    const mine = Boolean(T.holdings && T.holdings.accountId === n.owner);
+    const held = n.ownerBalanceWhole === null ? null : Number(n.ownerBalanceWhole);
+    const pieces = held === null ? null : Math.min(4, Math.floor(held / 25000));
+
+    root.innerHTML = head +
+      '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">' +
+      '<div class="card ink" style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px">' +
+      T.svgTotem(pieces === null ? 0 : pieces, 150) +
+      (mine ? '<span class="chip g">Yours</span>' : '') +
+      '<span class="muted" style="font-family:var(--mono);font-size:13px;word-break:break-all">' + esc(n.contractId) + '</span></div>' +
+      '<div style="flex:999 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px">' +
+      '<div class="grid g4">' +
+      [['Owner', esc(n.owner)],
+       ['Owner holds', held === null ? 'unknown' : '<span class="mark">' + T.fmt(held) + ' $TOTEM</span>'],
+       ['Worth in pieces', pieces === null ? 'unknown' : pieces + ' of 4'],
+       ['Branch', branch ? esc(branch) : 'not set']]
+        .map((d) => '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="muted" style="font-size:12px">' + d[0] + '</span><strong style="font-size:15px;word-break:break-all">' + d[1] + '</strong></div>').join('') +
+      '</div>' +
+      (n.approvals.length ? '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Approved to transfer</strong><br><span class="muted" style="font-size:13px">' + n.approvals.map(esc).join(', ') + '</span></span></div>' : '') +
+      (n.description ? '<div class="card"><span class="muted" style="font-size:13px">Description</span><p style="margin-top:6px">' + esc(n.description) + '</p></div>' : '') +
+      '<p class="muted" style="font-size:13px">Read live from ' + esc(n.contractId) + '. Check it yourself with nft_token on NEAR testnet.</p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small ghost" type="button" id="nftShare">Share</button><a class="btn small ghost" href="#market">Market</a></div>' +
+      '</div></div>';
+
+    const share = $('#nftShare');
+    if (share) share.addEventListener('click', () => T.share({ title: 'Totem #' + id, stat: (held === null ? '' : T.fmt(held) + ' $TOTEM held by its owner'), line: 'Totem on NEAR testnet' }));
+  })();
 } };
 
 /* ======================= MARKET ======================= */
@@ -2833,6 +2874,23 @@ T.wallet = {
     if (!window.totemWallet) return;
     await window.totemWallet.signOut(await loadWallet());
   },
+  // Every wallet this build can sign in with, so the page can offer them directly instead
+  // of relying on a modal that does not draw all of them.
+  async options(){
+    // loadWallet has to finish before window.totemWallet exists. Reading the method off it
+    // in the same expression as the await resolved the member first, on an undefined
+    // object, so this always threw and the page silently showed no wallets.
+    try {
+      const options = await loadWallet();
+      return await window.totemWallet.options(options);
+    } catch (error) { return []; }
+  },
+  // Sign in with one named wallet, skipping the modal.
+  async connectWith(walletId){
+    const options = await loadWallet();
+    const identity = await window.totemWallet.connectWith(walletId, options);
+    return identity ? identity.accountId : null;
+  },
   // Sent from the holder's own wallet. Totem holds no key that could do this for them.
   async signAndSendTransaction(transaction){
     const options = await loadWallet();
@@ -2851,8 +2909,36 @@ async function paintWallet(){
       '<div class="card" style="display:flex;flex-direction:column;gap:12px;max-width:720px">' +
       '<p style="margin:0">Sign in with a NEAR wallet to use the live Totem API. Signing is a gas free NEP-413 message, not a transaction, and it proves the account is yours.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="walletConnect">Connect NEAR wallet</button></div>' +
+      '<div id="walletChoices" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
       '<p class="muted" style="font-size:13px;margin:0">Your holdings, the Arenas you can enter and anything you operate are read from NEAR once you sign in.</p></div>');
     if (!box) return;
+
+    // The modal cannot draw an instant-link wallet, and the Meteor web wallet is one, so a
+    // visitor already signed in to it was shown a list that did not include the wallet they
+    // were using. Each available wallet gets its own button here.
+    T.wallet.options().then((wallets) => {
+      const choices = $('#walletChoices');
+      if (!choices || !wallets.length) return;
+      choices.innerHTML = '<span class="muted" style="font-size:13px;width:100%">Or go straight to one:</span>' +
+        wallets.map((w) => '<button class="btn small ghost" type="button" data-wallet="' + esc(w.id) + '">' + esc(w.name) + '</button>').join('');
+      $$('[data-wallet]').forEach((button) => button.addEventListener('click', async () => {
+        button.setAttribute('aria-disabled', 'true');
+        const label = button.textContent;
+        button.textContent = 'Opening...';
+        try {
+          const accountId = await T.wallet.connectWith(button.dataset.wallet);
+          if (!accountId) { T.toast('The wallet was not connected'); paintWallet(); return; }
+          T.toast('Signed in as ' + accountId);
+          document.dispatchEvent(new CustomEvent('totem:session', { detail: { accountId } }));
+          paintWallet();
+        } catch (error) {
+          T.toast(error && error.message ? error.message : 'Could not open that wallet');
+          button.removeAttribute('aria-disabled');
+          button.textContent = label;
+        }
+      }));
+    });
+
     $('#walletConnect').addEventListener('click', async (event) => {
       const button = event.currentTarget;
       button.textContent = 'Opening wallet...'; button.setAttribute('aria-disabled', 'true');
