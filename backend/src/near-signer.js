@@ -8,32 +8,8 @@
 // faucet amount of $TOTEM. It never holds a user's key, and a user still signs their own
 // mint from their own wallet.
 import { createHash, createPrivateKey, sign as signRaw } from 'node:crypto'
+import { decodeBase58 } from './base58.js'
 import { invariant } from './errors.js'
-
-const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-export function base58Decode (value) {
-  let big = 0n
-  for (const character of value) {
-    const index = BASE58.indexOf(character)
-    invariant(index !== -1, 'BASE58_INVALID', `"${character}" is not a base58 character`)
-    big = big * 58n + BigInt(index)
-  }
-  const bytes = []
-  while (big > 0n) { bytes.unshift(Number(big % 256n)); big /= 256n }
-  // A leading '1' encodes a zero byte, and those are lost by the arithmetic above.
-  for (const character of value) { if (character !== '1') break; bytes.unshift(0) }
-  return Uint8Array.from(bytes)
-}
-
-export function base58Encode (bytes) {
-  let big = 0n
-  for (const byte of bytes) big = (big << 8n) + BigInt(byte)
-  let out = ''
-  while (big > 0n) { out = BASE58[Number(big % 58n)] + out; big /= 58n }
-  for (const byte of bytes) { if (byte !== 0) break; out = '1' + out }
-  return out
-}
 
 /* ---------- borsh, only the parts a function call transaction needs ---------- */
 
@@ -61,7 +37,7 @@ class Writer {
 }
 
 // A NEAR public key is a one byte key type (0 for ed25519) followed by the 32 raw bytes.
-const writePublicKey = (writer, publicKey) => writer.u8(0).bytes(base58Decode(publicKey.replace(/^ed25519:/, '')))
+const writePublicKey = (writer, publicKey) => writer.u8(0).bytes(decodeBase58(publicKey.replace(/^ed25519:/, '')))
 
 // Only FunctionCall is used here. It is variant 2 of the Action enum.
 const writeFunctionCall = (writer, { methodName, args, gas, deposit }) => {
@@ -72,7 +48,7 @@ const writeFunctionCall = (writer, { methodName, args, gas, deposit }) => {
 export function serializeTransaction ({ signerId, publicKey, nonce, receiverId, blockHash, actions }) {
   const writer = new Writer().string(signerId)
   writePublicKey(writer, publicKey)
-  writer.u64(nonce).string(receiverId).bytes(base58Decode(blockHash)).u32(actions.length)
+  writer.u64(nonce).string(receiverId).bytes(decodeBase58(blockHash)).u32(actions.length)
   for (const action of actions) writeFunctionCall(writer, action)
   return writer.finish()
 }
@@ -84,7 +60,7 @@ export function serializeTransaction ({ signerId, publicKey, nonce, receiverId, 
 const PKCS8_ED25519_PREFIX = Uint8Array.from([0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20])
 
 export function privateKeyFromNear (secretKey) {
-  const raw = base58Decode(String(secretKey).replace(/^ed25519:/, ''))
+  const raw = decodeBase58(String(secretKey).replace(/^ed25519:/, ''))
   invariant(raw.length === 64 || raw.length === 32, 'SECRET_KEY_INVALID', 'A NEAR ed25519 secret key decodes to 32 or 64 bytes')
   const der = new Uint8Array(PKCS8_ED25519_PREFIX.length + 32)
   der.set(PKCS8_ED25519_PREFIX, 0)
