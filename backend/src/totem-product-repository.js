@@ -186,7 +186,10 @@ export class MemoryProductRepository {
 // data: without them nothing can be entered or played. This runs in every environment
 // and is safe to repeat.
 
-export async function ensurePlatform(repository, { now = Date.now(), operator = 'ada.near', resultSigner = 'games.totem.near' } = {}) {
+// The operator and the result signer default to accounts in the suffix this deployment
+// actually owns. They used to default to mainnet names, which a testnet deployment then
+// served from /api/v1/arenas as though they were real.
+export async function ensurePlatform(repository, { now = Date.now(), suffix = 'totemtest.testnet', operator = suffix, resultSigner = `games.${suffix}` } = {}) {
   if (!(await repository.getArena('totem'))) {
     await repository.saveArena({ id: 'totem', name: 'Totem Arena', collection: 'Totem', token: '$TOTEM', entryPieces: 1, paused: false, operator, resultSigner })
   }

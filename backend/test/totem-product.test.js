@@ -89,14 +89,14 @@ test('entry needs the minimum pieces and an Arena that is not paused', async () 
 test('only the operator may pause an Arena', async () => {
   const { product } = await build()
   assert.equal(await code(product.setArenaPaused({ arenaId: 'totem', accountId: 'kofi.near', paused: true })), 'ARENA_OPERATOR_MISMATCH')
-  const paused = await product.setArenaPaused({ arenaId: 'totem', accountId: 'ada.near', paused: true })
+  const paused = await product.setArenaPaused({ arenaId: 'totem', accountId: 'totemtest.testnet', paused: true })
   assert.equal(paused.arena.paused, true)
   assert.equal(paused.calls[0].method, 'pause_arena')
 })
 
 /* ---------- results ---------- */
 
-const report = (product, overrides = {}) => product.reportResult({ arenaId: 'totem', game: 'kart', player: 'ada.near', place: 1, coins: 120, signedBy: 'games.totem.near', ...overrides })
+const report = (product, overrides = {}) => product.reportResult({ arenaId: 'totem', game: 'kart', player: 'ada.near', place: 1, coins: 120, signedBy: 'games.totemtest.testnet', ...overrides })
 
 test('results must be signed by the Arena game server key', async () => {
   const { product } = await build()
