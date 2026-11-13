@@ -162,8 +162,22 @@ No wallet needed for steps 1–3.
   `network: 'mainnet'`, because `HACKATHON.md` Q-007 states there is no Intents testnet and
   prescribes mainnet dry quotes. No code path here can move funds through Intents. If the
   solver network is unavailable, the page says so rather than inventing a price.
-- Arena games, prizes, balances and the demo wallet are **simulated in the browser** and
-  labelled as such on the page.
+- **An Arena prize is a real transfer.** Finishing a game pays `$TOTEM` from
+  `prizes.totemtest.testnet` to the player's wallet, once per game per day, and only to an
+  account that owns a Totem on chain. The race itself runs in the browser and reports its
+  own result, so a score is a claim rather than a proof: that is why the prize is small,
+  capped and rate limited, why the response carries `verified: false`, and why the page says
+  a production Arena would have the race server sign results with the Arena's result signer
+  key, which the contract-side model already expects.
+- **Arena entry is read from the chain.** `checkEntry` asks NEP-141 what the account holds
+  and answers which source qualified it, so a holder is never refused for pieces they can
+  prove they have.
+- **The operator console is real.** The Arena's operator can set the entry rule, both prize
+  amounts, pause and reopen, and settle results past the dispute window. Every call checks
+  the operator on the server; hiding the panel is only presentation.
+- There is no demo wallet. Sign-in is NEP-413 through the Meteor extension, the Meteor web
+  wallet or MyNearWallet, and Totem never holds a user's key: the mint and any purchase are
+  signed by the holder.
 - **The Totem NFT contract is live on NEAR testnet** at `nft.totemtest.testnet`, deployed
   from this repository's own artifact: its on-chain `code_hash` is `BkXRfFM7oBLH3SKeL5hEt2YAeRG7tbZ9Mm3KCJXUn1Dz`,
   the base58 of the sha256 pinned in `infrastructure/template.yaml`. `nft_metadata` and
@@ -182,7 +196,12 @@ No wallet needed for steps 1–3.
   5 NEAR daily cap and `paused: false`, all enforced in the contract. Note that
   `available_budget` is about 0.49 NEAR, since the account's balance is mostly staked for
   its own storage, so a larger payment fails on balance before it reaches the cap.
-- Only the launchpad factory is **not deployed yet** — it needs its own funded sub-account.
+- Only the launchpad factory is **not deployed**, and the reason is a cost rather than an
+  omission: it instantiates a launched collection from globally registered contract code,
+  and a global contract on NEAR costs 10 NEAR per 100KB which is **burnt, not staked**,
+  about 35 NEAR for the collection template alone. That is beyond a testnet faucet, so the
+  page says so and shows the commands that deploy the same contracts directly instead.
+  Those commands are not a plan: they are what put the four live contracts on chain.
   `docs/TESTNET_RELEASE.md` holds the per-contract cost and the exact deploy command.
   Launch quoting fails closed meanwhile, in `backend/src/launch-quotes.js`.
 - No mainnet deployment, no audit, and no yield or return claim.

@@ -101,7 +101,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset && t.dataset.ap) T.calls.operator('approve_game', { index: +t.dataset.ap });
   if (t.dataset && t.dataset.v && t.dataset.p) T.calls.vote(t.dataset.p, t.dataset.v === 'y' ? 'yes' : 'no');
   if (t.id === 'cClaim') T.calls.claim((S.email || 'player').split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase() + '.totemtest.testnet', !!S.pendingPrize);
-  if (t.id === 'deployBtn') setTimeout(() => { if (S.launches && S.launches[0]) T.calls.deploy(S.launches[0]); }, 50);
+  // deployBtn no longer records a launch, because the factory is not deployed.
   T.sfx('tap');
 }, true);
 document.addEventListener('change', (e) => { if (e.target.id === 'opRule') T.calls.operator('set_entry_rule', { min_pieces: +e.target.value }); });

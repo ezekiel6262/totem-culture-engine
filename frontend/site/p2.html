@@ -170,6 +170,34 @@
 <!-- LAUNCH -->
 <section class="page" data-route="launch" data-title="Launch">
 <div class="wrap">
+<div class="card" style="border-color:#000;background:#FFFBE0;display:flex;flex-direction:column;gap:10px;margin-bottom:22px">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip e">Not deployed</span><strong style="font-family:var(--serif);font-size:24px">Planned for mainnet</strong></div>
+<p style="margin:0;color:var(--body)">The launchpad is designed and its contract is written and tested, but it is not deployed. It instantiates a launched collection from globally registered contract code, and registering that code on NEAR costs 10 NEAR per 100KB which is burnt rather than staked: about 35 NEAR for the collection template. That is beyond what a testnet faucet provides, so it waits for mainnet.</p>
+<p class="muted" style="margin:0;font-size:14px">Everything below shows what launching will ask for. Nothing here submits a transaction, and no launch has been made. The four contracts that are deployed are on the <a href="#explore">Explore</a> page.</p>
+</div>
+
+<div class="card" style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip g">Works today</span><strong style="font-family:var(--serif);font-size:24px">Launch one yourself, without the launchpad</strong></div>
+<p style="margin:0;color:var(--body)">A launchpad is convenience, not capability. The same contracts it would instantiate can be deployed directly from the repository, and these are the exact commands that put the Totem token and the Totem collection on testnet. Nothing here is a plan.</p>
+<pre style="margin:0;overflow-x:auto"><code>git clone https://github.com/ezekiel6262/totem-culture-engine
+cd totem-culture-engine &amp;&amp; npm ci &amp;&amp; npm run build:contracts
+
+# authorise the account that will own them, once
+near account import-account using-seed-phrase --network-id testnet
+
+# plan first: this prints the cost and changes nothing
+npm run launch:testnet -- --parent &lt;you&gt;.testnet
+
+# then the collection, and the token with its supply
+npm run launch:testnet -- --parent &lt;you&gt;.testnet --only nft --execute --max-supply 10000
+npm run launch:testnet -- --parent &lt;you&gt;.testnet --only token --execute --supply 1000000000</code></pre>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">
+<div class="door"><span><strong>4.6 NEAR</strong><br><span class="muted" style="font-size:13px">the collection, staked as its storage</span></span></div>
+<div class="door"><span><strong>3.1 NEAR</strong><br><span class="muted" style="font-size:13px">the token, staked as its storage</span></span></div>
+<div class="door"><span><strong>Free</strong><br><span class="muted" style="font-size:13px">testnet NEAR, from near-faucet.io</span></span></div>
+</div>
+<p class="muted" style="margin:0;font-size:14px">Staked, not spent: that NEAR sits on the sub-account holding the contract and comes back if the account is deleted. The script refuses before it creates anything if the balance or the signing key is missing, so a run cannot stop half done. <code>--only</code> deploys one at a time when a single faucet grant will not cover both.</p>
+</div>
 <div class="ph"><h1>Launch a Totem collection</h1>
 <div class="seg" role="group" aria-label="Starting point"><button type="button" data-mode="token" aria-pressed="true">I have a token</button><button type="button" data-mode="nft" aria-pressed="false">I have an NFT collection</button></div></div>
 <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;padding-bottom:64px">
