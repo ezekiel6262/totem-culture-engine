@@ -178,35 +178,95 @@ T.modules.rent = { enter: paintRent };
 T.setRentTab = (t) => { rtab = t; };
 
 /* =========================== CLAIM, GASLESS =========================== */
-let cStep = 0;
-function handle(){ const e = (S.email || 'player').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'player'; return e + '.totemtest.testnet'; }
+// Claiming is two real things: the faucet sends $TOTEM, and a mint permit lets you mint a
+// Totem from your own wallet. Both happen here, in the page, against the live API.
+//
+// What this replaced: a four step wizard that asked for an email or a passkey, said
+// "Account created. You paid 0 NEAR", and then wrote an account name and a prize into this
+// browser. None of it reached a wallet or a chain. The email and passkey were never
+// implemented at all, so offering them was worse than not having them, and the wizard
+// staged a ceremony around a claim that now takes one press.
+function claimAccount(){ return T.wallet && T.wallet.account ? T.wallet.account() : null; }
+
 function paintClaim(){
-  const pending = S.pendingCoins || 0, prize = S.pendingPrize;
-  const steps = [
-    { t: 'Sign in', body: '<label class="f">Email<input type="text" id="cEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" value="' + (S.email || '') + '"></label><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="cEmailBtn">Continue with email</button><button class="btn ghost" type="button" id="cPass">Use a passkey</button></div>' },
-    { t: 'Create your account', body: '<p>Your NEAR account will be <strong style="font-family:var(--mono);font-size:15px">' + handle() + '</strong>.</p><div class="door"><span>Network fee</span><strong>Paid by the Totem relayer</strong></div><button class="btn" type="button" id="cCreate">Create account</button>' },
-    { t: 'Claim your prize', body: '<div class="door" style="background:#FFFBE0;border-color:#000"><span>' + (prize ? 'Prize' : 'Starter') + '</span><strong>' + (prize ? 'A Totem with 25,000 $TOTEM inside' : 'An empty Totem shell to fill') + '</strong></div>' + (pending ? '<div class="door"><span>Coins from your race</span><strong>' + T.fmt(pending) + ' $TOTEM</strong></div>' : '') + '<button class="btn green" type="button" id="cClaim">Claim to my account</button>' },
-    { t: 'You own a Totem', body: '<p>It lives at its own account. Tokens, items and future prizes go inside it.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#totem">See my Totem</a><a class="btn ghost" href="#arena">Back to the island</a></div>' }
-  ];
-  $('#claimSteps').innerHTML = steps.map((s, i) => {
-    const st = i < cStep ? 'done' : i === cStep ? 'now' : 'next';
-    return '<li class="card' + (st === 'now' ? ' ink' : '') + '" style="display:flex;flex-direction:column;gap:12px;' + (st === 'next' ? 'opacity:.55' : '') + '"><div style="display:flex;gap:12px;align-items:center"><span style="width:34px;height:34px;flex-shrink:0;border-radius:999px;border:1.5px solid #000;display:flex;align-items:center;justify-content:center;font-weight:600;background:' + (st === 'done' ? '#00B97F' : st === 'now' ? '#000' : '#fff') + ';color:' + (st === 'now' ? '#fff' : '#000') + '">' + (st === 'done' ? '✓' : i + 1) + '</span><h2 style="font-size:28px;line-height:1.1">' + s.t + '</h2></div>' + (st === 'now' ? s.body : '') + '</li>';
-  }).join('');
-  const on = (id, fn) => { const el = $('#' + id); if (el) el.addEventListener('click', fn); };
-  on('cEmailBtn', () => { const v = $('#cEmail').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { T.toast('Enter an email like you@example.com'); return; } S.email = v; T.save(); cStep = 1; paintClaim(); });
-  on('cPass', () => { S.email = S.email || 'player@passkey'; T.save(); cStep = 1; paintClaim(); });
-  on('cCreate', () => { cStep = 2; paintClaim(); T.toast('Account created. You paid 0 NEAR.'); });
-  on('cClaim', () => {
-    // This used to set S.connected itself and invent a prize Totem and a $TOTEM balance, so
-    // a visitor appeared to have an account and holdings that existed in no wallet and on no
-    // chain. Claiming now goes through the real wallet, and the real faucet and mint permit
-    // on the profile, which move actual tokens.
-    const header = $('#connectBtn'); if (header) header.click();
-    S.pendingCoins = 0; S.pendingPrize = false; T.save(); cStep = 3; paintClaim();
-    const b = $('#connectBtn'); if (b) b.textContent = S.account;
-  });
+  const root = $('#claimSteps');
+  if (!root) return;
+  const account = claimAccount();
+  const held = T.holdings;
+
+  if (!account) {
+    root.innerHTML = '<li class="card ink" style="display:flex;flex-direction:column;gap:14px;list-style:none">' +
+      '<h2 style="font-size:32px;margin:0">Claiming needs a NEAR wallet</h2>' +
+      '<p style="margin:0;color:var(--body)">Signing in is a gas free NEP-413 message, not a transaction. It costs nothing and moves nothing. Totem never holds your key.</p>' +
+      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' +
+      '<div class="door"><span><strong>25,000 $TOTEM</strong><br><span class="muted" style="font-size:13px">One piece, from the faucet</span></span></div>' +
+      '<div class="door"><span><strong>A Totem</strong><br><span class="muted" style="font-size:13px">Totem signs the permit, you mint it</span></span></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="cConnect">Connect a NEAR wallet</button><a class="btn ghost" href="#explore">What is on Totem</a></div>' +
+      '</li>';
+    const connect = $('#cConnect');
+    if (connect) connect.addEventListener('click', () => { const header = $('#connectBtn'); if (header) header.click(); });
+    return;
+  }
+
+  const balance = held && held.source === 'chain' ? Number(held.balanceWhole) : null;
+  const totemId = held ? held.totemTokenId : null;
+
+  root.innerHTML = '<li class="card" style="display:flex;flex-direction:column;gap:14px;list-style:none">' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip g">Signed in</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + esc(account) + '</span></div>' +
+    (balance === null
+      ? '<p class="muted" style="margin:0">NEAR could not be reached, so your holdings are not shown. Nothing is guessed here.</p>'
+      : '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">' +
+        '<div class="door"><span><strong>' + T.fmt(balance) + ' $TOTEM</strong><br><span class="muted" style="font-size:13px">held on chain</span></span></div>' +
+        '<div class="door"><span><strong>' + (totemId ? 'Totem #' + esc(totemId) : 'No Totem yet') + '</strong><br><span class="muted" style="font-size:13px">' + (totemId ? 'minted to this wallet' : 'claim a permit, then mint') + '</span></span></div>' +
+        '</div>') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn green" type="button" id="cFaucet">Claim 25,000 $TOTEM</button>' +
+    (totemId ? '' : '<button class="btn" type="button" id="cPermit">Claim a mint permit</button><button class="btn ghost" type="button" id="cMint">Mint my Totem</button>') +
+    '<a class="btn ghost" href="#profile">Open profile</a></div>' +
+    '<span class="muted" style="font-size:13px">The faucet sends one piece, the smallest amount a one piece Arena accepts. The permit is signed by Totem; the mint is signed by you, from your own wallet.</span>' +
+    '</li>';
+
+  const press = async (button, run) => {
+    if (!button || button.getAttribute('aria-disabled') === 'true') return;
+    const label = button.textContent;
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = 'Working...';
+    try {
+      await run();
+      if (T.refreshHoldings) await T.refreshHoldings();
+      paintClaim();
+    } catch (error) {
+      T.toast(error && error.message ? error.message : 'That did not work');
+      button.removeAttribute('aria-disabled');
+      button.textContent = label;
+    }
+  };
+
+  const faucet = $('#cFaucet');
+  if (faucet) faucet.addEventListener('click', () => press(faucet, async () => {
+    const result = await window.totemApi.request('/api/v1/claims/tokens', { authenticated: true, method: 'POST', body: JSON.stringify({}) });
+    T.toast(result.alreadyGranted ? 'This account already claimed from the faucet.' : 'Sent ' + T.fmt(result.whole) + ' $TOTEM. ' + result.transactionHash);
+  }));
+
+  const permit = $('#cPermit');
+  if (permit) permit.addEventListener('click', () => press(permit, async () => {
+    const result = await window.totemApi.request('/api/v1/claims/eligibility', { authenticated: true, method: 'POST', body: JSON.stringify({}) });
+    T.toast(result.alreadyGranted ? 'You already have a permit. Press Mint my Totem.' : 'Permit ' + result.number + ' of 1000. ' + result.remaining + ' left. Now press Mint my Totem.');
+  }));
+
+  const mint = $('#cMint');
+  if (mint) mint.addEventListener('click', () => press(mint, async () => {
+    const outcome = await T.wallet.signAndSendTransaction({
+      receiverId: (held && held.nftContractId) || 'nft.totemtest.testnet',
+      actions: [{ type: 'FunctionCall', params: { methodName: 'mint', args: {}, gas: '60000000000000', deposit: '100000000000000000000000' } }]
+    });
+    T.toast('Minted. ' + (outcome && outcome.transaction ? outcome.transaction.hash : 'Check your wallet.'));
+  }));
 }
-T.modules.claim = { enter(){ cStep = S.connected && !S.pendingPrize && !S.pendingCoins ? 3 : 0; paintClaim(); } };
+
+T.modules.claim = { enter(){ paintClaim(); if (T.refreshHoldings) T.refreshHoldings().then(paintClaim); } };
+document.addEventListener('totem:session', () => { if (location.hash.indexOf('claim') !== -1) paintClaim(); });
 
 /* =========================== MULTICHAIN CARD ON TOTEM ACCOUNT =========================== */
 const baseTotem = T.modules.totem;

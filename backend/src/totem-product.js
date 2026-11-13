@@ -558,6 +558,32 @@ export class TotemProductService {
     }
   }
 
+  // What is actually for sale, from the market contract. The market page was rendered from
+  // a map of invented Totems with invented prices and sellers.
+  async marketListings({ limit = 24 } = {}) {
+    const { rpc, marketContractId, nftContractId } = this.#chain
+    if (!rpc || !marketContractId) return { source: 'unavailable', reason: 'CHAIN_NOT_CONFIGURED', listings: [] }
+    try {
+      const rows = await rpc.callFunctionFinal({ contractId: marketContractId, methodName: 'listings', args: { limit } })
+      return {
+        source: 'chain',
+        contractId: marketContractId,
+        nftContractId: nftContractId ?? null,
+        listings: (rows || []).map(row => ({
+          id: row.id,
+          tokenId: row.token_id,
+          nftContractId: row.nft_contract_id,
+          seller: row.seller_id,
+          priceYocto: String(row.price),
+          priceNear: (Number(BigInt(row.price) / 10n ** 18n) / 1e6).toString(),
+          listedAtMs: row.created_at_ms ?? null
+        }))
+      }
+    } catch (error) {
+      return { source: 'unavailable', reason: error?.code ?? 'CHAIN_READ_FAILED', listings: [] }
+    }
+  }
+
   async getAccount({ accountId }) {
     requireAccount(accountId, 'ACCOUNT_INVALID', 'accountId must be a valid NEAR account')
     const [account, totems, onChain, arena] = await Promise.all([

@@ -168,7 +168,7 @@ $('#shareSave').addEventListener('click', async () => {
 const TOUR = [
   ['home', 'Totem in one line', 'Token communities launch NFTs that hold their token. The NFT is an account: it holds money, earns, carries items and opens rooms. $TOTEM is the first culture on the platform.', null],
   ['explore', 'Explore', 'Live tokens, NFTs with live tokens, trending Arenas and free ways to earn, all searchable.', null],
-  ['claim', 'No wallet? No problem.', 'A new player signs in with email or a passkey. A relayer pays the NEAR fee, so the first Totem is free to claim.', 'claim'],
+  ['claim', 'Claim $TOTEM and a Totem', 'Connect a NEAR wallet. The faucet sends 25,000 $TOTEM, and a mint permit lets you mint a Totem from your own wallet.', 'claim'],
   ['arenas', 'Pick an Arena', 'Every community gets its own Arena with its own entry rule. Totem Arena is the first and only live one. Entry is checked against your NFT.', 'enter'],
   ['arena', 'The Arena is a 3D island', 'Each venue is a game: Meme Kart, Paint the Island, Ritual Raid, Vault Heist and more. Builders can attach their own games.', null],
   ['rent', 'Rent a full Totem', 'Borrow a full Totem with a limited NEAR key. It can play and enter rooms. It can never withdraw, sell or transfer.', 'rent'],
@@ -202,20 +202,11 @@ $('#tourChain').addEventListener('click', () => {
   $('#chainDrawer').classList.add('open');
 });
 
-/* ======================= DATA FOR NFT PAGES AND MARKET ======================= */
-const NFTS = {
-  '0417': () => ({ owner: S.account, pieces: S.pieces, items: ['Gold Wings', 'Red Moon relic', 'Vault key'].concat(S.items || []), creds: ['Founding mark', 'Raid squad'].concat(S.prizes.filter((p) => !/^Prize Totem/.test(p))), race: S.ghostT ? fmtT(S.ghostT) : 'No race yet', rent: S.listing ? 'Listed for rent' : 'Not listed', mine: true }),
-  '1201': () => ({ owner: 'kofi.testnet', pieces: 4, items: ['Gold Wings', 'Ember Crown'], creds: ['Meme Kart champion'], race: '1:38.2', rent: 'For rent, 2 NEAR per race' }),
-  '0088': () => ({ owner: 'weaver.testnet', pieces: 4, items: ['Kente Wings'], creds: ['Item maker'], race: '1:44.9', rent: 'For rent, 1.5 NEAR per race' }),
-  '0533': () => ({ owner: 'tunde.testnet', pieces: 3, items: ['Vault key'], creds: ['Raid leader'], race: '1:51.0', rent: 'For rent, 1 NEAR per race' }),
-  '2140': () => ({ owner: 'sol:4kQ..9z', pieces: 4, items: ['Island flag'], creds: ['Arrived via Intents'], race: '1:47.3', rent: 'For rent, 2.5 NEAR per race' }),
-  '0731': () => ({ owner: 'ife.testnet', pieces: 2, items: [], creds: [], race: 'No race yet', rent: 'Not listed' }),
-  '1999': () => ({ owner: 'moremi.testnet', pieces: 4, items: ['Ember Crown', 'Harbor hat'], creds: ['Hold the Line finisher'], race: '1:41.6', rent: 'Not listed' }),
-  '0062': () => ({ owner: 'zeal.testnet', pieces: 1, items: [], creds: [], race: 'No race yet', rent: 'Not listed' })
-};
-function fmtT(ms){ const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); }
-T.nftData = NFTS;
-const MARKET = [{ id: '0731', price: 9 }, { id: '1999', price: 26 }, { id: '0062', price: 4.5 }];
+/* ======================= DATA FOR NFT PAGES AND MARKET =======================
+   Removed. This held six invented Totems owned by accounts that do not exist, with lap
+   times and rental prices, plus three market listings at invented prices. The Totem page
+   reads nft_token from the collection and the market reads the market contract, so there
+   is nothing left for a fixture to stand in for. */
 
 /* ======================= PUBLIC NFT PAGE ======================= */
 // The public Totem page reads the collection. It was served from a map of six invented
@@ -275,17 +266,76 @@ T.modules.nft = { enter(){
 } };
 
 /* ======================= MARKET ======================= */
+// The market reads the market contract. It was three invented Totems at invented prices,
+// priced in NEAR, sold by nobody, and buying one pushed a string into this browser.
 T.modules.market = { enter(){
   const root = $('#marketRoot');
-  const avail = MARKET.filter((m) => !S.bought.some((b) => b.id === m.id));
-  root.innerHTML = '<div class="ph"><h1>Totem market</h1><span class="chip">Buying a Totem buys everything inside it</span></div>' +
-    '<p style="font-size:18px;color:var(--body);max-width:720px;margin-bottom:22px">Every listing shows what the NFT holds next to its price, so you can see the floor before you buy.</p>' +
-    '<div class="grid g3">' + (avail.length ? avail.map((m) => { const f = NFTS[m.id](); return '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:16px;align-items:center">' + T.svgTotem(f.pieces, 64, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<div><a href="#nft-' + m.id + '" style="font-family:var(--serif);font-size:30px;line-height:1;text-decoration:none">Totem #' + m.id + '</a><br><span class="muted" style="font-size:13px">' + esc(f.owner) + '</span></div></div>' +
-      '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Holds inside</span><strong>' + T.fmt(f.pieces * 25000) + ' $TOTEM</strong></div><div class="door"><span>Items</span><span>' + (f.items.join(', ') || 'None') + '</span></div>' +
-      '<button class="btn" type="button" data-buy="' + m.id + '">Buy for ' + m.price + ' NEAR</button></div>'; }).join('') : '<div class="card">All demo listings are sold. Your purchases are in your Profile.</div>') + '</div>' +
-    '<div class="card" style="margin-top:22px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><strong>Sell Totem #0417</strong><br><span class="muted" style="font-size:14px">The buyer gets its ' + T.fmt(S.pieces * 25000) + ' $TOTEM, Gold Wings, credentials and future royalties.</span></span><button class="btn ghost" type="button" id="sellMine">List Totem #0417</button></div>';
-  $$('[data-buy]').forEach((b) => b.addEventListener('click', () => { const m = MARKET.find((x) => x.id === b.dataset.buy); const f = NFTS[m.id](); S.bought.push({ id: m.id, pieces: f.pieces }); T.log('Bought Totem #' + m.id, '-' + m.price + ' NEAR', 'e'); T.save(); T.calls.buy(m.id, m.price); T.sfx('win'); T.toast('Totem #' + m.id + ' is yours, with ' + T.fmt(f.pieces * 25000) + ' $TOTEM inside'); T.modules.market.enter(); }));
-  $('#sellMine').addEventListener('click', () => { T.chain('List Totem #0417 for sale', [{ receiver: 'market.totemtest.testnet', method: 'list', args: { token_id: '0417', price: '30 NEAR' } }]); T.toast('Listed in demo mode. Shown in the onchain log.'); });
+  root.innerHTML = '<div class="ph"><h1>Totem market</h1></div><p class="muted">Reading the market contract...</p>';
+  (async () => {
+    const response = await T.api.get('/market/onchain');
+    const market = response.ok ? response.data.market : null;
+    const head = '<div class="ph"><h1>Totem market</h1><span class="chip">Buying a Totem buys everything inside it</span></div>';
+
+    if (!market || market.source !== 'chain') {
+      root.innerHTML = head + '<div class="card" style="max-width:720px"><p style="margin:0"><strong>The market contract could not be reached.</strong></p><p class="muted" style="margin:8px 0 0">No listings are shown rather than listings that might not exist.</p></div>';
+      return;
+    }
+
+    const mine = T.holdings ? T.holdings.accountId : null;
+    const cards = market.listings.length
+      ? '<div class="grid g3">' + market.listings.map((l) => '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
+          '<div style="display:flex;gap:10px;align-items:center">' + T.svgTotem(4, 56) +
+          '<div><a href="#nft-' + esc(l.tokenId) + '" style="font-family:var(--serif);font-size:26px;line-height:1;text-decoration:none">Totem #' + esc(l.tokenId) + '</a><br>' +
+          '<span class="muted" style="font-size:13px">' + (l.seller === mine ? 'Listed by you' : 'Seller ' + esc(l.seller)) + '</span></div></div>' +
+          '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Price</span><strong>' + esc(l.priceNear) + ' NEAR</strong></div>' +
+          (l.seller === mine
+            ? '<button class="btn ghost" type="button" data-cancel="' + esc(l.id) + '">Cancel listing</button>'
+            : '<button class="btn" type="button" data-buy="' + esc(l.id) + '" data-price="' + esc(l.priceYocto) + '">Buy for ' + esc(l.priceNear) + ' NEAR</button>') +
+          '</div>').join('') + '</div>'
+      : '<div class="card" style="max-width:720px"><p style="margin:0"><strong>Nothing is listed right now.</strong></p><p class="muted" style="margin:8px 0 0">A Totem appears here once its owner approves the market and lists it.</p></div>';
+
+    root.innerHTML = head +
+      '<p style="font-size:18px;color:var(--body);max-width:720px;margin-bottom:22px">Every listing is read from ' + esc(market.contractId) + '. Buying sends NEAR to the seller and transfers the Totem, with royalties paid by the collection.</p>' +
+      cards +
+      '<p class="muted" style="font-size:13px;margin-top:22px">Read live from ' + esc(market.contractId) + ' on NEAR testnet. Check it yourself with the listings method.</p>';
+
+    // Buying is the buyer's own transaction: the market takes the deposit and moves the
+    // Totem. Totem holds no key that could spend on anyone's behalf.
+    $$('[data-buy]').forEach((button) => button.addEventListener('click', async () => {
+      if (!T.wallet.account()) { T.toast('Connect your NEAR wallet to buy'); const h = $('#connectBtn'); if (h) h.click(); return; }
+      button.setAttribute('aria-disabled', 'true');
+      const label = button.textContent;
+      button.textContent = 'Opening wallet...';
+      try {
+        const outcome = await T.wallet.signAndSendTransaction({
+          receiverId: market.contractId,
+          actions: [{ type: 'FunctionCall', params: { methodName: 'buy', args: { id: button.dataset.buy }, gas: '100000000000000', deposit: button.dataset.price } }]
+        });
+        T.toast('Bought. ' + (outcome && outcome.transaction ? outcome.transaction.hash : 'Check your wallet.'));
+        if (T.refreshHoldings) await T.refreshHoldings();
+        T.modules.market.enter();
+      } catch (error) {
+        T.toast(error && error.message ? error.message : 'The purchase was not sent');
+        button.removeAttribute('aria-disabled');
+        button.textContent = label;
+      }
+    }));
+
+    $$('[data-cancel]').forEach((button) => button.addEventListener('click', async () => {
+      button.setAttribute('aria-disabled', 'true');
+      try {
+        await T.wallet.signAndSendTransaction({
+          receiverId: market.contractId,
+          actions: [{ type: 'FunctionCall', params: { methodName: 'cancel', args: { id: button.dataset.cancel }, gas: '60000000000000', deposit: '0' } }]
+        });
+        T.toast('Listing cancelled.');
+        T.modules.market.enter();
+      } catch (error) {
+        T.toast(error && error.message ? error.message : 'The listing was not cancelled');
+        button.removeAttribute('aria-disabled');
+      }
+    }));
+  })();
 } };
 
 /* ======================= SEASON LEADERBOARD ======================= */

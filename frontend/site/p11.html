@@ -168,7 +168,7 @@ function fallback(q){ q = q.toLowerCase();
   if (/piece|lock|withdraw/.test(q)) return 'Every 25,000 $TOTEM you lock adds a piece. Four make a full Totem. Take tokens out and the top piece comes off.';
   if (/rent/.test(q)) return 'Renting gives you a limited NEAR key on someone else’s Totem. It can play and enter rooms, but can never withdraw, sell or transfer.';
   if (/arena/.test(q)) return 'Each community gets its own Arena with its own entry rule. Totem Arena is the first and the only live one right now.';
-  if (/free|claim|gas/.test(q)) return 'Claim a free starter with an email or passkey. A relayer pays the NEAR fee for you.';
+  if (/free|claim|gas/.test(q)) return 'Connect a NEAR wallet, then claim 25,000 $TOTEM from the faucet and a mint permit on the claim page.';
   if (/totem|token/.test(q)) return '$TOTEM is the flagship memecoin and the platform’s governance token. Totem NFTs hold it inside.';
   return 'Good question. Try Explore to search, or the Arenas page to see what’s live. I can explain pieces, rentals, Arenas or free claims.'; }
 function paintAgents(){

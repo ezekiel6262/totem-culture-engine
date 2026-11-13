@@ -156,9 +156,15 @@ async function paintWallet(){
   const chain = live.ok ? live.data.onChain : null;
   const operates = Boolean(live.ok && live.data.operator);
   T.holdings = chain && chain.source === 'chain' ? Object.assign({ accountId: account, operator: operates }, chain) : null;
-  // Only an operator needs the Arena's settings, so only an operator fetches them.
-  const arenaResponse = operates ? await T.api.get('/arenas/totem') : null;
+  // Only an operator needs the Arena's settings, so only an operator fetches them. The
+  // Totem's own record is fetched whenever this wallet owns one, because a balance and a
+  // token id are not holdings detail, they are the absence of it.
+  const [arenaResponse, nftResponse] = await Promise.all([
+    operates ? T.api.get('/arenas/totem') : Promise.resolve(null),
+    chain && chain.totemTokenId ? T.api.get('/nfts/' + encodeURIComponent(chain.totemTokenId)) : Promise.resolve(null)
+  ]);
   const arena = arenaResponse && arenaResponse.ok ? arenaResponse.data.arena : null;
+  const nft = nftResponse && nftResponse.ok && nftResponse.data.nft.exists ? nftResponse.data.nft : null;
   const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
   const rows = ledger.ok ? ledger.data.ledger : [];
 
@@ -215,6 +221,31 @@ async function paintWallet(){
     '<span class="muted" style="font-size:12px">A prize is capped at 100,000 $TOTEM, one full Totem. Set a prize to 0 to stop paying for that placing.</span>' +
     '</div>';
 
+  // The Totem this wallet owns, from the collection: its branch, who may transfer it, and
+  // when it was minted. The profile used to show a token id and stop there.
+  let branch = null;
+  if (nft) { try { branch = JSON.parse(nft.extra || '{}').branch || null; } catch (error) { branch = null; } }
+  const minted = nft && nft.issuedAt ? new Date(Number(nft.issuedAt)).toLocaleDateString() : null;
+
+  const totemCard = !nft ? '' :
+    '<div class="card" style="display:flex;flex-direction:column;gap:12px;margin-top:14px">' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip g">Your Totem</span>' +
+    '<h3 style="font-size:26px;margin:0">' + esc(nft.title || ('Totem #' + nft.tokenId)) + '</h3></div>' +
+    '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">' + T.svgTotem(chain.pieces, 92) +
+    '<div class="grid" style="flex:1 1 320px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
+    [['Branch', branch ? esc(branch) : 'not set'],
+     ['Pieces', chain.pieces + ' of 4'],
+     ['Minted', minted || 'unknown'],
+     ['Token id', '#' + esc(nft.tokenId)]]
+      .map((d) => '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="muted" style="font-size:12px">' + d[0] + '</span><strong style="font-size:15px">' + d[1] + '</strong></div>').join('') +
+    '</div></div>' +
+    (nft.approvals.length
+      ? '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Approved to transfer</strong><br><span class="muted" style="font-size:13px">' + nft.approvals.map(esc).join(', ') + '</span></span></div>'
+      : '<span class="muted" style="font-size:13px">Nobody is approved to transfer this Totem.</span>') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small ghost" href="#nft-' + esc(nft.tokenId) + '">Public page</a><a class="btn small ghost" href="#arenas">Arenas it opens</a><a class="btn small ghost" href="#market">Market</a></div>' +
+    '<span class="muted" style="font-size:12px;font-family:var(--mono);word-break:break-all">' + esc(nft.contractId) + '</span>' +
+    '</div>';
+
   const activity = rows.length
     ? '<div class="card" style="margin-top:14px"><span class="muted" style="font-size:13px">Activity on the server</span>' +
       rows.map((row) => '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px"><span>' + esc(row.title) + '</span><strong style="color:' + (row.tone === 'e' ? 'var(--ember-ink)' : 'var(--green-ink)') + '">' + esc(row.amount) + '</strong></div>').join('') + '</div>'
@@ -224,7 +255,7 @@ async function paintWallet(){
     '<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px">' +
     '<span style="font-family:var(--mono)">' + esc(account) + '</span>' +
     '<button class="btn ghost small" type="button" id="walletOut">Sign out</button></div>' +
-    onChainCard + operatorCard +
+    onChainCard + totemCard + operatorCard +
     '<div class="grid g3" style="margin-top:14px">' + cards + '</div>' + activity);
   if (!box) return;
 

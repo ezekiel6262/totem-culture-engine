@@ -584,7 +584,7 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <section class="page" data-route="claim" data-title="Claim free">
 <div class="wrap" style="padding-bottom:64px;max-width:880px">
 <div class="ph"><h1>Your first Totem, no gas</h1></div>
-<p style="font-size:18px;color:var(--body);margin-bottom:24px">Won a race but don’t have a wallet or NEAR? Sign in with email or a passkey. Totem pays the network fee for you, and the prize lands in a Totem you own.</p>
+<p style="font-size:18px;color:var(--body);margin-bottom:24px">Connect a NEAR wallet, then claim 25,000 $TOTEM from the faucet and a permit to mint your own Totem. Signing in is a gas free NEP-413 message, so it costs nothing and moves nothing.</p>
 <ol id="claimSteps" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px"></ol>
 </div>
 </section>
@@ -1763,35 +1763,95 @@ T.modules.rent = { enter: paintRent };
 T.setRentTab = (t) => { rtab = t; };
 
 /* =========================== CLAIM, GASLESS =========================== */
-let cStep = 0;
-function handle(){ const e = (S.email || 'player').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 16) || 'player'; return e + '.totemtest.testnet'; }
+// Claiming is two real things: the faucet sends $TOTEM, and a mint permit lets you mint a
+// Totem from your own wallet. Both happen here, in the page, against the live API.
+//
+// What this replaced: a four step wizard that asked for an email or a passkey, said
+// "Account created. You paid 0 NEAR", and then wrote an account name and a prize into this
+// browser. None of it reached a wallet or a chain. The email and passkey were never
+// implemented at all, so offering them was worse than not having them, and the wizard
+// staged a ceremony around a claim that now takes one press.
+function claimAccount(){ return T.wallet && T.wallet.account ? T.wallet.account() : null; }
+
 function paintClaim(){
-  const pending = S.pendingCoins || 0, prize = S.pendingPrize;
-  const steps = [
-    { t: 'Sign in', body: '<label class="f">Email<input type="text" id="cEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" value="' + (S.email || '') + '"></label><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="button" id="cEmailBtn">Continue with email</button><button class="btn ghost" type="button" id="cPass">Use a passkey</button></div>' },
-    { t: 'Create your account', body: '<p>Your NEAR account will be <strong style="font-family:var(--mono);font-size:15px">' + handle() + '</strong>.</p><div class="door"><span>Network fee</span><strong>Paid by the Totem relayer</strong></div><button class="btn" type="button" id="cCreate">Create account</button>' },
-    { t: 'Claim your prize', body: '<div class="door" style="background:#FFFBE0;border-color:#000"><span>' + (prize ? 'Prize' : 'Starter') + '</span><strong>' + (prize ? 'A Totem with 25,000 $TOTEM inside' : 'An empty Totem shell to fill') + '</strong></div>' + (pending ? '<div class="door"><span>Coins from your race</span><strong>' + T.fmt(pending) + ' $TOTEM</strong></div>' : '') + '<button class="btn green" type="button" id="cClaim">Claim to my account</button>' },
-    { t: 'You own a Totem', body: '<p>It lives at its own account. Tokens, items and future prizes go inside it.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#totem">See my Totem</a><a class="btn ghost" href="#arena">Back to the island</a></div>' }
-  ];
-  $('#claimSteps').innerHTML = steps.map((s, i) => {
-    const st = i < cStep ? 'done' : i === cStep ? 'now' : 'next';
-    return '<li class="card' + (st === 'now' ? ' ink' : '') + '" style="display:flex;flex-direction:column;gap:12px;' + (st === 'next' ? 'opacity:.55' : '') + '"><div style="display:flex;gap:12px;align-items:center"><span style="width:34px;height:34px;flex-shrink:0;border-radius:999px;border:1.5px solid #000;display:flex;align-items:center;justify-content:center;font-weight:600;background:' + (st === 'done' ? '#00B97F' : st === 'now' ? '#000' : '#fff') + ';color:' + (st === 'now' ? '#fff' : '#000') + '">' + (st === 'done' ? '✓' : i + 1) + '</span><h2 style="font-size:28px;line-height:1.1">' + s.t + '</h2></div>' + (st === 'now' ? s.body : '') + '</li>';
-  }).join('');
-  const on = (id, fn) => { const el = $('#' + id); if (el) el.addEventListener('click', fn); };
-  on('cEmailBtn', () => { const v = $('#cEmail').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { T.toast('Enter an email like you@example.com'); return; } S.email = v; T.save(); cStep = 1; paintClaim(); });
-  on('cPass', () => { S.email = S.email || 'player@passkey'; T.save(); cStep = 1; paintClaim(); });
-  on('cCreate', () => { cStep = 2; paintClaim(); T.toast('Account created. You paid 0 NEAR.'); });
-  on('cClaim', () => {
-    // This used to set S.connected itself and invent a prize Totem and a $TOTEM balance, so
-    // a visitor appeared to have an account and holdings that existed in no wallet and on no
-    // chain. Claiming now goes through the real wallet, and the real faucet and mint permit
-    // on the profile, which move actual tokens.
-    const header = $('#connectBtn'); if (header) header.click();
-    S.pendingCoins = 0; S.pendingPrize = false; T.save(); cStep = 3; paintClaim();
-    const b = $('#connectBtn'); if (b) b.textContent = S.account;
-  });
+  const root = $('#claimSteps');
+  if (!root) return;
+  const account = claimAccount();
+  const held = T.holdings;
+
+  if (!account) {
+    root.innerHTML = '<li class="card ink" style="display:flex;flex-direction:column;gap:14px;list-style:none">' +
+      '<h2 style="font-size:32px;margin:0">Claiming needs a NEAR wallet</h2>' +
+      '<p style="margin:0;color:var(--body)">Signing in is a gas free NEP-413 message, not a transaction. It costs nothing and moves nothing. Totem never holds your key.</p>' +
+      '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' +
+      '<div class="door"><span><strong>25,000 $TOTEM</strong><br><span class="muted" style="font-size:13px">One piece, from the faucet</span></span></div>' +
+      '<div class="door"><span><strong>A Totem</strong><br><span class="muted" style="font-size:13px">Totem signs the permit, you mint it</span></span></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="cConnect">Connect a NEAR wallet</button><a class="btn ghost" href="#explore">What is on Totem</a></div>' +
+      '</li>';
+    const connect = $('#cConnect');
+    if (connect) connect.addEventListener('click', () => { const header = $('#connectBtn'); if (header) header.click(); });
+    return;
+  }
+
+  const balance = held && held.source === 'chain' ? Number(held.balanceWhole) : null;
+  const totemId = held ? held.totemTokenId : null;
+
+  root.innerHTML = '<li class="card" style="display:flex;flex-direction:column;gap:14px;list-style:none">' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip g">Signed in</span><span class="muted" style="font-family:var(--mono);font-size:13px">' + esc(account) + '</span></div>' +
+    (balance === null
+      ? '<p class="muted" style="margin:0">NEAR could not be reached, so your holdings are not shown. Nothing is guessed here.</p>'
+      : '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">' +
+        '<div class="door"><span><strong>' + T.fmt(balance) + ' $TOTEM</strong><br><span class="muted" style="font-size:13px">held on chain</span></span></div>' +
+        '<div class="door"><span><strong>' + (totemId ? 'Totem #' + esc(totemId) : 'No Totem yet') + '</strong><br><span class="muted" style="font-size:13px">' + (totemId ? 'minted to this wallet' : 'claim a permit, then mint') + '</span></span></div>' +
+        '</div>') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn green" type="button" id="cFaucet">Claim 25,000 $TOTEM</button>' +
+    (totemId ? '' : '<button class="btn" type="button" id="cPermit">Claim a mint permit</button><button class="btn ghost" type="button" id="cMint">Mint my Totem</button>') +
+    '<a class="btn ghost" href="#profile">Open profile</a></div>' +
+    '<span class="muted" style="font-size:13px">The faucet sends one piece, the smallest amount a one piece Arena accepts. The permit is signed by Totem; the mint is signed by you, from your own wallet.</span>' +
+    '</li>';
+
+  const press = async (button, run) => {
+    if (!button || button.getAttribute('aria-disabled') === 'true') return;
+    const label = button.textContent;
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = 'Working...';
+    try {
+      await run();
+      if (T.refreshHoldings) await T.refreshHoldings();
+      paintClaim();
+    } catch (error) {
+      T.toast(error && error.message ? error.message : 'That did not work');
+      button.removeAttribute('aria-disabled');
+      button.textContent = label;
+    }
+  };
+
+  const faucet = $('#cFaucet');
+  if (faucet) faucet.addEventListener('click', () => press(faucet, async () => {
+    const result = await window.totemApi.request('/api/v1/claims/tokens', { authenticated: true, method: 'POST', body: JSON.stringify({}) });
+    T.toast(result.alreadyGranted ? 'This account already claimed from the faucet.' : 'Sent ' + T.fmt(result.whole) + ' $TOTEM. ' + result.transactionHash);
+  }));
+
+  const permit = $('#cPermit');
+  if (permit) permit.addEventListener('click', () => press(permit, async () => {
+    const result = await window.totemApi.request('/api/v1/claims/eligibility', { authenticated: true, method: 'POST', body: JSON.stringify({}) });
+    T.toast(result.alreadyGranted ? 'You already have a permit. Press Mint my Totem.' : 'Permit ' + result.number + ' of 1000. ' + result.remaining + ' left. Now press Mint my Totem.');
+  }));
+
+  const mint = $('#cMint');
+  if (mint) mint.addEventListener('click', () => press(mint, async () => {
+    const outcome = await T.wallet.signAndSendTransaction({
+      receiverId: (held && held.nftContractId) || 'nft.totemtest.testnet',
+      actions: [{ type: 'FunctionCall', params: { methodName: 'mint', args: {}, gas: '60000000000000', deposit: '100000000000000000000000' } }]
+    });
+    T.toast('Minted. ' + (outcome && outcome.transaction ? outcome.transaction.hash : 'Check your wallet.'));
+  }));
 }
-T.modules.claim = { enter(){ cStep = S.connected && !S.pendingPrize && !S.pendingCoins ? 3 : 0; paintClaim(); } };
+
+T.modules.claim = { enter(){ paintClaim(); if (T.refreshHoldings) T.refreshHoldings().then(paintClaim); } };
+document.addEventListener('totem:session', () => { if (location.hash.indexOf('claim') !== -1) paintClaim(); });
 
 /* =========================== MULTICHAIN CARD ON TOTEM ACCOUNT =========================== */
 const baseTotem = T.modules.totem;
@@ -2102,7 +2162,7 @@ $('#shareSave').addEventListener('click', async () => {
 const TOUR = [
   ['home', 'Totem in one line', 'Token communities launch NFTs that hold their token. The NFT is an account: it holds money, earns, carries items and opens rooms. $TOTEM is the first culture on the platform.', null],
   ['explore', 'Explore', 'Live tokens, NFTs with live tokens, trending Arenas and free ways to earn, all searchable.', null],
-  ['claim', 'No wallet? No problem.', 'A new player signs in with email or a passkey. A relayer pays the NEAR fee, so the first Totem is free to claim.', 'claim'],
+  ['claim', 'Claim $TOTEM and a Totem', 'Connect a NEAR wallet. The faucet sends 25,000 $TOTEM, and a mint permit lets you mint a Totem from your own wallet.', 'claim'],
   ['arenas', 'Pick an Arena', 'Every community gets its own Arena with its own entry rule. Totem Arena is the first and only live one. Entry is checked against your NFT.', 'enter'],
   ['arena', 'The Arena is a 3D island', 'Each venue is a game: Meme Kart, Paint the Island, Ritual Raid, Vault Heist and more. Builders can attach their own games.', null],
   ['rent', 'Rent a full Totem', 'Borrow a full Totem with a limited NEAR key. It can play and enter rooms. It can never withdraw, sell or transfer.', 'rent'],
@@ -2136,20 +2196,11 @@ $('#tourChain').addEventListener('click', () => {
   $('#chainDrawer').classList.add('open');
 });
 
-/* ======================= DATA FOR NFT PAGES AND MARKET ======================= */
-const NFTS = {
-  '0417': () => ({ owner: S.account, pieces: S.pieces, items: ['Gold Wings', 'Red Moon relic', 'Vault key'].concat(S.items || []), creds: ['Founding mark', 'Raid squad'].concat(S.prizes.filter((p) => !/^Prize Totem/.test(p))), race: S.ghostT ? fmtT(S.ghostT) : 'No race yet', rent: S.listing ? 'Listed for rent' : 'Not listed', mine: true }),
-  '1201': () => ({ owner: 'kofi.testnet', pieces: 4, items: ['Gold Wings', 'Ember Crown'], creds: ['Meme Kart champion'], race: '1:38.2', rent: 'For rent, 2 NEAR per race' }),
-  '0088': () => ({ owner: 'weaver.testnet', pieces: 4, items: ['Kente Wings'], creds: ['Item maker'], race: '1:44.9', rent: 'For rent, 1.5 NEAR per race' }),
-  '0533': () => ({ owner: 'tunde.testnet', pieces: 3, items: ['Vault key'], creds: ['Raid leader'], race: '1:51.0', rent: 'For rent, 1 NEAR per race' }),
-  '2140': () => ({ owner: 'sol:4kQ..9z', pieces: 4, items: ['Island flag'], creds: ['Arrived via Intents'], race: '1:47.3', rent: 'For rent, 2.5 NEAR per race' }),
-  '0731': () => ({ owner: 'ife.testnet', pieces: 2, items: [], creds: [], race: 'No race yet', rent: 'Not listed' }),
-  '1999': () => ({ owner: 'moremi.testnet', pieces: 4, items: ['Ember Crown', 'Harbor hat'], creds: ['Hold the Line finisher'], race: '1:41.6', rent: 'Not listed' }),
-  '0062': () => ({ owner: 'zeal.testnet', pieces: 1, items: [], creds: [], race: 'No race yet', rent: 'Not listed' })
-};
-function fmtT(ms){ const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); }
-T.nftData = NFTS;
-const MARKET = [{ id: '0731', price: 9 }, { id: '1999', price: 26 }, { id: '0062', price: 4.5 }];
+/* ======================= DATA FOR NFT PAGES AND MARKET =======================
+   Removed. This held six invented Totems owned by accounts that do not exist, with lap
+   times and rental prices, plus three market listings at invented prices. The Totem page
+   reads nft_token from the collection and the market reads the market contract, so there
+   is nothing left for a fixture to stand in for. */
 
 /* ======================= PUBLIC NFT PAGE ======================= */
 // The public Totem page reads the collection. It was served from a map of six invented
@@ -2209,17 +2260,76 @@ T.modules.nft = { enter(){
 } };
 
 /* ======================= MARKET ======================= */
+// The market reads the market contract. It was three invented Totems at invented prices,
+// priced in NEAR, sold by nobody, and buying one pushed a string into this browser.
 T.modules.market = { enter(){
   const root = $('#marketRoot');
-  const avail = MARKET.filter((m) => !S.bought.some((b) => b.id === m.id));
-  root.innerHTML = '<div class="ph"><h1>Totem market</h1><span class="chip">Buying a Totem buys everything inside it</span></div>' +
-    '<p style="font-size:18px;color:var(--body);max-width:720px;margin-bottom:22px">Every listing shows what the NFT holds next to its price, so you can see the floor before you buy.</p>' +
-    '<div class="grid g3">' + (avail.length ? avail.map((m) => { const f = NFTS[m.id](); return '<div class="card" style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;gap:16px;align-items:center">' + T.svgTotem(f.pieces, 64, f.items.some((i) => /Wings/.test(i)) ? 'wings' : '') + '<div><a href="#nft-' + m.id + '" style="font-family:var(--serif);font-size:30px;line-height:1;text-decoration:none">Totem #' + m.id + '</a><br><span class="muted" style="font-size:13px">' + esc(f.owner) + '</span></div></div>' +
-      '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Holds inside</span><strong>' + T.fmt(f.pieces * 25000) + ' $TOTEM</strong></div><div class="door"><span>Items</span><span>' + (f.items.join(', ') || 'None') + '</span></div>' +
-      '<button class="btn" type="button" data-buy="' + m.id + '">Buy for ' + m.price + ' NEAR</button></div>'; }).join('') : '<div class="card">All demo listings are sold. Your purchases are in your Profile.</div>') + '</div>' +
-    '<div class="card" style="margin-top:22px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center"><span><strong>Sell Totem #0417</strong><br><span class="muted" style="font-size:14px">The buyer gets its ' + T.fmt(S.pieces * 25000) + ' $TOTEM, Gold Wings, credentials and future royalties.</span></span><button class="btn ghost" type="button" id="sellMine">List Totem #0417</button></div>';
-  $$('[data-buy]').forEach((b) => b.addEventListener('click', () => { const m = MARKET.find((x) => x.id === b.dataset.buy); const f = NFTS[m.id](); S.bought.push({ id: m.id, pieces: f.pieces }); T.log('Bought Totem #' + m.id, '-' + m.price + ' NEAR', 'e'); T.save(); T.calls.buy(m.id, m.price); T.sfx('win'); T.toast('Totem #' + m.id + ' is yours, with ' + T.fmt(f.pieces * 25000) + ' $TOTEM inside'); T.modules.market.enter(); }));
-  $('#sellMine').addEventListener('click', () => { T.chain('List Totem #0417 for sale', [{ receiver: 'market.totemtest.testnet', method: 'list', args: { token_id: '0417', price: '30 NEAR' } }]); T.toast('Listed in demo mode. Shown in the onchain log.'); });
+  root.innerHTML = '<div class="ph"><h1>Totem market</h1></div><p class="muted">Reading the market contract...</p>';
+  (async () => {
+    const response = await T.api.get('/market/onchain');
+    const market = response.ok ? response.data.market : null;
+    const head = '<div class="ph"><h1>Totem market</h1><span class="chip">Buying a Totem buys everything inside it</span></div>';
+
+    if (!market || market.source !== 'chain') {
+      root.innerHTML = head + '<div class="card" style="max-width:720px"><p style="margin:0"><strong>The market contract could not be reached.</strong></p><p class="muted" style="margin:8px 0 0">No listings are shown rather than listings that might not exist.</p></div>';
+      return;
+    }
+
+    const mine = T.holdings ? T.holdings.accountId : null;
+    const cards = market.listings.length
+      ? '<div class="grid g3">' + market.listings.map((l) => '<div class="card" style="display:flex;flex-direction:column;gap:10px">' +
+          '<div style="display:flex;gap:10px;align-items:center">' + T.svgTotem(4, 56) +
+          '<div><a href="#nft-' + esc(l.tokenId) + '" style="font-family:var(--serif);font-size:26px;line-height:1;text-decoration:none">Totem #' + esc(l.tokenId) + '</a><br>' +
+          '<span class="muted" style="font-size:13px">' + (l.seller === mine ? 'Listed by you' : 'Seller ' + esc(l.seller)) + '</span></div></div>' +
+          '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Price</span><strong>' + esc(l.priceNear) + ' NEAR</strong></div>' +
+          (l.seller === mine
+            ? '<button class="btn ghost" type="button" data-cancel="' + esc(l.id) + '">Cancel listing</button>'
+            : '<button class="btn" type="button" data-buy="' + esc(l.id) + '" data-price="' + esc(l.priceYocto) + '">Buy for ' + esc(l.priceNear) + ' NEAR</button>') +
+          '</div>').join('') + '</div>'
+      : '<div class="card" style="max-width:720px"><p style="margin:0"><strong>Nothing is listed right now.</strong></p><p class="muted" style="margin:8px 0 0">A Totem appears here once its owner approves the market and lists it.</p></div>';
+
+    root.innerHTML = head +
+      '<p style="font-size:18px;color:var(--body);max-width:720px;margin-bottom:22px">Every listing is read from ' + esc(market.contractId) + '. Buying sends NEAR to the seller and transfers the Totem, with royalties paid by the collection.</p>' +
+      cards +
+      '<p class="muted" style="font-size:13px;margin-top:22px">Read live from ' + esc(market.contractId) + ' on NEAR testnet. Check it yourself with the listings method.</p>';
+
+    // Buying is the buyer's own transaction: the market takes the deposit and moves the
+    // Totem. Totem holds no key that could spend on anyone's behalf.
+    $$('[data-buy]').forEach((button) => button.addEventListener('click', async () => {
+      if (!T.wallet.account()) { T.toast('Connect your NEAR wallet to buy'); const h = $('#connectBtn'); if (h) h.click(); return; }
+      button.setAttribute('aria-disabled', 'true');
+      const label = button.textContent;
+      button.textContent = 'Opening wallet...';
+      try {
+        const outcome = await T.wallet.signAndSendTransaction({
+          receiverId: market.contractId,
+          actions: [{ type: 'FunctionCall', params: { methodName: 'buy', args: { id: button.dataset.buy }, gas: '100000000000000', deposit: button.dataset.price } }]
+        });
+        T.toast('Bought. ' + (outcome && outcome.transaction ? outcome.transaction.hash : 'Check your wallet.'));
+        if (T.refreshHoldings) await T.refreshHoldings();
+        T.modules.market.enter();
+      } catch (error) {
+        T.toast(error && error.message ? error.message : 'The purchase was not sent');
+        button.removeAttribute('aria-disabled');
+        button.textContent = label;
+      }
+    }));
+
+    $$('[data-cancel]').forEach((button) => button.addEventListener('click', async () => {
+      button.setAttribute('aria-disabled', 'true');
+      try {
+        await T.wallet.signAndSendTransaction({
+          receiverId: market.contractId,
+          actions: [{ type: 'FunctionCall', params: { methodName: 'cancel', args: { id: button.dataset.cancel }, gas: '60000000000000', deposit: '0' } }]
+        });
+        T.toast('Listing cancelled.');
+        T.modules.market.enter();
+      } catch (error) {
+        T.toast(error && error.message ? error.message : 'The listing was not cancelled');
+        button.removeAttribute('aria-disabled');
+      }
+    }));
+  })();
 } };
 
 /* ======================= SEASON LEADERBOARD ======================= */
@@ -2468,7 +2578,7 @@ function fallback(q){ q = q.toLowerCase();
   if (/piece|lock|withdraw/.test(q)) return 'Every 25,000 $TOTEM you lock adds a piece. Four make a full Totem. Take tokens out and the top piece comes off.';
   if (/rent/.test(q)) return 'Renting gives you a limited NEAR key on someone else’s Totem. It can play and enter rooms, but can never withdraw, sell or transfer.';
   if (/arena/.test(q)) return 'Each community gets its own Arena with its own entry rule. Totem Arena is the first and the only live one right now.';
-  if (/free|claim|gas/.test(q)) return 'Claim a free starter with an email or passkey. A relayer pays the NEAR fee for you.';
+  if (/free|claim|gas/.test(q)) return 'Connect a NEAR wallet, then claim 25,000 $TOTEM from the faucet and a mint permit on the claim page.';
   if (/totem|token/.test(q)) return '$TOTEM is the flagship memecoin and the platform’s governance token. Totem NFTs hold it inside.';
   return 'Good question. Try Explore to search, or the Arenas page to see what’s live. I can explain pieces, rentals, Arenas or free claims.'; }
 function paintAgents(){
@@ -2990,9 +3100,15 @@ async function paintWallet(){
   const chain = live.ok ? live.data.onChain : null;
   const operates = Boolean(live.ok && live.data.operator);
   T.holdings = chain && chain.source === 'chain' ? Object.assign({ accountId: account, operator: operates }, chain) : null;
-  // Only an operator needs the Arena's settings, so only an operator fetches them.
-  const arenaResponse = operates ? await T.api.get('/arenas/totem') : null;
+  // Only an operator needs the Arena's settings, so only an operator fetches them. The
+  // Totem's own record is fetched whenever this wallet owns one, because a balance and a
+  // token id are not holdings detail, they are the absence of it.
+  const [arenaResponse, nftResponse] = await Promise.all([
+    operates ? T.api.get('/arenas/totem') : Promise.resolve(null),
+    chain && chain.totemTokenId ? T.api.get('/nfts/' + encodeURIComponent(chain.totemTokenId)) : Promise.resolve(null)
+  ]);
   const arena = arenaResponse && arenaResponse.ok ? arenaResponse.data.arena : null;
+  const nft = nftResponse && nftResponse.ok && nftResponse.data.nft.exists ? nftResponse.data.nft : null;
   const ledger = await T.api.get('/accounts/' + encodeURIComponent(account) + '/ledger?limit=6');
   const rows = ledger.ok ? ledger.data.ledger : [];
 
@@ -3049,6 +3165,31 @@ async function paintWallet(){
     '<span class="muted" style="font-size:12px">A prize is capped at 100,000 $TOTEM, one full Totem. Set a prize to 0 to stop paying for that placing.</span>' +
     '</div>';
 
+  // The Totem this wallet owns, from the collection: its branch, who may transfer it, and
+  // when it was minted. The profile used to show a token id and stop there.
+  let branch = null;
+  if (nft) { try { branch = JSON.parse(nft.extra || '{}').branch || null; } catch (error) { branch = null; } }
+  const minted = nft && nft.issuedAt ? new Date(Number(nft.issuedAt)).toLocaleDateString() : null;
+
+  const totemCard = !nft ? '' :
+    '<div class="card" style="display:flex;flex-direction:column;gap:12px;margin-top:14px">' +
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip g">Your Totem</span>' +
+    '<h3 style="font-size:26px;margin:0">' + esc(nft.title || ('Totem #' + nft.tokenId)) + '</h3></div>' +
+    '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">' + T.svgTotem(chain.pieces, 92) +
+    '<div class="grid" style="flex:1 1 320px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' +
+    [['Branch', branch ? esc(branch) : 'not set'],
+     ['Pieces', chain.pieces + ' of 4'],
+     ['Minted', minted || 'unknown'],
+     ['Token id', '#' + esc(nft.tokenId)]]
+      .map((d) => '<div class="door" style="flex-direction:column;align-items:flex-start;gap:4px"><span class="muted" style="font-size:12px">' + d[0] + '</span><strong style="font-size:15px">' + d[1] + '</strong></div>').join('') +
+    '</div></div>' +
+    (nft.approvals.length
+      ? '<div class="door" style="background:var(--green-tint);border-color:transparent"><span><strong>Approved to transfer</strong><br><span class="muted" style="font-size:13px">' + nft.approvals.map(esc).join(', ') + '</span></span></div>'
+      : '<span class="muted" style="font-size:13px">Nobody is approved to transfer this Totem.</span>') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small ghost" href="#nft-' + esc(nft.tokenId) + '">Public page</a><a class="btn small ghost" href="#arenas">Arenas it opens</a><a class="btn small ghost" href="#market">Market</a></div>' +
+    '<span class="muted" style="font-size:12px;font-family:var(--mono);word-break:break-all">' + esc(nft.contractId) + '</span>' +
+    '</div>';
+
   const activity = rows.length
     ? '<div class="card" style="margin-top:14px"><span class="muted" style="font-size:13px">Activity on the server</span>' +
       rows.map((row) => '<div style="display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:8px;margin-top:8px"><span>' + esc(row.title) + '</span><strong style="color:' + (row.tone === 'e' ? 'var(--ember-ink)' : 'var(--green-ink)') + '">' + esc(row.amount) + '</strong></div>').join('') + '</div>'
@@ -3058,7 +3199,7 @@ async function paintWallet(){
     '<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:14px">' +
     '<span style="font-family:var(--mono)">' + esc(account) + '</span>' +
     '<button class="btn ghost small" type="button" id="walletOut">Sign out</button></div>' +
-    onChainCard + operatorCard +
+    onChainCard + totemCard + operatorCard +
     '<div class="grid g3" style="margin-top:14px">' + cards + '</div>' + activity);
   if (!box) return;
 

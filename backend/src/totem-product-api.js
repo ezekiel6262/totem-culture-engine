@@ -70,6 +70,7 @@ export function createProductRouter({ product, auth = null, intents = null }) {
 
     /* arenas */
     // What this deployment actually is, read from the contracts.
+    route('GET', '/api/v1/market/onchain', async ({ url }) => ({ market: await product.marketListings({ limit: Number(url.searchParams.get('limit') ?? 24) }) })),
     route('GET', '/api/v1/nfts/:id', async ({ params }) => ({ nft: await product.nftToken(params.id) })),
     route('GET', '/api/v1/platform', async () => ({ platform: await product.platformSummary() })),
     route('GET', '/api/v1/arenas', async () => ({ arenas: await product.listArenas() })),
