@@ -1,0 +1,54 @@
+[
+  {
+    "n": 1,
+    "text": "Memecoins and N F Ts run on the same fuel: culture. But they live apart. A memecoin is a number in a wallet. An N F T is a picture you hope somebody wants. Neither remembers what you did with it."
+  },
+  {
+    "n": 2,
+    "text": "Totem puts them in one object. You lock memecoins inside an N F T, and the N F T becomes an account that holds them."
+  },
+  {
+    "n": 3,
+    "text": "This is Totem number one, live on NEAR. Twenty five thousand TOTEM is held inside the N F T itself. Not a trait, not metadata. A real balance, held by the token."
+  },
+  {
+    "n": 4,
+    "text": "Its owner's wallet separately holds nearly three hundred million, and that gives this Totem nothing."
+  },
+  {
+    "n": 5,
+    "text": "Locking is one transaction. The contract credits the tokens to your Totem. Only the owner can withdraw, and it costs one yocto NEAR, so no app key can do it for you."
+  },
+  {
+    "n": 6,
+    "text": "That balance is what the Arena reads. Every community gets an Arena: its own games, entry rule and prizes. Here, the rule is to own a Totem with one piece or more. The gate does not ask your wallet. It asks your Totem."
+  },
+  {
+    "n": 7,
+    "text": "Inside, it is meme culture doing what meme culture does. Meme Kart. Paint the Island. Hold the Line. Play, and the prize pays from a real prize account on NEAR."
+  },
+  {
+    "n": 8,
+    "text": "The cap on those prizes is enforced by the contract, not by a promise. Ask for more and it refuses. No receipt, nothing moves."
+  },
+  {
+    "n": 9,
+    "text": "Explore reads the chain rather than a database. Tokens, Totems, arenas and players, live."
+  },
+  {
+    "n": 10,
+    "text": "Organisers are not locked out. The Arena names its operator on chain, and that account gets a console to adjust rewards, and switch games and quests on and off."
+  },
+  {
+    "n": 11,
+    "text": "The launchpad is live. It stores the collection template on chain and deploys it onto a fresh account, so a community can launch in a single call."
+  },
+  {
+    "n": 12,
+    "text": "Totem Founders was launched through it, with the same code hash as the collection you just saw."
+  },
+  {
+    "n": 13,
+    "text": "Five contracts on NEAR testnet. Every hash published. Every claim checkable. Totem. N F Ts that hold the meme."
+  }
+]

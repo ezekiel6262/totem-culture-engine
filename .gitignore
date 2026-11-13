@@ -8,3 +8,6 @@ outputs/
 .env
 .env.*
 !.env.example
+
+# the rendered demo video, kept out of git: it is 21MB and is uploaded, not cloned
+media/*.mp4

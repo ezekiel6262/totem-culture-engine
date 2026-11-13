@@ -16,7 +16,7 @@
 <button id="chainBtn" type="button" aria-controls="chainDrawer" aria-expanded="false">Onchain<b id="chainN">0</b></button>
 <div class="drawer" id="chainDrawer" role="dialog" aria-label="What happens onchain">
 <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2 style="font-size:34px">What happens onchain</h2><button class="btn small ghost" type="button" id="chainClose">Close</button></div>
-<p class="muted" style="font-size:14px;margin-top:4px">Every action in this demo shows the NEAR call it would make. Contract names are planned. Nothing is sent from this preview.</p>
+<p class="muted" style="font-size:14px;margin-top:4px">Every action here shows the NEAR call behind it, against the contracts that are live on testnet. The ones you sign in your wallet are sent; the ones marked otherwise are not.</p>
 <div id="chainList"></div>
 </div>
 <div id="tour" role="dialog" aria-label="Guided tour" aria-live="polite">
@@ -59,7 +59,7 @@ function renderCalls(){
     c.steps.map((s) => '<span class="muted" style="font-size:13px">' + esc(s.who || ('Signed by ' + (S.connected ? S.account : 'your wallet'))) + '</span>' +
       '<span class="chip' + (isLive(s.receiver, s.method) ? ' g' : '') + '" style="font-size:11px">' + (isLive(s.receiver, s.method) ? 'deployed on testnet' : 'not deployed yet') + '</span>' +
       '<code>' + esc(s.receiver) + ' . ' + esc(s.method) + '(' + esc(JSON.stringify(s.args, null, 2)) + ')' + (s.deposit ? '\nattached deposit: ' + esc(s.deposit) : '') + '</code>').join('') + '</div>').join('')
-    : '<p class="muted" style="margin-top:14px">Do something on the site and its NEAR call appears here. Each step says whether it hits a contract deployed on testnet. Piece locking is recorded by the Totem API, not by an on-chain hook.</p>';
+    : '<p class="muted" style="margin-top:14px">Do something on the site and its NEAR call appears here, with the contract it goes to. Locking a piece is a real ft_transfer_call to token.totemtest.testnet, which the collection receives and credits to your Totem.</p>';
 }
 T.chain = function(title, steps, quiet){
   calls.unshift({ title, steps, when: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
