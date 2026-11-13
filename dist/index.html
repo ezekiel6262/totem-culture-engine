@@ -940,7 +940,10 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { run
 const T = window.TOTEM; const { $, $$, S } = T;
 
 /* ---------- arenas directory ---------- */
-function meets(){ const need = S.entryPieces || 1; return S.pieces >= need || (!!S.rented && S.rented.pieces >= need) || (need <= 1 && S.prizes.some((p) => /^Prize Totem/.test(p))); }
+// Qualification is what the chain says this wallet holds, not a stored counter. Nobody
+// qualifies before signing in, because until then there is no wallet to check.
+function meets(){ const need = (T.holdings && T.holdings.entryPieces) || S.entryPieces || 1; return Boolean(T.holdings) && T.holdings.pieces >= need; }
+function connected(){ return Boolean(T.holdings); }
 function paintArenas(){
   const ok = meets();
   $('#arenaList').innerHTML =
@@ -949,7 +952,7 @@ function paintArenas(){
     '<div style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px;min-width:0">' +
     '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="font-size:44px;line-height:1">Totem Arena</h2>' + (S.arenaPaused ? '<span class="chip e">Paused by operators</span>' : '<span class="chip g">Live, season 1</span>') + '<span class="chip">Flagship</span></div>' +
     '<p style="color:var(--body)">Meme Kart, Paint the Island, Hold the Line and more on the Totem island. Prizes are Totem NFTs with $TOTEM already inside.</p>' +
-    '<div class="door" style="background:var(--soft);border-color:var(--soft)"><span>Entry rule, set by the Totem team<br><strong>' + ((S.entryPieces || 1) >= 4 ? 'Own a full Totem' : 'Own a Totem with ' + (S.entryPieces || 1) + ' piece' + ((S.entryPieces || 1) > 1 ? 's' : '') + ' or more') + '</strong></span><span class="chip ' + (ok ? 'g' : 'e') + '">' + (ok ? 'You qualify' : 'Not yet') + '</span></div>' +
+    '<div class="door" style="background:var(--soft);border-color:var(--soft)"><span>Entry rule, set by the Totem team<br><strong>' + ((S.entryPieces || 1) >= 4 ? 'Own a full Totem' : 'Own a Totem with ' + (S.entryPieces || 1) + ' piece' + ((S.entryPieces || 1) > 1 ? 's' : '') + ' or more') + '</strong></span><span class="chip ' + (ok ? 'g' : 'e') + '">' + (ok ? 'You qualify' : connected() ? 'Not yet' : 'Connect to check') + '</span></div>' +
     (S.arenaPaused ? '<p class="muted">The Totem team paused this Arena. Entry reopens when it goes live again.</p>' : ok ? '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="enterTotem">' + (S.arena === 'totem' ? 'Return to Totem Arena' : 'Enter Totem Arena') + '</button>' + (S.arena === 'totem' ? '<button class="btn ghost" type="button" id="leaveTotem">Leave this Arena</button>' : '') + '</div>'
         : '<p class="muted" style="font-size:14px">The Totem team allows three ways in:</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#lock">Lock $TOTEM into a Totem</a><a class="btn ghost" href="#rent">Rent a Totem</a><a class="btn ghost" href="#claim">Claim a free starter</a></div>') +
     '</div></div>' +
@@ -1005,8 +1008,23 @@ function paintLock(){
   const doors = [['Holder room', '1 piece', 1], ['Treasury room', '3 pieces', 3], ['Arena finals', 'Full Totem', 4]];
   $('#doors').innerHTML = doors.map((d) => '<div class="door"><span>' + d[0] + '<br><span class="muted" style="font-size:13px">' + d[1] + '</span></span><span class="chip ' + (n >= d[2] ? 'g' : '') + '">' + (n >= d[2] ? 'Open' : 'Locked') + '</span></div>').join('');
 }
-$('#addPiece').addEventListener('click', () => { if (S.pieces < 4 && S.wallet >= 25000) { S.pieces++; S.wallet -= 25000; T.log('Locked a piece', '+25,000 $TOTEM', 'g'); T.save(); paintLock(); T.toast('Piece added. 25,000 $TOTEM locked in Totem #0417'); } });
-$('#takePiece').addEventListener('click', () => { if (S.pieces > 0) { S.pieces--; S.wallet += 25000; T.log('Took a piece out', '-25,000 $TOTEM', 'e'); T.save(); paintLock(); T.toast('Piece removed. 25,000 $TOTEM back in your wallet'); } });
+// These used to move 25,000 $TOTEM between two numbers in this browser. Locking is
+// recorded by the Totem API against the Totem you actually own, which the profile shows
+// and which the Arena reads. It is a platform record rather than an on-chain hook, and the
+// page says so rather than implying a transfer happened.
+const piece = async (method, label) => {
+  const held = T.holdings;
+  if (!held) { T.toast('Connect your NEAR wallet first'); const b = document.querySelector('#connectBtn'); if (b) b.click(); return; }
+  if (!held.totemTokenId) { T.toast('Claim a Totem on your profile first'); location.hash = '#profile'; return; }
+  try {
+    await window.totemApi.request('/api/v1/totems/' + encodeURIComponent(held.totemTokenId) + '/pieces', { authenticated: true, method });
+    T.toast(label);
+    await T.refreshHoldings();
+    paintLock();
+  } catch (error) { T.toast(error && error.message ? error.message : 'That did not work'); }
+};
+$('#addPiece').addEventListener('click', () => piece('POST', 'Piece locked and recorded by the Totem API'));
+$('#takePiece').addEventListener('click', () => piece('DELETE', 'Piece released and recorded by the Totem API'));
 T.modules.lock = { enter: paintLock };
 
 /* ---------- totem account + 3D viewer ---------- */
@@ -2321,7 +2339,7 @@ function paintRaid(){
   on('rAgain', 'click', () => { clearInterval(raidTimer); raidReset(); paintRaid(); });
   const next = () => { T.sfx('piece'); T.chain('Raid step ' + (r.step + 1), [{ receiver: 'arena.totemtest.testnet', method: 'raid_step', args: { squad: 'kente', step: r.step + 1 } }]); r.step++; if (r.step >= 5) win(); paintRaid(); };
   const miss = (m) => { T.sfx('lose'); r.left = Math.max(0, r.left - 10); T.toast(m + ' Ten seconds lost.'); paintRaid(); };
-  const win = () => { r.done = true; clearInterval(raidTimer); if (S.pieces < 4) { S.pieces++; r.reward = 'A piece from the Totem treasury was added to Totem #0417. It now holds ' + T.fmt(S.pieces * 25000) + ' $TOTEM.'; T.log('Ritual Raid reward', '+1 piece', 'g'); } else { if (!S.prizes.includes('Raid credential')) S.prizes.push('Raid credential'); r.reward = 'Your Totem is full, so it gets the Raid credential instead.'; } T.save(); T.sfx('win'); };
+  const win = () => { r.done = true; clearInterval(raidTimer); r.reward = 'Collecting pays your Arena prize from the prize account to your wallet.'; T.collectPrize({ game: 'ritual-raid', place: 1, coins: 0 }); T.save(); T.sfx('win'); };
   const hold = $('#rHold'); if (hold) { let ht = 0; hold.addEventListener('pointerdown', (e) => { hold.setPointerCapture(e.pointerId); hold.textContent = 'Keep holding'; ht = setTimeout(() => { ht = 0; next(); }, 1200); }); ['pointerup', 'pointercancel'].forEach((ev) => hold.addEventListener(ev, () => { if (ht) { clearTimeout(ht); ht = 0; hold.textContent = 'Press and hold'; } })); }
   $$('[data-rp]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.rp; r.picks = r.picks.includes(i) ? r.picks.filter((x) => x !== i) : r.picks.concat(i).slice(-3); paintRaid(); }));
   on('rConfirm', 'click', () => { const ok = r.picks.length === 3 && [0, 1, 4].every((i) => r.picks.includes(i)); if (ok) next(); else { r.picks = []; miss('Those three don’t all carry the relic.'); } });
@@ -2379,7 +2397,7 @@ function paintFish(){
   const cast = $('#fCast'); if (cast) cast.addEventListener('click', () => { if (!S.fishCasts) return; S.fishCasts--; T.save(); const w = S.pieces >= 4 ? 0.2 : 0.12, s = 0.15 + Math.random() * (0.85 - w - 0.15); fish.zone = [s, s + w]; T.sfx('tap'); fish.phase = 'wait'; paintFish(); $('#fishRoot .door') ; setTimeout(() => { fish.phase = 'reel'; paintFish(); }, 900 + Math.random() * 1200); });
   const mk = $('#fMk'); if (mk) { const t0 = performance.now(); const loop = (now) => { fish.p = (Math.sin((now - t0) / 300) + 1) / 2; mk.style.left = (fish.p * 98) + '%'; fish.raf = requestAnimationFrame(loop); }; fish.raf = requestAnimationFrame(loop);
     $('#fReel').addEventListener('click', () => { cancelAnimationFrame(fish.raf); const hit = fish.p >= fish.zone[0] - 0.01 && fish.p <= fish.zone[1] + 0.01; fish.phase = 'idle';
-      if (hit) { const r = Math.random(), c = r > 0.94 ? CATCH[4] : r > 0.8 ? CATCH[3] : r > 0.6 ? CATCH[2] : r > 0.3 ? CATCH[1] : CATCH[0]; if (c[1]) S.wallet += c[1]; else if (!S.items.includes(c[0])) S.items.push(c[0]); T.log('Fishing catch', c[1] ? '+' + T.fmt(c[1]) + ' $TOTEM' : c[0], 'g'); T.save(); T.sfx('coin'); fish.last = '<span>You caught <strong>' + c[0] + '</strong></span><span class="chip ' + (c[2] === 'common' ? '' : 'g') + '">' + c[2] + '</span>'; T.chain('Fishing catch', [{ receiver: 'arena.totemtest.testnet', method: 'claim_catch', args: { catch: c[0] } }]); }
+      if (hit) { const r = Math.random(), c = r > 0.94 ? CATCH[4] : r > 0.8 ? CATCH[3] : r > 0.6 ? CATCH[2] : r > 0.3 ? CATCH[1] : CATCH[0]; if (c[1]) T.collectPrize({ game: 'fishing-pier', place: 1, coins: c[1] }); else if (!S.items.includes(c[0])) S.items.push(c[0]); T.log('Fishing catch', c[1] ? '+' + T.fmt(c[1]) + ' $TOTEM' : c[0], 'g'); T.save(); T.sfx('coin'); fish.last = '<span>You caught <strong>' + c[0] + '</strong></span><span class="chip ' + (c[2] === 'common' ? '' : 'g') + '">' + c[2] + '</span>'; T.chain('Fishing catch', [{ receiver: 'arena.totemtest.testnet', method: 'claim_catch', args: { catch: c[0] } }]); }
       else { T.sfx('lose'); fish.last = '<span>It got away.</span>'; }
       paintFish(); }); }
   const rs = $('#fReset'); if (rs) rs.addEventListener('click', () => { S.fishCasts = 3; T.save(); paintFish(); });
@@ -2454,7 +2472,7 @@ T.modules.stack = { enter(){ if (!gate()) return; if (!stG) { stG = cg('st'); st
 const RN = { on: false, raf: 0 }; let rnG;
 function rnStart(){ RN.state = 'play'; RN.y = 0; RN.vy = 0; RN.obs = []; RN.coins = []; RN.dist = 0; RN.got = 0; RN.speed = 6; RN.next = 60; RN.t = 0; over('rn', ''); }
 function rnJump(){ if (RN.state !== 'play') return; if (RN.y <= 0.5) { RN.vy = 13.5; T.sfx('tap'); } }
-function rnEnd(){ RN.state = 'over'; T.sfx('lose'); const mult = S.pieces >= 4 ? 2 : 1, score = Math.floor(RN.dist / 10) + RN.got * 25 * mult, nb = score > (S.best.run || 0); S.best.run = Math.max(S.best.run || 0, score); const earned = RN.got * 100 * mult; S.wallet += earned; if (earned) T.log('Red Day Run', '+' + T.fmt(earned) + ' $TOTEM', 'g'); T.save(); T.calls.result('red-day-run', score, earned);
+function rnEnd(){ RN.state = 'over'; T.sfx('lose'); const mult = S.pieces >= 4 ? 2 : 1, score = Math.floor(RN.dist / 10) + RN.got * 25 * mult, nb = score > (S.best.run || 0); S.best.run = Math.max(S.best.run || 0, score); const earned = RN.got * 100 * mult; if (earned) T.collectPrize({ game: 'red-day-run', place: 1, coins: earned }); T.save(); T.calls.result('red-day-run', score, earned);
   over('rn', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:44px;line-height:1">Score ' + T.fmt(score) + '</h2><p class="muted">' + (nb ? 'New best. ' : 'Best: ' + T.fmt(S.best.run) + '. ') + 'You collected ' + RN.got + ' coins worth ' + T.fmt(earned) + ' $TOTEM' + (mult > 1 ? ', doubled for a full Totem' : '') + '.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn green" type="button" id="rnAgain">Run again</button><button class="btn ghost" type="button" id="rnShare">Share</button><a class="btn ghost" href="#arena">Back to island</a></div></div>');
   $('#rnAgain').addEventListener('click', rnStart); $('#rnShare').addEventListener('click', () => T.share({ title: 'I survived the red day', stat: 'Score ' + T.fmt(score), line: 'Red Day Run, Totem Arena' })); }
 function rnLoop(){
@@ -2514,7 +2532,7 @@ function hzMove(dx, dy){
 }
 function hzCatch(){ if (HZ.guards.some((g) => g.x === HZ.p.x && g.y === HZ.p.y)) hzEnd(false); }
 function hzEnd(win){ HZ.state = 'over'; T.sfx(win ? 'win' : 'lose'); let msg;
-  if (win) { const earned = HZ.loot * 1000; S.wallet += earned; if (!S.prizes.includes('Heist crew')) S.prizes.push('Heist crew'); T.log('Vault Heist loot', '+' + T.fmt(earned) + ' $TOTEM', 'g'); T.save(); T.calls.result('vault-heist', 1, earned); msg = 'You escaped with ' + HZ.loot + ' bags, worth ' + T.fmt(earned) + ' $TOTEM, and the Heist crew credential.'; }
+  if (win) { const earned = HZ.loot * 1000; T.collectPrize({ game: 'vault-heist', place: 1, coins: earned }); if (!S.prizes.includes('Heist crew')) S.prizes.push('Heist crew'); T.save(); T.calls.result('vault-heist', 1, earned); msg = 'You escaped with ' + HZ.loot + ' bags, worth ' + T.fmt(earned) + ' $TOTEM, and the Heist crew credential.'; }
   else msg = 'A guard caught you. Watch their paths and time your moves.';
   over('hz', '<div class="card ink" style="max-width:520px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:44px;line-height:1">' + (win ? 'Clean escape.' : 'Caught.') + '</h2><p class="muted">' + msg + '</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn green" type="button" id="hzAgain">' + (win ? 'Run it again' : 'Try again') + '</button>' + (win ? '<button class="btn ghost" type="button" id="hzShare">Share</button>' : '') + '<a class="btn ghost" href="#arena">Back to island</a></div></div>');
   $('#hzAgain').addEventListener('click', hzStart); const sh = $('#hzShare'); if (sh) sh.addEventListener('click', () => T.share({ title: 'We cracked the vault', stat: HZ.loot + ' bags out', line: 'Vault Heist, Totem Arena' })); }
@@ -2598,6 +2616,34 @@ T.refreshHoldings = async () => {
   return T.holdings;
 };
 document.addEventListener('totem:session', () => { T.refreshHoldings(); });
+
+// Every Arena game pays through here, so winning anything is a transfer from the Arena
+// prize account to the player's wallet rather than a number added to this browser. The
+// server decides the amount from the Arena's settings, checks the player owns a Totem, and
+// allows one prize per game per day. The games keep their own scores; only the payout is
+// here, in one place, so no game can invent its own currency again.
+T.collectPrize = async ({ game, place = 1, coins = 0 }) => {
+  const accountId = T.wallet && T.wallet.account ? T.wallet.account() : null;
+  if (!accountId) {
+    T.toast('Connect your NEAR wallet to collect this prize');
+    const header = document.querySelector('#connectBtn');
+    if (header) header.click();
+    return null;
+  }
+  try {
+    const result = await window.totemApi.request('/api/v1/arenas/totem/finish', {
+      authenticated: true,
+      method: 'POST',
+      body: JSON.stringify({ game, place, coins: Math.max(0, Math.round(coins)) })
+    });
+    T.toast('Paid ' + T.fmt(result.prizeWhole) + ' $TOTEM for ' + game + '.');
+    await T.refreshHoldings();
+    return result;
+  } catch (error) {
+    T.toast(error && error.message ? error.message : 'The prize could not be paid');
+    return null;
+  }
+};
 
 
 const liveChip = '<span class="chip g">Live</span>';

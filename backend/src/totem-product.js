@@ -634,10 +634,12 @@ export class TotemProductService {
     invariant(holdings.source === 'chain', 'CHAIN_UNAVAILABLE', 'NEAR could not be reached, so no prize was paid')
     invariant(holdings.totemTokenId, 'TOTEM_REQUIRED', 'You race the Totem you own. Claim a Totem first.')
 
+    // Once per game per day, not once per day. The Arena is nine games, and a single daily
+    // payout across all of them would mean eight of them never pay anything.
     const day = Math.floor(this.#now() / 86_400_000)
-    const ledgerKey = `${accountId}#${day}`
+    const ledgerKey = `${accountId}#${game}#${day}`
     const already = await this.#repository.getGrant('prize', ledgerKey)
-    invariant(!already, 'PRIZE_ALREADY_PAID_TODAY', 'This account has already collected an Arena prize today')
+    invariant(!already, 'PRIZE_ALREADY_PAID_TODAY', `This account has already collected the ${game} prize today`)
     await this.#guardClaim({ ip, deviceId: null })
 
     // The operator sets what their Arena pays. The deployment default is only the fallback.

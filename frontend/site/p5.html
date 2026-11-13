@@ -4,7 +4,10 @@
 const T = window.TOTEM; const { $, $$, S } = T;
 
 /* ---------- arenas directory ---------- */
-function meets(){ const need = S.entryPieces || 1; return S.pieces >= need || (!!S.rented && S.rented.pieces >= need) || (need <= 1 && S.prizes.some((p) => /^Prize Totem/.test(p))); }
+// Qualification is what the chain says this wallet holds, not a stored counter. Nobody
+// qualifies before signing in, because until then there is no wallet to check.
+function meets(){ const need = (T.holdings && T.holdings.entryPieces) || S.entryPieces || 1; return Boolean(T.holdings) && T.holdings.pieces >= need; }
+function connected(){ return Boolean(T.holdings); }
 function paintArenas(){
   const ok = meets();
   $('#arenaList').innerHTML =
@@ -13,7 +16,7 @@ function paintArenas(){
     '<div style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px;min-width:0">' +
     '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="font-size:44px;line-height:1">Totem Arena</h2>' + (S.arenaPaused ? '<span class="chip e">Paused by operators</span>' : '<span class="chip g">Live, season 1</span>') + '<span class="chip">Flagship</span></div>' +
     '<p style="color:var(--body)">Meme Kart, Paint the Island, Hold the Line and more on the Totem island. Prizes are Totem NFTs with $TOTEM already inside.</p>' +
-    '<div class="door" style="background:var(--soft);border-color:var(--soft)"><span>Entry rule, set by the Totem team<br><strong>' + ((S.entryPieces || 1) >= 4 ? 'Own a full Totem' : 'Own a Totem with ' + (S.entryPieces || 1) + ' piece' + ((S.entryPieces || 1) > 1 ? 's' : '') + ' or more') + '</strong></span><span class="chip ' + (ok ? 'g' : 'e') + '">' + (ok ? 'You qualify' : 'Not yet') + '</span></div>' +
+    '<div class="door" style="background:var(--soft);border-color:var(--soft)"><span>Entry rule, set by the Totem team<br><strong>' + ((S.entryPieces || 1) >= 4 ? 'Own a full Totem' : 'Own a Totem with ' + (S.entryPieces || 1) + ' piece' + ((S.entryPieces || 1) > 1 ? 's' : '') + ' or more') + '</strong></span><span class="chip ' + (ok ? 'g' : 'e') + '">' + (ok ? 'You qualify' : connected() ? 'Not yet' : 'Connect to check') + '</span></div>' +
     (S.arenaPaused ? '<p class="muted">The Totem team paused this Arena. Entry reopens when it goes live again.</p>' : ok ? '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="enterTotem">' + (S.arena === 'totem' ? 'Return to Totem Arena' : 'Enter Totem Arena') + '</button>' + (S.arena === 'totem' ? '<button class="btn ghost" type="button" id="leaveTotem">Leave this Arena</button>' : '') + '</div>'
         : '<p class="muted" style="font-size:14px">The Totem team allows three ways in:</p><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#lock">Lock $TOTEM into a Totem</a><a class="btn ghost" href="#rent">Rent a Totem</a><a class="btn ghost" href="#claim">Claim a free starter</a></div>') +
     '</div></div>' +
@@ -69,8 +72,23 @@ function paintLock(){
   const doors = [['Holder room', '1 piece', 1], ['Treasury room', '3 pieces', 3], ['Arena finals', 'Full Totem', 4]];
   $('#doors').innerHTML = doors.map((d) => '<div class="door"><span>' + d[0] + '<br><span class="muted" style="font-size:13px">' + d[1] + '</span></span><span class="chip ' + (n >= d[2] ? 'g' : '') + '">' + (n >= d[2] ? 'Open' : 'Locked') + '</span></div>').join('');
 }
-$('#addPiece').addEventListener('click', () => { if (S.pieces < 4 && S.wallet >= 25000) { S.pieces++; S.wallet -= 25000; T.log('Locked a piece', '+25,000 $TOTEM', 'g'); T.save(); paintLock(); T.toast('Piece added. 25,000 $TOTEM locked in Totem #0417'); } });
-$('#takePiece').addEventListener('click', () => { if (S.pieces > 0) { S.pieces--; S.wallet += 25000; T.log('Took a piece out', '-25,000 $TOTEM', 'e'); T.save(); paintLock(); T.toast('Piece removed. 25,000 $TOTEM back in your wallet'); } });
+// These used to move 25,000 $TOTEM between two numbers in this browser. Locking is
+// recorded by the Totem API against the Totem you actually own, which the profile shows
+// and which the Arena reads. It is a platform record rather than an on-chain hook, and the
+// page says so rather than implying a transfer happened.
+const piece = async (method, label) => {
+  const held = T.holdings;
+  if (!held) { T.toast('Connect your NEAR wallet first'); const b = document.querySelector('#connectBtn'); if (b) b.click(); return; }
+  if (!held.totemTokenId) { T.toast('Claim a Totem on your profile first'); location.hash = '#profile'; return; }
+  try {
+    await window.totemApi.request('/api/v1/totems/' + encodeURIComponent(held.totemTokenId) + '/pieces', { authenticated: true, method });
+    T.toast(label);
+    await T.refreshHoldings();
+    paintLock();
+  } catch (error) { T.toast(error && error.message ? error.message : 'That did not work'); }
+};
+$('#addPiece').addEventListener('click', () => piece('POST', 'Piece locked and recorded by the Totem API'));
+$('#takePiece').addEventListener('click', () => piece('DELETE', 'Piece released and recorded by the Totem API'));
 T.modules.lock = { enter: paintLock };
 
 /* ---------- totem account + 3D viewer ---------- */

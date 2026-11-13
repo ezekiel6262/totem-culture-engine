@@ -48,6 +48,34 @@ T.refreshHoldings = async () => {
 };
 document.addEventListener('totem:session', () => { T.refreshHoldings(); });
 
+// Every Arena game pays through here, so winning anything is a transfer from the Arena
+// prize account to the player's wallet rather than a number added to this browser. The
+// server decides the amount from the Arena's settings, checks the player owns a Totem, and
+// allows one prize per game per day. The games keep their own scores; only the payout is
+// here, in one place, so no game can invent its own currency again.
+T.collectPrize = async ({ game, place = 1, coins = 0 }) => {
+  const accountId = T.wallet && T.wallet.account ? T.wallet.account() : null;
+  if (!accountId) {
+    T.toast('Connect your NEAR wallet to collect this prize');
+    const header = document.querySelector('#connectBtn');
+    if (header) header.click();
+    return null;
+  }
+  try {
+    const result = await window.totemApi.request('/api/v1/arenas/totem/finish', {
+      authenticated: true,
+      method: 'POST',
+      body: JSON.stringify({ game, place, coins: Math.max(0, Math.round(coins)) })
+    });
+    T.toast('Paid ' + T.fmt(result.prizeWhole) + ' $TOTEM for ' + game + '.');
+    await T.refreshHoldings();
+    return result;
+  } catch (error) {
+    T.toast(error && error.message ? error.message : 'The prize could not be paid');
+    return null;
+  }
+};
+
 
 const liveChip = '<span class="chip g">Live</span>';
 const section = (route) => document.querySelector('[data-route="' + route + '"]');
