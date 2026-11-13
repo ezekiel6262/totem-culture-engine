@@ -27,6 +27,7 @@ const region = flag('region', 'us-east-1')
 const network = flag('network', 'testnet')
 const signerAccount = flag('signer', 'totemtest.testnet')
 const faucetAccount = flag('faucet', 'faucet.totemtest.testnet')
+const prizeAccount = flag('prizes', 'prizes.totemtest.testnet')
 
 const aws = parameters => execFileSync('aws', [...parameters, '--region', region], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 
@@ -42,20 +43,31 @@ const credentials = account => {
 // restricted function call key from create-restricted-signer.mjs, and setting it from the
 // credential store here would replace that with the owner's full access key.
 const only = flag('only', 'all')
-const signer = only === 'faucet' ? null : credentials(signerAccount)
-const faucet = only === 'signer' ? null : credentials(faucetAccount)
+// Each key is included only when it was asked for. The earlier form listed what to
+// exclude, so adding a third kind silently let the others through: --only prize
+// replaced the restricted signer with the owner's full access key.
+const wants = kind => only === 'all' || only === kind
+const signer = wants('signer') ? credentials(signerAccount) : null
+const faucet = wants('faucet') ? credentials(faucetAccount) : null
+const prize = wants('prize') ? credentials(prizeAccount) : null
+
+// The prize account pays Arena prizes. Same containment as the faucet: it holds one
+// allocation and nothing else, so a stolen key costs that allocation alone.
+
 
 const current = JSON.parse(aws(['lambda', 'get-function-configuration', '--function-name', functionName, '--output', 'json']))
 const existing = current.Environment?.Variables ?? {}
 
 const additions = {
   ...(signer ? { TOTEM_SIGNER_ACCOUNT_ID: signerAccount, TOTEM_SIGNER_PUBLIC_KEY: signer.publicKey, TOTEM_SIGNER_SECRET_KEY: signer.secretKey } : {}),
-  ...(faucet ? { TOTEM_FAUCET_ACCOUNT_ID: faucetAccount, TOTEM_FAUCET_PUBLIC_KEY: faucet.publicKey, TOTEM_FAUCET_SECRET_KEY: faucet.secretKey } : {})
+  ...(faucet ? { TOTEM_FAUCET_ACCOUNT_ID: faucetAccount, TOTEM_FAUCET_PUBLIC_KEY: faucet.publicKey, TOTEM_FAUCET_SECRET_KEY: faucet.secretKey } : {}),
+  ...(prize ? { TOTEM_PRIZE_ACCOUNT_ID: prizeAccount, TOTEM_PRIZE_PUBLIC_KEY: prize.publicKey, TOTEM_PRIZE_SECRET_KEY: prize.secretKey } : {})
 }
 
 console.log(`function ${functionName}`)
 if (signer) console.log(`  signer  ${signerAccount}  ${signer.publicKey}`)
 if (faucet) console.log(`  faucet  ${faucetAccount}  ${faucet.publicKey}`)
+if (prize) console.log(`  prizes  ${prizeAccount}  ${prize.publicKey}`)
 console.log('  secret keys are read from the credential store and never printed')
 console.log(`\n  variables kept   ${Object.keys(existing).length}`)
 console.log(`  variables set    ${Object.keys(additions).join(', ')}`)

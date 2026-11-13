@@ -111,6 +111,8 @@ export function createProductRouter({ product, auth = null, intents = null }) {
     // that follows is signed by the holder. The faucet sends one piece of $TOTEM.
     route('POST', '/api/v1/claims/eligibility', async ({ body, identity }) => product.claimEligibility({ accountId: actingAs(identity), branch: body?.branch }), { auth: 'required' }),
     route('POST', '/api/v1/claims/tokens', async ({ request, body, identity }) => product.claimTokens({ accountId: actingAs(identity), ip: clientAddress(request), deviceId: body?.deviceId }), { auth: 'required' }),
+    // A finished race, reported by the player's own browser and paid a capped prize.
+    route('POST', '/api/v1/arenas/:id/finish', async ({ request, params, body, identity }) => product.finishRace({ accountId: actingAs(identity), game: body?.game, place: Number(body?.place ?? 1), coins: Number(body?.coins ?? 0), ip: clientAddress(request) }), { auth: 'required' }),
     route('POST', '/api/v1/claims/prize', async ({ body, identity }) => product.claimPrize({ handle: actingAs(identity), prizeId: body?.prizeId }), { auth: 'required' }),
 
     /* launches */

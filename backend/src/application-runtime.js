@@ -48,7 +48,7 @@ export async function createApplicationRuntime(config){
     // A signer exists only where its key is configured. Without one the claim endpoints
   // refuse with CLAIMS_NOT_CONFIGURED rather than pretending to have done something.
   const signerFor=(accountId,publicKey,secretKey)=>accountId&&publicKey&&secretKey?new NearSigner({rpcUrl:config.nearRpcUrl,accountId,publicKey,secretKey}):null
-  const chain={rpc,tokenContractId:config.tokenContractId,nftContractId:config.nftContractId,eligibilityCap:config.eligibilityCap,faucetWhole:config.faucetWhole,signer:signerFor(config.signerAccountId,config.signerPublicKey,config.signerSecretKey),faucetSigner:signerFor(config.faucetAccountId,config.faucetPublicKey,config.faucetSecretKey)}
+  const chain={rpc,tokenContractId:config.tokenContractId,nftContractId:config.nftContractId,eligibilityCap:config.eligibilityCap,faucetWhole:config.faucetWhole,signer:signerFor(config.signerAccountId,config.signerPublicKey,config.signerSecretKey),faucetSigner:signerFor(config.faucetAccountId,config.faucetPublicKey,config.faucetSecretKey),prizeSigner:signerFor(config.prizeAccountId,config.prizePublicKey,config.prizeSecretKey),prizeFirst:config.prizeFirst,prizeOther:config.prizeOther}
   const product=createProductRouter({product:new TotemProductService({repository:productRepository,rateLimiter,accounts,chain}),auth,intents})
   return{db,dynamo,api,routes,product}
 }

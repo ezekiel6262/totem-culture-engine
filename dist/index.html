@@ -1490,14 +1490,35 @@ function finish(){
     o.innerHTML = '<div class="card ink" style="display:flex;flex-direction:column;gap:14px">' +
       '<span class="muted">Race finished</span><h2 style="font-size:clamp(44px,8vw,72px);line-height:1">' + (first ? 'You won.' : 'You placed ' + ord(p.place) + '.') + '</h2>' +
       '<div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><span class="muted" style="font-size:13px">Time</span><div class="big">' + fmtT(p.ft) + '</div></div><div><span class="muted" style="font-size:13px">Place</span><div class="big">' + p.place + ' of 6</div></div><div><span class="muted" style="font-size:13px">$TOTEM collected</span><div class="big mark">' + T.fmt(p.coins) + '</div></div></div>' +
-      (p.newBest ? '<div class="door"><span>Ghost saved</span><strong>Your best run, ' + fmtT(p.ft) + '. Race it next time.</strong></div>' : '') + (first ? '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Prize</span><strong>A Totem with 1 piece inside</strong></div>' : '<p class="muted">Finish first to win a prize Totem. Your collected $TOTEM is still yours.</p>') +
-      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="claimRace">' + (!S.connected ? (first ? 'Claim prize, no wallet needed' : 'Keep my coins, no wallet needed') : first ? 'Claim prize and lock coins' : 'Lock coins into my Totem') + '</button><button class="btn ghost" type="button" id="shareRace">Share</button><button class="btn ghost" type="button" id="againRace">Race again</button><a class="btn ghost" href="#arena">Back to the island</a></div>' +
-      '<span class="muted" style="font-size:13px">Demo. In the live game, the race server signs this result and prizes move after a 24 hour dispute window.</span></div>';
-    $('#claimRace').addEventListener('click', () => {
-      if (!S.connected) { S.pendingCoins = (S.pendingCoins || 0) + p.coins; S.pendingPrize = first || S.pendingPrize; S.races++; T.save(); location.hash = '#claim'; return; }
-      S.wallet += p.coins; T.log('Meme Kart, ' + ord(p.place) + ' place', '+' + T.fmt(p.coins) + ' $TOTEM', 'g');
-      if (first) { S.prizes.push('Prize Totem #P' + (100 + S.prizes.length)); T.log('Won a prize Totem', '1 piece', 'g'); }
-      S.races++; T.save(); T.toast(first ? 'Prize Totem claimed. Coins are in your wallet, ready to lock.' : 'Coins are in your wallet, ready to lock.'); location.hash = '#lock';
+      (p.newBest ? '<div class="door"><span>Ghost saved</span><strong>Your best run, ' + fmtT(p.ft) + '. Race it next time.</strong></div>' : '') + '<div class="door" style="background:#FFFBE0;border-color:#000"><span>Prize</span><strong>' + (first ? '5,000' : '1,000') + ' $TOTEM, paid on chain from the Arena prize account</strong></div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn green" type="button" id="claimRace">Collect my prize</button><button class="btn ghost" type="button" id="shareRace">Share</button><button class="btn ghost" type="button" id="againRace">Race again</button><a class="btn ghost" href="#arena">Back to the island</a></div>' +
+      '<span class="muted" style="font-size:13px">The race runs in your browser and reports its own result, so the prize is small and limited to one a day per account. The result is held for a dispute window before it settles. A production Arena would have the race server sign the result.</span></div>';
+    // Collecting sends the result to the Arena, which pays a real prize out of the prize
+    // account to the wallet that is signed in. It used to add to a number in local storage
+    // and invent a prize Totem that never existed anywhere.
+    $('#claimRace').addEventListener('click', async () => {
+      const button = $('#claimRace');
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      const signedIn = T.wallet && T.wallet.account ? T.wallet.account() : null;
+      if (!signedIn) { T.toast('Connect your NEAR wallet to collect the prize'); const header = $('#connectBtn'); if (header) header.click(); return; }
+      button.setAttribute('aria-disabled', 'true');
+      button.textContent = 'Paying...';
+      try {
+        const response = await window.totemApi.request('/api/v1/arenas/totem/finish', {
+          authenticated: true,
+          method: 'POST',
+          body: JSON.stringify({ game: 'meme-kart', place: p.place, coins: p.coins })
+        });
+        S.races++; T.save();
+        T.toast('Paid ' + T.fmt(response.prizeWhole) + ' $TOTEM. Transaction ' + response.transactionHash);
+        if (T.refreshHoldings) await T.refreshHoldings();
+        button.textContent = 'Paid ' + T.fmt(response.prizeWhole) + ' $TOTEM';
+      } catch (error) {
+        const message = error && error.message ? error.message : 'The prize could not be paid';
+        T.toast(message);
+        button.removeAttribute('aria-disabled');
+        button.textContent = 'Collect my prize';
+      }
     });
     $('#againRace').addEventListener('click', () => reset());
     $('#shareRace').addEventListener('click', () => T.share({ title: first ? 'I won Meme Kart' : 'I placed ' + ord(p.place) + ' in Meme Kart', stat: fmtT(p.ft) + ', ' + T.fmt(p.coins) + ' $TOTEM', line: 'Totem Arena on NEAR' }));

@@ -158,6 +158,10 @@ export class TotemProductService {
       branches: ['diamond-holder', 'liquidity-guardian', 'meme-commander', 'community-builder'],
       // One piece, which is the smallest amount that opens a one piece Arena.
       faucetWhole: 25000,
+      // Arena prizes. Small on purpose: the browser reports its own race result, so these
+      // numbers are sized for something unverified rather than for something proven.
+      prizeFirst: 5000,
+      prizeOther: 1000,
       ...chain
     }
     // Every account hangs off the suffix, so a testnet deployment never shows mainnet names
@@ -539,6 +543,72 @@ export class TotemProductService {
     await this.registerAccount({ accountId })
     await this.#ledger(accountId, { title: 'Claimed $TOTEM from the faucet', amount: `+${Number(faucetWhole).toLocaleString('en-US')} $TOTEM`, tone: 'g' })
     return { ...grant, alreadyGranted: false }
+  }
+
+  // A finished race pays a real prize out of the Arena prize allocation.
+  //
+  // Being honest about what this is: the race runs in the browser and reports its own
+  // result, so a score is a claim, not a proof. That is why the prize is small, why it is
+  // capped to one per account per day, and why the account has to own a Totem on chain to
+  // collect at all. The result is recorded through the normal pipeline, which holds it for
+  // the dispute window before it settles, and it is marked self reported so nothing
+  // downstream can mistake it for a score a game server vouched for. A production Arena
+  // would have the game server sign results with the Arena's result signer key, which the
+  // contract-side model already expects.
+  async finishRace({ accountId, game = 'meme-kart', place = 1, coins = 0, ip = null }) {
+    requireAccount(accountId, 'ACCOUNT_INVALID', 'Connect a NEAR wallet to race')
+    const { prizeSigner, tokenContractId, decimals, prizeFirst, prizeOther } = this.#chain
+    invariant(prizeSigner && tokenContractId, 'PRIZES_NOT_CONFIGURED', 'Arena prizes are not configured on this deployment')
+    invariant(Number.isInteger(place) && place >= 1 && place <= 20, 'PLACE_INVALID', 'place must be between 1 and 20')
+
+    const arena = await this.getArena('totem')
+    invariant(!arena.paused, 'ARENA_PAUSED', 'The operator has paused this Arena')
+
+    // You race the Totem you own, so you collect only if you own one.
+    const holdings = await this.onChainHoldings(accountId)
+    invariant(holdings.source === 'chain', 'CHAIN_UNAVAILABLE', 'NEAR could not be reached, so no prize was paid')
+    invariant(holdings.totemTokenId, 'TOTEM_REQUIRED', 'You race the Totem you own. Claim a Totem first.')
+
+    const day = Math.floor(this.#now() / 86_400_000)
+    const ledgerKey = `${accountId}#${day}`
+    const already = await this.#repository.getGrant('prize', ledgerKey)
+    invariant(!already, 'PRIZE_ALREADY_PAID_TODAY', 'This account has already collected an Arena prize today')
+    await this.#guardClaim({ ip, deviceId: null })
+
+    const whole = place === 1 ? prizeFirst : prizeOther
+    const amount = (BigInt(whole) * 10n ** BigInt(decimals)).toString()
+
+    // The receiver may never have held $TOTEM, and NEP-141 refuses a transfer to an account
+    // that has not paid for its own storage.
+    await prizeSigner.call({
+      receiverId: tokenContractId,
+      methodName: 'storage_deposit',
+      args: { account_id: accountId, registration_only: true },
+      deposit: 1_250_000_000_000_000_000_000n
+    })
+    const { transactionHash } = await prizeSigner.call({
+      receiverId: tokenContractId,
+      methodName: 'ft_transfer',
+      args: { receiver_id: accountId, amount, memo: `Totem Arena prize, ${game}, place ${place}` },
+      deposit: 1n
+    })
+
+    await this.#repository.createGrant({ kind: 'prize', accountId: ledgerKey, player: accountId, game, place, whole, transactionHash, at: this.#now() })
+    const reported = await this.reportResult({ arenaId: 'totem', game, player: accountId, place, coins, signedBy: arena.resultSigner })
+    await this.#ledger(accountId, { title: `${game} prize, place ${place}`, amount: `+${Number(whole).toLocaleString('en-US')} $TOTEM`, tone: 'g' })
+
+    return {
+      player: accountId,
+      game,
+      place,
+      prizeWhole: whole,
+      amount,
+      transactionHash,
+      tokenContractId,
+      verified: false,
+      note: 'Self reported by the browser. The prize is capped and rate limited for that reason.',
+      result: reported.result
+    }
   }
 
   async claimStarter({ handle, ip = null, deviceId = null }) {
