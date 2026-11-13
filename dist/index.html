@@ -383,7 +383,7 @@ footer.site{border-top:1px solid var(--line);padding:36px 0 calc(36px + env(safe
 <div class="wrap">
 <div class="card" style="border-color:#000;background:#FFFBE0;display:flex;flex-direction:column;gap:10px;margin-bottom:22px">
 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="chip e">Not deployed</span><strong style="font-family:var(--serif);font-size:24px">Planned for mainnet</strong></div>
-<p style="margin:0;color:var(--body)">The launchpad is designed and its contract is written and tested, but it is not deployed. It instantiates a launched collection from globally registered contract code, and registering that code on NEAR costs 10 NEAR per 100KB which is burnt rather than staked: about 35 NEAR for the collection template. That is beyond what a testnet faucet provides, so it waits for mainnet.</p>
+<p style="margin:0;color:var(--body)">The launchpad's contract is written and compiles, and it is not deployed: <span style="font-family:var(--mono)">launch.totemtest.testnet</span> does not exist. Its first design needed the collection template registered as a global contract on NEAR, which burns about 35 NEAR rather than staking it. It now stores the template and deploys it directly, which stakes about 4 NEAR and is recoverable, so it is deployable rather than theoretical. It has not been deployed.</p>
 <p class="muted" style="margin:0;font-size:14px">Everything below shows what launching will ask for. Nothing here submits a transaction, and no launch has been made. The four contracts that are deployed are on the <a href="#explore">Explore</a> page.</p>
 </div>
 

@@ -33,7 +33,7 @@ development phase; outside it the API answers 403.
 
 | Claim | Evidence |
 | --- | --- |
-| NFTs with behaviour | `nft.totemtest.testnet` live on testnet, Totem #1 minted on chain behind an eligibility gate, listed on the live market |
+| NFTs with behaviour | `nft.totemtest.testnet` holds `$TOTEM` inside the token itself through the NEP-141 receiver: `locked_of` and `pieces_of` read it, `withdraw_piece` is owner-only, and Arena entry reads what the Totem holds rather than what its owner's wallet holds |
 | Memecoin mechanics | `token.totemtest.testnet` live on testnet, 25,000 `$TOTEM` per piece and 4 pieces per Totem, enforced in `backend/src/totem-product.js` |
 | Arena entry gated on locked value | `backend/src/arena-economy.js`, `#arenas` shows the entry rule and the server's decision |
 | Agent wallets with limits | `agent.totemtest.testnet` live on testnet, `get_policy` returns the per-payment cap, daily cap and paused flag from contract state |
@@ -48,13 +48,17 @@ development phase; outside it the API answers 403.
 
 | Contract | Account | Network | Evidence |
 | --- | --- | --- | --- |
-| Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, 4.10 NEAR staked, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
+| Totem NFT, NEP-171 | `nft.totemtest.testnet` | testnet | `code_hash` `DiPyuXCQAdmx32xVWMQ4zU9RHkBKFNAW2SPLcwwmdXJv`, 5.60 NEAR staked, **holds `$TOTEM` inside each Totem**: `locked_of("1")` is 25,000 and the collection's own NEP-141 balance is 25,000 because the tokens really moved, `launch_config` reports 10,000 max supply and 500 / 250 bps royalties, `nft_total_supply` 0 |
 | Totem token, NEP-141 | `token.totemtest.testnet` | testnet | `code_hash` `3qR5b6C3wVcgQ1iiJBwPkdp24hFEUFARytTUzWMe9a1j`, 2.60 NEAR staked, `ft_total_supply` 1,000,000,000 at 18 decimals, all held by `totemtest.testnet` |
-| Player-owned market | `market.totemtest.testnet` | testnet | `code_hash` `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`, 2.30 NEAR staked, 250 bps fee to the treasury, `listings` returns `[]` |
+| Player-owned market | `market.totemtest.testnet` | testnet | `code_hash` `C1GguQ854deoNGuFqThJhL8AVbpDrXxoTjW4yTZnwarV`, 2.30 NEAR staked, 250 bps fee to the treasury, `listings` returns one live listing, Totem #1 at 1 NEAR |
+| Launchpad factory | `launch.totemtest.testnet` | **not deployed** | The account does not exist. The contract is written and compiles; nothing in this submission depends on it |
 | Culture Agent | `agent.totemtest.testnet` | testnet | `code_hash` `2xxUTo1pgx5gHgiUqHBQVNPgSZYQMHPSkuqz9D3Cxefh`, 2.10 NEAR staked, `get_policy` reports 1 NEAR per payment, 5 NEAR daily, `paused` false; `available_budget` about 0.49 NEAR |
 
-Deployed 2026-11-12 from `totem_nft.wasm`, sha256 `BCE70A87CC289AA60C5DE3099B9C89FFB0F6D330638A37BC75713FE4B6997667`, with
-`npm run launch:testnet -- --only nft --execute`. Read it back over public RPC:
+First deployed 2026-11-12 with `npm run launch:testnet -- --only nft --execute`, and
+upgraded in place on 2026-11-13 to the build that holds `$TOTEM`, sha256
+`BCE70A87CC289AA60C5DE3099B9C89FFB0F6D330638A37BC75713FE4B6997667`. The upgrade ran a state
+migration in the same transaction as the deploy, so Totem #1 kept its owner and metadata.
+Read any of it back over public RPC:
 
 ```sh
 near contract call-function as-read-only nft.totemtest.testnet nft_metadata \

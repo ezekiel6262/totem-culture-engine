@@ -106,7 +106,7 @@ Stated plainly, because the UI labels it and a judge should not have to guess.
 | Arena operator console: entry rule, prizes, pause, settle | **Live**, operator checked on the server |
 | Arena gameplay itself, scores and race times | **Simulated in the browser**, and the result is self reported |
 | Culture Agent (bounded spending) | **Live on testnet** at `agent.totemtest.testnet` |
-| Launchpad factory | **Not deployed.** Registering a template globally burns about 35 NEAR |
+| Launchpad factory | **Written and compiles, not deployed.** `launch.totemtest.testnet` does not exist |
 | Totem NFT contract (NEP-171) | **Live on testnet** at `nft.totemtest.testnet` |
 | Totem token contract (NEP-141) | **Live on testnet** at `token.totemtest.testnet` |
 | Player-owned market (NEP-171 royalties) | **Live on testnet** at `market.totemtest.testnet` |
