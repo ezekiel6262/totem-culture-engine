@@ -14,11 +14,11 @@ development phase; outside it the API answers 403.
 - [x] Verify a clean clone: `git clone`, `npm ci`, `npm run judge:verify` (114 tests, both audits).
 - [x] Authorise `totemtest.testnet` for near-cli-rs. The key is in the legacy key store and matches the account full access key on chain, `ed25519:247jogH965g1UaFCMjWY4ShQPfqLKNLELETr1vMHsCeC`.
 - [x] Deploy the NFT: `nft.totemtest.testnet`, collection size 10,000, 4.10 NEAR staked.
-- [ ] Top up `totemtest.testnet` from https://near-faucet.io: it holds about 1.29 NEAR and the token needs 3.1 (testnet NEAR is free, Q-008).
+- [x] Fund `totemtest.testnet`. The token and the collection are both deployed; the account retains a working balance.
 - [x] Deploy the token: `token.totemtest.testnet`, total supply 1,000,000,000 at 18 decimals, 2.60 NEAR staked.
 - [x] Deploy the market and the Culture Agent: `market.totemtest.testnet`, `agent.totemtest.testnet`.
 - [x] Exercise the deployed contracts end to end on chain: mint, NEP-141 transfer, market listing, agent reward, and a refused over-cap payment. Eight transactions, listed in `JUDGES.md`.
-- [ ] Optional: deploy the launchpad factory (2.8 NEAR). It cannot demonstrate `launch` without ~55.6 NEAR burned on global template registration.
+- [ ] Optional, after the deadline: deploy the launchpad factory. It was rewritten to deploy a stored template, so it needs about 6 NEAR staked rather than ~35 burned, but it has never been deployed and nothing here depends on it.
 - [x] Record the deployed contract ids and code hashes here (see Deployed contracts below).
 - [x] Stack parameter `TotemNftContractId` already defaults to `nft.totemtest.testnet`, which is what was deployed. The others follow their own deploys.
 - [ ] Confirm the live demo stays up at https://mytotem.buzz through 2026-11-18, ideally 2026-11-25 (Q-012).
